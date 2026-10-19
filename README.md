@@ -1,5 +1,14 @@
 # Better RPT
 
+> [!WARNING]
+> **Origen y uso de IA.** Better RPT se basa en la idea de Remote Play Detached
+> (RPD), de smaTc
+> ([github.com/smaTc/RemotePlayDetached](https://github.com/smaTc/RemotePlayDetached),
+> licencia MIT), y no reutiliza su código. El mantenedor usó herramientas de IA
+> para desarrollar la aplicación, las pruebas y la documentación. El código y los
+> textos pueden contener errores pese a las pruebas. Si encuentras un fallo,
+> informa de él con los pasos para reproducirlo.
+
 Remote Play Together para juegos de Steam que no lo incluyen.
 
 Better RPT usa SpaceWar (App ID 480) como donante fijo para abrir un juego
