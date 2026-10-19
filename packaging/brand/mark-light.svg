@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 160" width="256" height="160" role="img" aria-labelledby="title"><title id="title">Better RPT mark for light backgrounds</title>
+  <rect x="64.5" y="73" width="32" height="14" fill="#2A9D8F"/>
+  <rect x="150" y="73" width="41.5" height="14" fill="#F4A261"/>
+  <path fill="#2A9D8F" d="M 64.5 61 L 24.5 80 L 64.5 99 Z"/>
+  <path fill="#F4A261" d="M 191.5 61 L 231.5 80 L 191.5 99 Z"/>
+  <path fill="#0B1418" d="M 88.5 30 L 88.5 130 L 167.5 80 Z"/>
+</svg>

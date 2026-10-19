@@ -193,7 +193,7 @@ func (d *dashboard) buildHeader() fyne.CanvasObject {
 	subtitle.TextSize = 12
 	wordmark := vbox(1, title, subtitle)
 
-	logo := canvas.NewImageFromResource(appIcon)
+	logo := canvas.NewImageFromResource(appIconSmall)
 	logo.FillMode = canvas.ImageFillContain
 	logo.CornerRadius = 7
 	logo.SetMinSize(fyne.NewSize(28, 28))

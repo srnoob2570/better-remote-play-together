@@ -44,6 +44,9 @@ var fontFS embed.FS
 //go:embed assets/better-rpt.png
 var appIconData []byte
 
+//go:embed assets/better-rpt-small.png
+var appIconSmallData []byte
+
 var (
 	fontSans           = loadFont("assets/fonts/IBMPlexSans-Regular.ttf")
 	fontSansBold       = loadFont("assets/fonts/IBMPlexSans-SemiBold.ttf")
@@ -51,6 +54,7 @@ var (
 	fontSansBoldItalic = loadFont("assets/fonts/IBMPlexSans-SemiBoldItalic.ttf")
 	fontMono           = loadFont("assets/fonts/IBMPlexMono-Regular.ttf")
 	appIcon            = fyne.NewStaticResource("better-rpt.png", appIconData)
+	appIconSmall       = fyne.NewStaticResource("better-rpt-small.png", appIconSmallData)
 )
 
 func loadFont(path string) fyne.Resource {
