@@ -29,3 +29,28 @@ test-race:
 
 vet:
 	$(GO) vet ./...
+
+INSTALL ?= install
+DESTDIR ?=
+BINDIR ?= /usr/bin
+HELPERDIR ?= /usr/lib/better-rpt
+APPSDIR ?= /usr/share/applications
+ICONDIR ?= /usr/share/icons/hicolor
+ICON_SIZES ?= 16 24 32 48 64 128 256 512
+
+# Construye e instala ambos binarios con el mismo layout que el .deb. La app
+# busca el helper del sistema en /usr/lib/better-rpt; mantén HELPERDIR en
+# sintonía con internal/helper/install.go. Usa DESTDIR para un árbol temporal.
+.PHONY: all install
+
+all: build helper
+
+install: all
+	$(INSTALL) -Dm755 $(BINARY) $(DESTDIR)$(BINDIR)/better-rpt
+	$(INSTALL) -Dm755 $(HELPER) $(DESTDIR)$(HELPERDIR)/better-rpt-helper
+	$(INSTALL) -Dm644 packaging/better-rpt.desktop \
+		$(DESTDIR)$(APPSDIR)/better-rpt.desktop
+	for size in $(ICON_SIZES); do \
+		$(INSTALL) -Dm644 "packaging/icons/hicolor/$${size}x$${size}/apps/better-rpt.png" \
+			"$(DESTDIR)$(ICONDIR)/$${size}x$${size}/apps/better-rpt.png"; \
+	done
