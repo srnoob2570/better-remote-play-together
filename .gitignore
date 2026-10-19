@@ -5,6 +5,7 @@
 /.scratch/
 /.agents/
 /.feedback/
+/.unlazy/
 
 # Copias de referencia de terceros
 /references/

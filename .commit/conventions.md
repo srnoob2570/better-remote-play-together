@@ -19,3 +19,5 @@
   ignorado y no se versiona.
 - Los fixtures de `testdata/steam/` son entradas de prueba versionadas; los
   scripts de `testdata/steam/` los materializan en directorios temporales.
+- De `.codegraph/` solo se versiona su `.gitignore`; el índice (`codegraph.db`)
+  es local de cada máquina y nunca debe entrar al repositorio.
