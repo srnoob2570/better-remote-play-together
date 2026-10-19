@@ -15,5 +15,7 @@
   y el empaquetado; nunca deben entrar al repositorio.
 - `references/` contiene copias de proyectos de terceros usadas solo como
   consulta.
+- `.feedback/` guarda contratos y capturas de las iteraciones visuales; está
+  ignorado y no se versiona.
 - Los fixtures de `testdata/steam/` son entradas de prueba versionadas; los
   scripts de `testdata/steam/` los materializan en directorios temporales.

@@ -41,11 +41,15 @@ var prepSteps = []string{
 }
 
 // visibleGames returns the sorted library subset matching a text query and one
-// of the four dashboard filters. It never mutates the input slice.
+// of the four dashboard filters. It never mutates the input slice. SpaceWar is
+// the donor runtime, not a launchable target, so it stays out of the library.
 func visibleGames(games []domain.Game, query string, filter filterKey) []domain.Game {
 	query = strings.ToLower(strings.TrimSpace(query))
 	result := make([]domain.Game, 0, len(games))
 	for _, game := range games {
+		if game.AppID == domain.SpaceWarAppID {
+			continue
+		}
 		if filter != filterAll && !matchesFilter(game.Status, filter) {
 			continue
 		}
@@ -129,6 +133,15 @@ func statusTone(status domain.Status) tone {
 	default:
 		return toneNeutral
 	}
+}
+
+func filterIndex(filter filterKey) int {
+	for index, key := range filterKeys {
+		if key == filter {
+			return index
+		}
+	}
+	return 0
 }
 
 func filterLabelKey(filter filterKey) string {

@@ -6,7 +6,8 @@ Documento de apoyo del ticket 04. Define jerarquía, estados, acciones y textos 
 
 - Tamaño inicial 1280×800; mínimo 1024×600.
 - Cabecera: **Better RPT** a la izquierda; selector **ES | EN** a la derecha.
-- Cuerpo en dos columnas: biblioteca (≈65 %) y panel lateral (≈35 %, mínimo 340 px).
+- Cuerpo en dos columnas: biblioteca (≈60 %) y panel lateral (≈40 %, mínimo 400 px).
+- La biblioteca y la sesión son dos campos de color distintos: tinta para la biblioteca y verde profundo para la sesión. Sin tarjeta contenedora ni borde alrededor del panel.
 - Sin barra de menús ni pantallas adicionales. La ayuda y los errores se muestran en diálogos o en el panel lateral.
 
 ## Biblioteca
@@ -14,31 +15,35 @@ Documento de apoyo del ticket 04. Define jerarquía, estados, acciones y textos 
 - Campo de búsqueda siempre visible: nombre o App ID.
 - Filtro por estado: Todos, Listos, Desconocidos, No compatibles.
 - Botón de refrescar.
-- Fila: nombre del juego, badge **Nativo** o **Proton**, chip de estado.
-- El App ID, la biblioteca, la ruta y el Proton resuelto viven en **Detalles** del panel lateral.
+- La biblioteca es una tabla con cabecera **Juego / Tipo / Estado**. Las columnas mantienen su posición; el nombre se trunca si no cabe.
+- Fila: icono de Steam del juego, nombre, tipo (**Nativo** o **Proton**) y estado en texto. Sin puntos, insignias, chips ni pastillas.
+- La portada se obtiene de la caché de arte de Steam; si el juego no tiene arte local (por ejemplo, Spacewar), se muestra una portada tipográfica con el nombre, no una imagen inventada.
+- El App ID, la biblioteca, la ruta y el Proton resuelto viven en la pestaña **Detalles** del panel lateral.
 - Orden alfabético por nombre; sin ordenación configurable en el MVP.
-- Las herramientas/runtimes no aparecen.
-- Si no hay resultados: «No hay juegos que coincidan» + «Limpiar búsqueda».
+- Las herramientas/runtimes no aparecen; SpaceWar (donante) tampoco se lista.
+- Si no hay resultados: «Ningún juego coincide con la búsqueda.» + «Quitar filtros».
 - Si la biblioteca está vacía: «No hay juegos instalados» + «Actualizar» + «Abrir Steam».
 
 ## Estados y acciones
 
 Propuesta sujeta a la tabla definitiva del ticket 07.
 
-| Estado | Chip | Acción principal | Notas |
-|---|---|---|---|
-| Listo | verde | Preparar y jugar | Sin aviso adicional |
-| Desconocido | ámbar | Preparar y jugar | Aviso una vez por juego y ejecución de la app |
-| No compatible | gris/rojo | Deshabilitada | Mostrar motivo y «Ver detalles» |
-| No instalado | gris | Deshabilitada | «Actualizar biblioteca» |
-| Error | rojo | Reintentar | Detalle técnico plegable |
-| Sesión activa | azul | Deshabilitada | «Ver sesión» en el panel |
+| Estado | Acción principal | Notas |
+|---|---|---|
+| Listo (verde) | Preparar y jugar | Sin aviso adicional |
+| Desconocido (ámbar) | Preparar y jugar | El panel avisa de que la compatibilidad no está confirmada; aviso una vez por juego y ejecución de la app |
+| No compatible (rojo) | Deshabilitada | Mostrar el motivo en la pestaña **Detalles** |
+| No instalado (gris) | Deshabilitada | «Actualizar biblioteca» |
+| Error (rojo) | Reintentar | Detalle técnico plegable |
+| Sesión activa (azul) | Deshabilitada | «Sesión activa» en la pestaña **Sesión** |
 
 Estados del donante/sesión: Steam cerrado, SpaceWar ausente, listo, preparando, sesión activa, terminada, error, restaurando, estado obsoleto.
 
 ## Acción principal
 
-Un único botón contextual en el panel lateral:
+El panel lateral tiene dos pestañas: **Sesión** y **Detalles**. La pestaña Sesión muestra arriba la portada ancha del juego obtenida de Steam y, debajo, el nombre del juego como título, sin la etiqueta «Objetivo». Su información va en dos columnas —**Proton**, **Estado** y **App ID**—; después aparece la acción principal. La nota de compatibilidad no confirmada se muestra arriba, al final de la fila de pestañas, después de Detalles. **Proton** indica Sí/No; la versión concreta aparece en Detalles. La pestaña Detalles queda junto a Sesión y contiene App ID, biblioteca, tipo, ruta y Proton resuelto.
+
+Un único botón contextual en la pestaña Sesión, después de la información del juego:
 
 - **Preparar y jugar**: prepara SpaceWar y lanza el donante. El helper inicia el target automáticamente; no hay un segundo botón «Jugar».
 - Durante la preparación: botón «Cancelar» antes de escribir; después, «Cancelar y restaurar».
@@ -65,7 +70,7 @@ Si la app cerró Steam y el usuario cancela antes de escribir, la app vuelve a i
 
 Panel lateral:
 
-- Chip **Sesión activa**.
+- Estado **Sesión activa**.
 - Nombre del target y tiempo transcurrido.
 - Estado del helper: iniciando, activo, terminando.
 - Guía:
@@ -127,7 +132,7 @@ Patrón: qué pasó, acción primaria, detalle técnico plegable. Ejemplos:
 ## Accesibilidad
 
 - Navegación completa por teclado: Tab por cabecera → búsqueda → filtro → biblioteca → panel; Enter selecciona/activa; Ctrl+F enfoca la búsqueda; F5 refresca; Esc cierra diálogos.
-- Nombres accesibles en botones e iconos; los chips incluyen texto, no solo color.
+- Nombres accesibles en botones e iconos; los estados incluyen texto, no solo color.
 - Contraste y foco visibles.
 - Lector de pantalla: Fyne 2.8 no lo implementa en Linux. El ticket 08 evalúa la compilación de accesibilidad. No bloquea el MVP.
 

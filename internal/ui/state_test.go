@@ -33,6 +33,21 @@ func TestVisibleGamesSortAndFilters(t *testing.T) {
 	}
 }
 
+func TestVisibleGamesExcludesDonorRuntime(t *testing.T) {
+	games := append(sampleGames(), domain.Game{
+		AppID:  domain.SpaceWarAppID,
+		Name:   "Spacewar",
+		Kind:   domain.KindProton,
+		Status: domain.StatusUnknown,
+	})
+	if got := visibleGames(games, "", filterAll); len(got) != 3 {
+		t.Fatalf("donor runtime leaked into the library: %+v", got)
+	}
+	if got := visibleGames(games, "spacewar", filterAll); len(got) != 0 {
+		t.Fatalf("donor runtime matched a search: %+v", got)
+	}
+}
+
 func TestVisibleGamesSearchNameAndAppID(t *testing.T) {
 	games := sampleGames()
 	if got := visibleGames(games, "alp", filterAll); len(got) != 1 || got[0].AppID != 900001 {

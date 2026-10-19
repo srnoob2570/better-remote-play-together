@@ -3,6 +3,8 @@
 
 # Espacio de trabajo de planificación
 /.scratch/
+/.agents/
+/.feedback/
 
 # Copias de referencia de terceros
 /references/
