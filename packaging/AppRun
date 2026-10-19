@@ -1,0 +1,4 @@
+#!/bin/sh
+# AppRun resolves the mounted AppImage directory and starts the GUI launcher.
+HERE=$(dirname "$(readlink -f "$0")")
+exec "$HERE/usr/bin/better-rpt" "$@"

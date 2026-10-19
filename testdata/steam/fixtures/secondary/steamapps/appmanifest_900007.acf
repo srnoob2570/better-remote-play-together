@@ -1,0 +1,19 @@
+"AppState"
+{
+	"appid"		"900007"
+	"Universe"	"1"
+	"name"		"Secondary Native"
+	"StateFlags"	"4"
+	"installdir"	"Secondary Native"
+	"LastUpdated"	"0"
+	"SizeOnDisk"	"1024"
+	"StagingPath"	""
+	"UserConfig"
+	{
+		"language"	"english"
+	}
+	"MountedConfig"
+	{
+		"language"	"english"
+	}
+}

@@ -1,0 +1,49 @@
+// Better RPT fixture: never point the app at this tree.
+"UserLocalConfigStore"
+{
+	"Software"
+	{
+		"Valve"
+		{
+			"Steam"
+			{
+				"apps"
+				{
+					"480"
+					{
+						"LaunchOptions"		""
+					}
+					"900001"
+					{
+						"LaunchOptions"		"cd /opt/other && ./launcher # %command%"
+					}
+					"900002"
+					{
+						"LaunchOptions"		""
+					}
+				}
+				"friends"
+				{
+					"123"	"unrelated"
+				}
+			}
+		}
+	}
+	"WebStorage"
+	{
+		"apps"
+		{
+			"480"
+			{
+				"LaunchOptions"		"webstorage-decoy"
+			}
+		}
+	}
+	"apps"
+	{
+		"480"
+		{
+			"LaunchOptions"		"root-decoy"
+		}
+	}
+}

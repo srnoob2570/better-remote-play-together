@@ -1,0 +1,19 @@
+"AppState"
+{
+	"appid"		"900001"
+	"Universe"	"1"
+	"name"		"Native Game"
+	"StateFlags"	"4"
+	"installdir"	"Native Game"
+	"LastUpdated"	"0"
+	"SizeOnDisk"	"1024"
+	"StagingPath"	""
+	"UserConfig"
+	{
+		"language"	"english"
+	}
+	"MountedConfig"
+	{
+		"language"	"english"
+	}
+}

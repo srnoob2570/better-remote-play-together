@@ -1,0 +1,19 @@
+"AppState"
+{
+	"appid"		"900003"
+	"Universe"	"1"
+	"name"		"Proton Test"
+	"StateFlags"	"4"
+	"installdir"	"Proton Test"
+	"LastUpdated"	"0"
+	"SizeOnDisk"	"1024"
+	"StagingPath"	""
+	"UserConfig"
+	{
+		"language"	"english"
+	}
+	"MountedConfig"
+	{
+		"language"	"english"
+	}
+}

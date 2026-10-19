@@ -1,0 +1,19 @@
+"AppState"
+{
+	"appid"		"900009"
+	"Universe"	"1"
+	"name"		"No Launch Config"
+	"StateFlags"	"4"
+	"installdir"	"No Launch Config"
+	"LastUpdated"	"0"
+	"SizeOnDisk"	"1024"
+	"StagingPath"	""
+	"UserConfig"
+	{
+		"language"	"english"
+	}
+	"MountedConfig"
+	{
+		"language"	"english"
+	}
+}

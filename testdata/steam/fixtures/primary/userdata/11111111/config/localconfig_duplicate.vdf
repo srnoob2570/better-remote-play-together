@@ -1,0 +1,23 @@
+"UserLocalConfigStore"
+{
+	"Software"
+	{
+		"Valve"
+		{
+			"Steam"
+			{
+				"apps"
+				{
+					"480"
+					{
+						"LaunchOptions"		"first"
+					}
+					"480"
+					{
+						"LaunchOptions"		"second"
+					}
+				}
+			}
+		}
+	}
+}

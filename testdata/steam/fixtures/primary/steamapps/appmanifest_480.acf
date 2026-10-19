@@ -1,0 +1,19 @@
+"AppState"
+{
+	"appid"		"480"
+	"Universe"	"1"
+	"name"		"Spacewar"
+	"StateFlags"	"4"
+	"installdir"	"Spacewar"
+	"LastUpdated"	"0"
+	"SizeOnDisk"	"1024"
+	"StagingPath"	""
+	"UserConfig"
+	{
+		"language"	"english"
+	}
+	"MountedConfig"
+	{
+		"language"	"english"
+	}
+}

@@ -1,0 +1,19 @@
+"AppState"
+{
+	"appid"		"900008"
+	"Universe"	"1"
+	"name"		"Legacy Game"
+	"StateFlags"	"4"
+	"installdir"	"Legacy Game"
+	"LastUpdated"	"0"
+	"SizeOnDisk"	"1024"
+	"StagingPath"	""
+	"UserConfig"
+	{
+		"language"	"english"
+	}
+	"MountedConfig"
+	{
+		"language"	"english"
+	}
+}

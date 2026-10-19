@@ -1,0 +1,19 @@
+"AppState"
+{
+	"appid"		"900004"
+	"Universe"	"1"
+	"name"		"SteamLinuxRuntime Test"
+	"StateFlags"	"4"
+	"installdir"	"SteamLinuxRuntime_test"
+	"LastUpdated"	"0"
+	"SizeOnDisk"	"1024"
+	"StagingPath"	""
+	"UserConfig"
+	{
+		"language"	"english"
+	}
+	"MountedConfig"
+	{
+		"language"	"english"
+	}
+}

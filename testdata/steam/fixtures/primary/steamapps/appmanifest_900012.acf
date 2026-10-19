@@ -1,0 +1,19 @@
+"AppState"
+{
+	"appid"		"900012"
+	"Universe"	"1"
+	"name"		"Path Escape"
+	"StateFlags"	"4"
+	"installdir"	"Path Escape"
+	"LastUpdated"	"0"
+	"SizeOnDisk"	"1024"
+	"StagingPath"	""
+	"UserConfig"
+	{
+		"language"	"english"
+	}
+	"MountedConfig"
+	{
+		"language"	"english"
+	}
+}

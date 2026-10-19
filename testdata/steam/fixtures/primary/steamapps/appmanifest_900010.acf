@@ -1,0 +1,19 @@
+"AppState"
+{
+	"appid"		"900010"
+	"Universe"	"1"
+	"name"		"Orphan Manifest"
+	"StateFlags"	"4"
+	"installdir"	"Orphan Manifest"
+	"LastUpdated"	"0"
+	"SizeOnDisk"	"1024"
+	"StagingPath"	""
+	"UserConfig"
+	{
+		"language"	"english"
+	}
+	"MountedConfig"
+	{
+		"language"	"english"
+	}
+}

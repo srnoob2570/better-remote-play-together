@@ -1,0 +1,64 @@
+name: better-rpt
+arch: amd64
+platform: linux
+version: 0.1.0
+release: 1
+section: games
+priority: optional
+maintainer: srnoob2570 <302417634+srnoob2570@users.noreply.github.com>
+description: |
+  Launch Steam games with Remote Play Together using SpaceWar as the donor.
+  Better RPT prepares SpaceWar (App ID 480) as a reversible donor for games
+  that do not include Remote Play Together, then launches the selected game
+  as a child of that donor context.
+vendor: Better RPT
+license: MIT
+depends:
+  - libc6 (>= 2.35)
+  - libgl1
+  - libegl1
+  - libwayland-client0 (>= 1.20.0)
+  - libwayland-cursor0
+  - libwayland-egl1
+  - libxkbcommon0
+  - libx11-6
+  - libx11-xcb1
+  - libxcursor1
+  - libxi6
+  - libxinerama1
+  - libxrandr2
+  - libxxf86vm1
+recommends:
+  - libdecor-0-0
+  - libdecor-0-plugin-1-gtk
+scripts:
+  preremove: ./packaging/prerm.sh
+contents:
+  - src: ./dist/better-rpt
+    dst: /usr/bin/better-rpt
+    file_info:
+      mode: 0755
+  - src: ./dist/better-rpt-helper
+    dst: /usr/lib/better-rpt/better-rpt-helper
+    file_info:
+      mode: 0755
+  - src: ./packaging/better-rpt.desktop
+    dst: /usr/share/applications/better-rpt.desktop
+    file_info:
+      mode: 0644
+  - src: ./packaging/better-rpt.png
+    dst: /usr/share/icons/hicolor/256x256/apps/better-rpt.png
+    file_info:
+      mode: 0644
+  - src: ./README.md
+    dst: /usr/share/doc/better-rpt/README.md
+    file_info:
+      mode: 0644
+  - src: ./LICENSE
+    dst: /usr/share/doc/better-rpt/LICENSE
+    file_info:
+      mode: 0644
+  - src: ./packaging/copyright
+    dst: /usr/share/doc/better-rpt/copyright
+    file_info:
+      mode: 0644

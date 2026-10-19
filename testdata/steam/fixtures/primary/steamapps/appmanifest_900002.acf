@@ -1,0 +1,19 @@
+"AppState"
+{
+	"appid"		"900002"
+	"Universe"	"1"
+	"name"		"Proton Game"
+	"StateFlags"	"4"
+	"installdir"	"Proton Game"
+	"LastUpdated"	"0"
+	"SizeOnDisk"	"1024"
+	"StagingPath"	""
+	"UserConfig"
+	{
+		"language"	"english"
+	}
+	"MountedConfig"
+	{
+		"language"	"english"
+	}
+}

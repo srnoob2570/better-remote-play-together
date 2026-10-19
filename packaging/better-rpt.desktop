@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Better RPT
+GenericName=Remote Play Together Enabler
+Comment=Launch Steam games with Remote Play Together using SpaceWar
+Exec=better-rpt
+Icon=better-rpt
+Terminal=false
+Categories=Game;
+Keywords=Steam;Remote Play;RPT;
+StartupWMClass=Better RPT

@@ -1,0 +1,23 @@
+"UserLocalConfigStore"
+{
+	"Software"
+	{
+		"Valve"
+		{
+			"Steam"
+			{
+				"apps"
+				{
+					"480"
+					{
+						"LaunchOptions"		"cd /opt/account2 && ./other # %command%"
+					}
+					"900001"
+					{
+						"LaunchOptions"		""
+					}
+				}
+			}
+		}
+	}
+}

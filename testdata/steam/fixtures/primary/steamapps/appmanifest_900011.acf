@@ -1,0 +1,19 @@
+"AppState"
+{
+	"appid"		"900011"
+	"Universe"	"1"
+	"name"		"Template Launch"
+	"StateFlags"	"4"
+	"installdir"	"Template Launch"
+	"LastUpdated"	"0"
+	"SizeOnDisk"	"1024"
+	"StagingPath"	""
+	"UserConfig"
+	{
+		"language"	"english"
+	}
+	"MountedConfig"
+	{
+		"language"	"english"
+	}
+}

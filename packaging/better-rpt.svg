@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Better RPT">
+  <rect width="256" height="256" rx="56" fill="#0b1418"/>
+  <circle cx="99" cy="128" r="48" fill="none" stroke="#f4a261" stroke-width="14"/>
+  <circle cx="157" cy="128" r="48" fill="none" stroke="#2a9d8f" stroke-width="14"/>
+  <path d="M118 99 L160 128 L118 157 Z" fill="#f8fafc"/>
+</svg>

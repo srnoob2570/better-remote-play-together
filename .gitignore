@@ -1,0 +1,12 @@
+# Artefactos de compilación y empaquetado
+/dist/
+
+# Espacio de trabajo de planificación
+/.scratch/
+
+# Copias de referencia de terceros
+/references/
+
+# Salidas de pruebas y cobertura
+*.test
+*.out

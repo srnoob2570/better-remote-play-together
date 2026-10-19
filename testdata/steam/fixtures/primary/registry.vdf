@@ -1,0 +1,17 @@
+"Registry"
+{
+	"HKCU"
+	{
+		"Software"
+		{
+			"Valve"
+			{
+				"Steam"
+				{
+					"AutoLoginUser"	"fixture"
+					"SteamPID"	"0"
+				}
+			}
+		}
+	}
+}

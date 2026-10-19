@@ -1,0 +1,19 @@
+"AppState"
+{
+	"appid"		"900005"
+	"Universe"	"1"
+	"name"		"Not Installed Game"
+	"StateFlags"	"2"
+	"installdir"	"Not Installed Game"
+	"LastUpdated"	"0"
+	"SizeOnDisk"	"1024"
+	"StagingPath"	""
+	"UserConfig"
+	{
+		"language"	"english"
+	}
+	"MountedConfig"
+	{
+		"language"	"english"
+	}
+}

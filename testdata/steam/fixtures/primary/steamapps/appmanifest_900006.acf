@@ -1,0 +1,19 @@
+"AppState"
+{
+	"appid"		"900006"
+	"Universe"	"1"
+	"name"		"Missing Exe"
+	"StateFlags"	"4"
+	"installdir"	"Missing Exe"
+	"LastUpdated"	"0"
+	"SizeOnDisk"	"1024"
+	"StagingPath"	""
+	"UserConfig"
+	{
+		"language"	"english"
+	}
+	"MountedConfig"
+	{
+		"language"	"english"
+	}
+}

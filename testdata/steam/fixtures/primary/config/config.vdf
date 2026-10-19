@@ -1,0 +1,33 @@
+"InstallConfigStore"
+{
+	"Software"
+	{
+		"Valve"
+		{
+			"Steam"
+			{
+				"CompatToolMapping"
+				{
+					"0"
+					{
+						"name"		"GE-Proton-test"
+						"config"	""
+						"priority"	"250"
+					}
+					"900002"
+					{
+						"name"		"GE-Proton-test"
+						"config"	""
+						"priority"	"250"
+					}
+					"900007"
+					{
+						"name"		"native"
+						"config"	""
+						"priority"	"250"
+					}
+				}
+			}
+		}
+	}
+}

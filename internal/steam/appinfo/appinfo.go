@@ -1,0 +1,330 @@
+// Package appinfo parses Steam's binary appinfo.vdf cache (format v41).
+//
+// It reads the cache into memory, validates the header, entry boundaries,
+// string table, binary VDF values and per-entry SHA-1, and skips a corrupt app
+// record without discarding the rest of the cache. It never writes to Steam.
+package appinfo
+
+import (
+	"bytes"
+	"crypto/sha1"
+	"encoding/binary"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"sort"
+	"unicode/utf8"
+)
+
+const (
+	magicV41 = 0x07564429
+	magicV40 = 0x07564428
+
+	headerSize     = 16
+	fixedEntrySize = 60
+)
+
+var (
+	// ErrNotAppInfo means the file is missing or is not an appinfo cache.
+	ErrNotAppInfo = errors.New("not a Steam appinfo file")
+	// ErrUnsupportedVersion means the magic belongs to a version this parser
+	// does not understand.
+	ErrUnsupportedVersion = errors.New("unsupported Steam appinfo version")
+	// ErrCorrupt means the file-level structure (header, footer, string table
+	// or entry boundaries) is invalid.
+	ErrCorrupt = errors.New("Steam appinfo file is corrupt")
+	// ErrAppCorrupt means one app record is invalid; other records remain usable.
+	ErrAppCorrupt = errors.New("Steam appinfo record is corrupt")
+	// ErrAppNotFound means the cache has no usable record for an app ID.
+	ErrAppNotFound = errors.New("Steam appinfo record not found")
+)
+
+// Common is the app's common metadata.
+type Common struct {
+	Name       string
+	Type       string
+	OSList     string
+	InstallDir string
+}
+
+// Launch is one entry of config.launch.
+type Launch struct {
+	Key         string
+	OSList      string
+	Arch        string
+	Executable  string
+	Arguments   string
+	WorkingDir  string
+	Type        string
+	Description string
+	BetaKeys    []string
+	OwnsDLC     bool
+}
+
+// App is one usable appinfo record.
+type App struct {
+	ID          uint32
+	InfoState   uint32
+	LastUpdated uint32
+	Common      Common
+	Launch      []Launch
+}
+
+// Warning records an app record that was skipped.
+type Warning struct {
+	AppID  uint32
+	Offset int64
+	Err    error
+}
+
+func (w Warning) Error() string {
+	return fmt.Sprintf("appinfo app %d at offset %d: %v", w.AppID, w.Offset, w.Err)
+}
+
+func (w Warning) Unwrap() error {
+	return w.Err
+}
+
+// File is a parsed appinfo cache.
+type File struct {
+	apps     []App
+	byID     map[uint32]App
+	warnings []Warning
+}
+
+// Open reads and parses an appinfo.vdf file. A file being rewritten by Steam
+// gets one retry; other failures are returned immediately.
+func Open(path string) (*File, error) {
+	var lastErr error
+	for attempt := 0; attempt < 2; attempt++ {
+		f, err := os.Open(path)
+		if err != nil {
+			return nil, fmt.Errorf("%w: open %s: %w", ErrNotAppInfo, path, err)
+		}
+		info, statErr := f.Stat()
+		if statErr != nil {
+			_ = f.Close()
+			return nil, fmt.Errorf("%w: stat %s: %v", ErrCorrupt, path, statErr)
+		}
+		file, parseErr := Parse(f, info.Size())
+		closeErr := f.Close()
+		if parseErr == nil && closeErr == nil {
+			return file, nil
+		}
+		if parseErr == nil {
+			parseErr = fmt.Errorf("%w: close %s: %v", ErrCorrupt, path, closeErr)
+		}
+		lastErr = parseErr
+		if !errors.Is(parseErr, ErrCorrupt) || attempt > 0 {
+			break
+		}
+	}
+	return nil, lastErr
+}
+
+// Parse parses size bytes from r. The caller retains ownership of r.
+func Parse(r io.ReaderAt, size int64) (*File, error) {
+	if size <= 0 {
+		return nil, fmt.Errorf("%w: empty file", ErrCorrupt)
+	}
+	if size > int64(^uint(0)>>1) {
+		return nil, fmt.Errorf("%w: file too large", ErrCorrupt)
+	}
+	data := make([]byte, int(size))
+	n, err := r.ReadAt(data, 0)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return nil, fmt.Errorf("%w: read: %v", ErrCorrupt, err)
+	}
+	if int64(n) != size {
+		return nil, fmt.Errorf("%w: short read: got %d of %d bytes", ErrCorrupt, n, size)
+	}
+	return parseData(data)
+}
+
+func parseData(data []byte) (*File, error) {
+	if len(data) < headerSize {
+		return nil, fmt.Errorf("%w: short header", ErrCorrupt)
+	}
+	magic := binary.LittleEndian.Uint32(data[0:4])
+	switch magic {
+	case magicV41:
+	case magicV40:
+		return nil, fmt.Errorf("%w: v40", ErrUnsupportedVersion)
+	default:
+		return nil, fmt.Errorf("%w: magic 0x%08x", ErrNotAppInfo, magic)
+	}
+	tableOffset64 := int64(binary.LittleEndian.Uint64(data[8:16]))
+	if tableOffset64 < headerSize+4 || tableOffset64 > int64(len(data))-4 {
+		return nil, fmt.Errorf("%w: string table offset %d outside file", ErrCorrupt, tableOffset64)
+	}
+	tableOffset := int(tableOffset64)
+	if binary.LittleEndian.Uint32(data[tableOffset-4:tableOffset]) != 0 {
+		return nil, fmt.Errorf("%w: missing entry footer before string table", ErrCorrupt)
+	}
+	strings, err := parseStringTable(data[tableOffset:])
+	if err != nil {
+		return nil, err
+	}
+
+	file := &File{
+		apps: make([]App, 0),
+		byID: make(map[uint32]App),
+	}
+	pos := headerSize
+	sawFooter := false
+	for pos < tableOffset {
+		if tableOffset-pos < 4 {
+			return nil, fmt.Errorf("%w: truncated app id", ErrCorrupt)
+		}
+		appID := binary.LittleEndian.Uint32(data[pos : pos+4])
+		pos += 4
+		if appID == 0 {
+			if pos != tableOffset {
+				return nil, fmt.Errorf("%w: entry footer is not immediately before string table", ErrCorrupt)
+			}
+			sawFooter = true
+			break
+		}
+		if tableOffset-pos < 4 {
+			return nil, fmt.Errorf("%w: truncated size for app %d", ErrCorrupt, appID)
+		}
+		size := int(binary.LittleEndian.Uint32(data[pos : pos+4]))
+		pos += 4
+		if size < 0 || size > tableOffset-pos {
+			return nil, fmt.Errorf("%w: app %d size %d exceeds entry area", ErrCorrupt, appID, size)
+		}
+		end := pos + size
+		if size < fixedEntrySize {
+			file.warnings = append(file.warnings, Warning{
+				AppID:  appID,
+				Offset: int64(pos),
+				Err:    fmt.Errorf("%w: entry is %d bytes, need at least %d", ErrAppCorrupt, size, fixedEntrySize),
+			})
+			pos = end
+			continue
+		}
+		app, appErr := parseAppRecord(appID, data[pos:end], strings, int64(pos))
+		if appErr != nil {
+			file.warnings = append(file.warnings, Warning{AppID: appID, Offset: int64(pos), Err: appErr})
+		} else {
+			file.apps = append(file.apps, app)
+		}
+		pos = end
+	}
+	if !sawFooter {
+		return nil, fmt.Errorf("%w: missing entry footer", ErrCorrupt)
+	}
+	sort.Slice(file.apps, func(i, j int) bool {
+		return file.apps[i].ID < file.apps[j].ID
+	})
+	for _, app := range file.apps {
+		file.byID[app.ID] = app
+	}
+	return file, nil
+}
+
+func parseStringTable(data []byte) ([]string, error) {
+	if len(data) < 4 {
+		return nil, fmt.Errorf("%w: truncated string table", ErrCorrupt)
+	}
+	count := binary.LittleEndian.Uint32(data[0:4])
+	if uint64(count) > uint64(len(data)-4) {
+		return nil, fmt.Errorf("%w: impossible string count %d", ErrCorrupt, count)
+	}
+	strings := make([]string, 0, count)
+	pos := 4
+	for i := uint32(0); i < count; i++ {
+		n := bytes.IndexByte(data[pos:], 0)
+		if n < 0 {
+			return nil, fmt.Errorf("%w: unterminated string %d", ErrCorrupt, i)
+		}
+		value := string(data[pos : pos+n])
+		if !validUTF8(value) {
+			return nil, fmt.Errorf("%w: string %d is not UTF-8", ErrCorrupt, i)
+		}
+		strings = append(strings, value)
+		pos += n + 1
+	}
+	for _, b := range data[pos:] {
+		if b != 0 {
+			return nil, fmt.Errorf("%w: trailing string table data", ErrCorrupt)
+		}
+	}
+	return strings, nil
+}
+
+func parseAppRecord(appID uint32, data []byte, strings []string, offset int64) (App, error) {
+	if len(data) < fixedEntrySize {
+		return App{}, fmt.Errorf("%w: short app record", ErrAppCorrupt)
+	}
+	infoState := binary.LittleEndian.Uint32(data[0:4])
+	lastUpdated := binary.LittleEndian.Uint32(data[4:8])
+	vdf := data[fixedEntrySize:]
+	binaryHash := data[40:60]
+	if !allZero(binaryHash) {
+		sum := sha1.Sum(vdf)
+		if !bytes.Equal(sum[:], binaryHash) {
+			return App{}, fmt.Errorf("%w: binary VDF SHA-1 mismatch", ErrAppCorrupt)
+		}
+	}
+
+	p := binaryParser{data: vdf, strings: strings}
+	root, err := p.parseDocument()
+	if err != nil {
+		return App{}, fmt.Errorf("%w: %v", ErrAppCorrupt, err)
+	}
+	rootObject, ok := root["appinfo"].(map[string]any)
+	if !ok {
+		return App{}, fmt.Errorf("%w: missing appinfo root object", ErrAppCorrupt)
+	}
+	common, launch, err := extractApp(rootObject)
+	if err != nil {
+		return App{}, fmt.Errorf("%w: %v", ErrAppCorrupt, err)
+	}
+	return App{
+		ID:          appID,
+		InfoState:   infoState,
+		LastUpdated: lastUpdated,
+		Common:      common,
+		Launch:      launch,
+	}, nil
+}
+
+// Apps returns a copy of all usable records in app ID order.
+func (f *File) Apps() []App {
+	if f == nil {
+		return nil
+	}
+	return append([]App(nil), f.apps...)
+}
+
+// App returns one usable record.
+func (f *File) App(id uint32) (App, bool) {
+	if f == nil {
+		return App{}, false
+	}
+	app, ok := f.byID[id]
+	return app, ok
+}
+
+// Warnings returns a copy of the records that were skipped.
+func (f *File) Warnings() []Warning {
+	if f == nil {
+		return nil
+	}
+	return append([]Warning(nil), f.warnings...)
+}
+
+func allZero(b []byte) bool {
+	for _, v := range b {
+		if v != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func validUTF8(s string) bool {
+	return utf8.ValidString(s)
+}
