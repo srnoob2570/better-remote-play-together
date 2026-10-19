@@ -41,11 +41,12 @@ make all
 sudo make install
 ```
 
-`make install` copia la app a `/usr/bin`, el helper a
-`/usr/lib/better-rpt` y el lanzador/iconos a `/usr/share`. No invoca `sudo`:
-ejecútalo con `sudo` o usa `DESTDIR=/ruta make install` para preparar un árbol
-de instalación. Ejecuta `make all` antes de `sudo make install` para que la
-compilación se haga como tu usuario.
+`make install` no compila: copia los binarios ya generados por `make all` a
+`/usr/bin`, el helper a `/usr/lib/better-rpt` y el lanzador/iconos a
+`/usr/share`. No invoca `sudo`: ejecútalo con `sudo` o usa
+`DESTDIR=/ruta make install` para preparar un árbol de instalación. Ejecuta
+`make all` antes de `sudo make install` para que la compilación se haga como tu
+usuario.
 
 El `Makefile` fija `GOTOOLCHAIN=go1.27.2` y no usa `sudo`. `make dev` usa el
 `HOME`/XDG reales; para una prueba aislada con los fixtures sintéticos, consulta

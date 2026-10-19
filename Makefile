@@ -41,14 +41,18 @@ APPSDIR ?= /usr/share/applications
 ICONDIR ?= /usr/share/icons/hicolor
 ICON_SIZES ?= 16 24 32 48 64 128 256 512
 
-# Construye e instala ambos binarios con el mismo layout que el .deb. La app
+# Instala los binarios ya compilados con el mismo layout que el .deb. La app
 # busca el helper del sistema en /usr/lib/better-rpt; mantén HELPERDIR en
 # sintonía con internal/helper/install.go. Usa DESTDIR para un árbol temporal.
 .PHONY: all install
 
 all: build helper
 
-install: all
+install:
+	@if [ ! -x "$(BINARY)" ] || [ ! -x "$(HELPER)" ]; then \
+		echo "error: faltan $(BINARY) o $(HELPER); ejecuta 'make all' antes de 'sudo make install'" >&2; \
+		exit 1; \
+	fi
 	$(INSTALL) -Dm755 $(BINARY) $(DESTDIR)$(BINDIR)/better-rpt
 	$(INSTALL) -Dm755 $(HELPER) $(DESTDIR)$(HELPERDIR)/better-rpt-helper
 	$(INSTALL) -Dm644 packaging/better-rpt.desktop \
