@@ -1,3 +1,5 @@
 {
-  "conventions": {}
+  "conventions": {
+    "changelog": "CHANGELOG.md"
+  }
 }
