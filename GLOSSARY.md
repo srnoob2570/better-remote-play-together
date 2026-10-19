@@ -16,7 +16,7 @@ Juego instalado que el usuario quiere jugar con Remote Play Together. Puede ser 
 
 ## Contexto donante
 
-Entorno de Steam en el que se ejecuta el donante: su App ID, su contenedor de Proton/runtime y el overlay asociado. El juego objetivo se lanza como hijo de este contexto.
+Entorno de Steam en el que se ejecuta el donante: su App ID, su contenedor de Proton/runtime y el overlay asociado. El juego objetivo se lanza como hijo de este contexto y conserva la identidad Steam del donante; su App ID solo se usa para localizar el ejecutable y el prefijo.
 
 ## Sesión RPT
 

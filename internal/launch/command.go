@@ -58,10 +58,10 @@ func BuildCommand(ctx context.Context, spec domain.LaunchSpec, baseEnv []string)
 		return nil, err
 	}
 
-	env := []string{
-		"SteamAppId=" + strconv.FormatUint(uint64(spec.AppID), 10),
-		"SteamGameId=" + strconv.FormatUint(uint64(spec.AppID), 10),
-	}
+	// Keep the donor's SteamAppId/SteamGameId. Overriding them with the target
+	// AppID makes Steam register the target as a second running game, which
+	// breaks Remote Play Together with a busy host.
+	var env []string
 	var command *exec.Cmd
 	switch spec.Kind {
 	case domain.KindNative:
@@ -107,7 +107,6 @@ func protonEnvironment(spec domain.LaunchSpec, installDir string) (string, []str
 		libraryPaths = append(libraryPaths, filepath.Join(library, "steamapps"))
 	}
 	env := []string{
-		"STEAM_COMPAT_APP_ID=" + strconv.FormatUint(uint64(spec.AppID), 10),
 		"STEAM_COMPAT_CLIENT_INSTALL_PATH=" + steamRoot,
 		"STEAM_COMPAT_CLIENT_INSTALL=" + steamRoot,
 		"STEAM_COMPAT_DATA_PATH=" + compatData,

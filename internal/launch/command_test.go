@@ -84,6 +84,7 @@ func TestBuildCommandNative(t *testing.T) {
 		"DISPLAY=:1",
 		"WAYLAND_DISPLAY=wayland-0",
 		"SteamAppId=480",
+		"SteamGameId=480",
 		"STEAM_COMPAT_MOUNTS=keep-me",
 	}
 	command, err := BuildCommand(context.Background(), spec, baseEnv)
@@ -101,8 +102,8 @@ func TestBuildCommandNative(t *testing.T) {
 		t.Fatal("native command does not start a new process group")
 	}
 	for key, want := range map[string]string{
-		"SteamAppId":          "900001",
-		"SteamGameId":         "900001",
+		"SteamAppId":          "480",
+		"SteamGameId":         "480",
 		"DISPLAY":             ":1",
 		"WAYLAND_DISPLAY":     "wayland-0",
 		"STEAM_COMPAT_MOUNTS": "keep-me",
@@ -119,7 +120,13 @@ func TestBuildCommandNative(t *testing.T) {
 func TestBuildCommandProton(t *testing.T) {
 	fixture := newCommandFixture(t)
 	spec := fixture.protonSpec()
-	command, err := BuildCommand(context.Background(), spec, []string{"PATH=/usr/bin", "SteamClientLaunch=1"})
+	command, err := BuildCommand(context.Background(), spec, []string{
+		"PATH=/usr/bin",
+		"SteamAppId=480",
+		"SteamGameId=480",
+		"STEAM_COMPAT_APP_ID=480",
+		"SteamClientLaunch=1",
+	})
 	if err != nil {
 		t.Fatalf("build proton: %v", err)
 	}
@@ -134,9 +141,9 @@ func TestBuildCommandProton(t *testing.T) {
 		t.Fatal("proton command does not start a new process group")
 	}
 	for key, want := range map[string]string{
-		"SteamAppId":                       "900001",
-		"SteamGameId":                      "900001",
-		"STEAM_COMPAT_APP_ID":              "900001",
+		"SteamAppId":                       "480",
+		"SteamGameId":                      "480",
+		"STEAM_COMPAT_APP_ID":              "480",
 		"STEAM_COMPAT_CLIENT_INSTALL_PATH": fixture.steamRoot,
 		"STEAM_COMPAT_CLIENT_INSTALL":      fixture.steamRoot,
 		"STEAM_COMPAT_DATA_PATH":           fixture.compatData,
@@ -151,6 +158,51 @@ func TestBuildCommandProton(t *testing.T) {
 	}
 	if _, ok := envValue(command.Env, "STEAM_COMPAT_MOUNTS"); ok {
 		t.Fatal("BuildCommand added STEAM_COMPAT_MOUNTS")
+	}
+}
+
+func TestBuildCommandPreservesDonorSteamIdentity(t *testing.T) {
+	fixture := newCommandFixture(t)
+	baseEnv := []string{
+		"PATH=/usr/bin",
+		"SteamAppId=480",
+		"SteamGameId=480",
+		"STEAM_COMPAT_APP_ID=480",
+		"SteamOverlayGameId=480",
+		"SteamClientLaunch=1",
+	}
+	cases := []struct {
+		name string
+		spec domain.LaunchSpec
+	}{
+		{name: "native", spec: fixture.nativeSpec()},
+		{name: "proton", spec: fixture.protonSpec()},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			command, err := BuildCommand(context.Background(), testCase.spec, baseEnv)
+			if err != nil {
+				t.Fatalf("build %s: %v", testCase.name, err)
+			}
+			for key, want := range map[string]string{
+				"SteamAppId":          "480",
+				"SteamGameId":         "480",
+				"STEAM_COMPAT_APP_ID": "480",
+				"SteamOverlayGameId":  "480",
+				"SteamClientLaunch":   "1",
+			} {
+				if got, ok := envValue(command.Env, key); !ok || got != want {
+					t.Fatalf("%s: env %s = %q, %v; want %q", testCase.name, key, got, ok, want)
+				}
+			}
+			if got, ok := envValue(command.Env, "STEAM_COMPAT_DATA_PATH"); testCase.spec.Kind == domain.KindProton {
+				if !ok || got != fixture.compatData {
+					t.Fatalf("proton compatdata = %q, %v; want %q", got, ok, fixture.compatData)
+				}
+			} else if ok {
+				t.Fatalf("native command unexpectedly has target compatdata %q", got)
+			}
+		})
 	}
 }
 

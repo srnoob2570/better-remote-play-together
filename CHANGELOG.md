@@ -7,6 +7,12 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Fixed
+
+- El juego objetivo conserva la identidad Steam del donante, de modo que Steam
+  registra una sola partida y los invitados de Remote Play Together ya no ven
+  al host ocupado.
+
 ## [0.1.0] - 2026-10-19
 
 ### Added

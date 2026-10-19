@@ -119,6 +119,7 @@ Política:
 - Mecanismo no oficial; una actualización de Steam puede romperlo.
 - Juegos con anti-cheat de kernel, launchers que se separan del proceso o protección que bloquea el overlay pueden fallar. Ejemplos de categoría: shooters competitivos con anti-cheat, juegos con launcher propio de otra tienda y títulos que desactivan el overlay; no se afirma que un título concreto falle.
 - Proton no garantiza RPT aunque el prefijo se cree correctamente.
+- El target hereda `SteamAppId`/`SteamGameId` del donante para que Steam lo asocie a SpaceWar; no se muestran la presencia ni los logros propios del target.
 - Juegos nativos fuera de Steam o con lanzadores propios pueden no registrarse igual.
 - Steam Flatpak/Snap no están soportados para ejecución.
 - No hay lista de juegos garantizados; los ejemplos son categorías, no diagnósticos.
