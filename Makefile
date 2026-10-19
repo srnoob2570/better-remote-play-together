@@ -4,7 +4,7 @@ BINARY ?= dist/better-rpt
 HELPER ?= dist/better-rpt-helper
 ARGS ?=
 
-.PHONY: dev build helper test test-race vet
+.PHONY: dev build helper deb test test-race vet
 
 dev:
 	$(GO) run ./cmd/better-rpt $(ARGS)
@@ -20,6 +20,9 @@ helper:
 	CGO_ENABLED=0 $(GO) build -trimpath -buildvcs=false \
 		-ldflags "-s -w -X main.version=$(VERSION)" \
 		-o $(HELPER) ./cmd/better-rpt-helper
+
+deb:
+	VERSION="$(VERSION)" ./scripts/build-deb.sh
 
 test:
 	$(GO) test ./...

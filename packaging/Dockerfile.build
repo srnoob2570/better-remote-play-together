@@ -1,0 +1,32 @@
+FROM ubuntu:22.04
+
+ARG GO_VERSION=1.27.2
+
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        build-essential \
+        pkgconf \
+        libgl1-mesa-dev \
+        libwayland-dev \
+        libxkbcommon-dev \
+        libx11-dev \
+        libxext-dev \
+        libxrender-dev \
+        libxfixes-dev \
+        libxcursor-dev \
+        libxi-dev \
+        libxinerama-dev \
+        libxrandr-dev \
+        libxxf86vm-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tgz \
+    && tar -C /usr/local -xzf /tmp/go.tgz \
+    && rm /tmp/go.tgz
+
+ENV PATH=/usr/local/go/bin:$PATH \
+    GOTOOLCHAIN=local
+
+WORKDIR /src

@@ -259,15 +259,18 @@ make dev                         # compila y abre la GUI
 make dev ARGS=--version          # ejecuta con argumentos
 make build                       # dist/better-rpt, binario local
 make helper                      # dist/better-rpt-helper, estático
+make deb                         # .deb de release (Ubuntu 22.04 + nfpm)
 make test                        # go test ./...
 make vet                         # go vet ./...
 make test-race                   # go test -race ./internal/...
 ```
 
 `make build` produce un binario para desarrollo en el equipo; **no** es la
-compilación final. El `.deb` y el AppImage de publicación se construyen en
-Ubuntu 22.04 con la receta de [`docs/build.md`](docs/build.md) para mantener la
-compatibilidad con glibc 2.35.
+compilación final. `make deb` construye el `.deb` de release dentro de una
+imagen Ubuntu 22.04 para mantener la compatibilidad con glibc 2.35 y lo empaqueta
+con nfpm. Requiere Docker y nfpm v2.48.0; la receta manual está en
+[`docs/build.md`](docs/build.md). El AppImage sigue la receta de
+[`docs/appimage.md`](docs/appimage.md).
 
 ### Probar con Steam simulado
 

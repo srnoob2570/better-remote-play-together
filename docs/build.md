@@ -69,8 +69,20 @@ versión al repositorio. El usuario final no compila: solo instala el `.deb`.
 
 El `.deb` final no se construye en Ubuntu 26.04: se usa una imagen limpia de
 Ubuntu 22.04 para que el binario enlace contra glibc 2.35. Ubuntu 22.04 trae
-Go 1.18; instala el tarball oficial de Go 1.27.2. Receta ejecutada con Docker
-server 29.7.2:
+Go 1.18; instala el tarball oficial de Go 1.27.2.
+
+`make deb` automatiza esta receta con `packaging/Dockerfile.build`: compila
+ambos binarios dentro de Ubuntu 22.04, los copia a `dist/` y empaqueta con nfpm
+en el host.
+
+```bash
+make deb                 # dist/better-rpt_0.1.0-1_amd64.deb
+make deb VERSION=0.2.0   # otra versión
+```
+
+Requiere Docker y nfpm v2.48.0 en `$HOME/go/bin/nfpm`, en `PATH` o en la ruta
+indicada por `NFPM`. La receta manual equivalente, ejecutada con Docker server
+29.7.2, es:
 
 ```bash
 docker run --rm -v "$PWD:/src" -w /src ubuntu:22.04 bash -c '
@@ -126,10 +138,16 @@ reproducibilidad; `-s -w` reduce el binario. El binario Fyne final mide
 
 ```bash
 GOTOOLCHAIN=go1.27.2 go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
-SOURCE_DATE_EPOCH=1700000000 \
+VERSION=0.1.0 SOURCE_DATE_EPOCH=1700000000 \
   "$HOME/go/bin/nfpm" package --config packaging/nfpm.yaml --packager deb \
-  --target "dist/better-rpt_${VERSION}_amd64.deb"
+  --target dist/
 ```
+
+El destino es un directorio, así que nfpm genera
+`dist/better-rpt_0.1.0-1_amd64.deb`. `packaging/nfpm.yaml` toma `version` de la
+variable `VERSION`; nfpm expande
+`${VERSION}` del entorno al leer la configuración. `make deb` ya define esa
+variable.
 
 Configuración validada (adaptar maintainer, homepage, versión y rutas a la
 estructura del repositorio; la prueba usó rutas planas y aquí se muestran
@@ -139,7 +157,7 @@ estructura del repositorio; la prueba usó rutas planas y aquí se muestran
 name: better-rpt
 arch: amd64
 platform: linux
-version: 0.1.0
+version: ${VERSION}
 release: 1
 section: games
 priority: optional
@@ -218,6 +236,19 @@ StartupWMClass=Better RPT
 `desktop-file-validate` pasa sin avisos. El `WM_CLASS` observado con Fyne
 `app.New()` fue `"Better RPT", "Better RPT"`; si la app final usa
 `app.NewWithID`, hay que volver a comprobarlo y ajustar `StartupWMClass`.
+
+## Caché de compilación
+
+`make deb` reutiliza las capas de la imagen Docker y dos volúmenes de Go:
+`better-rpt-deb-go-build` (paquetes compilados) y `better-rpt-deb-go-mod`
+(módulos descargados). Cambia el prefijo con `DEB_CACHE=...` o desactiva la
+caché con `DEB_NO_CACHE=1`.
+
+Para vaciar la caché:
+
+```bash
+docker volume rm better-rpt-deb-go-build better-rpt-deb-go-mod
+```
 
 ## Contenido del paquete
 

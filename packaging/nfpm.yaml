@@ -1,7 +1,7 @@
 name: better-rpt
 arch: amd64
 platform: linux
-version: 0.1.0
+version: ${VERSION}
 release: 1
 section: games
 priority: optional
