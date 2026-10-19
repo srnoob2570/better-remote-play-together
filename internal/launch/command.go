@@ -58,9 +58,11 @@ func BuildCommand(ctx context.Context, spec domain.LaunchSpec, baseEnv []string)
 		return nil, err
 	}
 
-	// Keep the donor's SteamAppId/SteamGameId. Overriding them with the target
-	// AppID makes Steam register the target as a second running game, which
-	// breaks Remote Play Together with a busy host.
+	// The target needs its own SteamAppId so SteamAPI/DRM and saves see the
+	// target game. SteamGameId and SteamOverlayGameId stay as the donor so
+	// Steam keeps the Remote Play Together session attached to SpaceWar
+	// instead of switching it to the target.
+	steamAppID := "SteamAppId=" + strconv.FormatUint(uint64(spec.AppID), 10)
 	var env []string
 	var command *exec.Cmd
 	switch spec.Kind {
@@ -79,6 +81,7 @@ func BuildCommand(ctx context.Context, spec domain.LaunchSpec, baseEnv []string)
 	default:
 		return nil, fmt.Errorf("%w: unsupported kind %s", ErrCommand, spec.Kind)
 	}
+	env = append(env, steamAppID)
 	command.Dir = workingDir
 	command.Env = mergeEnvironment(baseEnv, env)
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}

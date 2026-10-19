@@ -85,6 +85,7 @@ func TestBuildCommandNative(t *testing.T) {
 		"WAYLAND_DISPLAY=wayland-0",
 		"SteamAppId=480",
 		"SteamGameId=480",
+		"SteamOverlayGameId=480",
 		"STEAM_COMPAT_MOUNTS=keep-me",
 	}
 	command, err := BuildCommand(context.Background(), spec, baseEnv)
@@ -102,8 +103,9 @@ func TestBuildCommandNative(t *testing.T) {
 		t.Fatal("native command does not start a new process group")
 	}
 	for key, want := range map[string]string{
-		"SteamAppId":          "480",
+		"SteamAppId":          "900001",
 		"SteamGameId":         "480",
+		"SteamOverlayGameId":  "480",
 		"DISPLAY":             ":1",
 		"WAYLAND_DISPLAY":     "wayland-0",
 		"STEAM_COMPAT_MOUNTS": "keep-me",
@@ -124,6 +126,7 @@ func TestBuildCommandProton(t *testing.T) {
 		"PATH=/usr/bin",
 		"SteamAppId=480",
 		"SteamGameId=480",
+		"SteamOverlayGameId=480",
 		"STEAM_COMPAT_APP_ID=480",
 		"SteamClientLaunch=1",
 	})
@@ -141,8 +144,9 @@ func TestBuildCommandProton(t *testing.T) {
 		t.Fatal("proton command does not start a new process group")
 	}
 	for key, want := range map[string]string{
-		"SteamAppId":                       "480",
+		"SteamAppId":                       "900001",
 		"SteamGameId":                      "480",
+		"SteamOverlayGameId":               "480",
 		"STEAM_COMPAT_APP_ID":              "480",
 		"STEAM_COMPAT_CLIENT_INSTALL_PATH": fixture.steamRoot,
 		"STEAM_COMPAT_CLIENT_INSTALL":      fixture.steamRoot,
@@ -161,7 +165,7 @@ func TestBuildCommandProton(t *testing.T) {
 	}
 }
 
-func TestBuildCommandPreservesDonorSteamIdentity(t *testing.T) {
+func TestBuildCommandUsesTargetSteamAppIdKeepsDonorSession(t *testing.T) {
 	fixture := newCommandFixture(t)
 	baseEnv := []string{
 		"PATH=/usr/bin",
@@ -185,7 +189,7 @@ func TestBuildCommandPreservesDonorSteamIdentity(t *testing.T) {
 				t.Fatalf("build %s: %v", testCase.name, err)
 			}
 			for key, want := range map[string]string{
-				"SteamAppId":          "480",
+				"SteamAppId":          "900001",
 				"SteamGameId":         "480",
 				"STEAM_COMPAT_APP_ID": "480",
 				"SteamOverlayGameId":  "480",

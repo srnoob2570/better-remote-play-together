@@ -9,7 +9,7 @@ Estado: propuesta inicial. Los tickets 01 a 03 y 08 cierran los detalles pendien
 - Toda operación externa usa `context.Context`; la UI nunca bloquea el hilo principal.
 - Los errores son valores tipados/sentinelas, se envuelven con `%w` y se traducen a mensajes accionables en la capa UI.
 - Las escrituras de configuración son transaccionales: backup, temporal en el mismo filesystem, `fsync`, `rename` y verificación.
-- El helper se ejecuta dentro del contexto donante y lanza el target como hijo; conserva `SteamAppId`/`SteamGameId` del donante para que Steam registre una sola partida en ejecución. No usa APIs internas de Steam.
+- El helper se ejecuta dentro del contexto donante y lanza el target como hijo; fija `SteamAppId` al App ID del target para que SteamAPI/DRM lo reconozca, pero conserva `SteamGameId`/`SteamOverlayGameId` del donante para que el overlay y la sesión RPT sigan asociados a SpaceWar. No usa APIs internas de Steam.
 
 ## Paquetes
 
@@ -39,7 +39,7 @@ Dependencias permitidas: `ui → app → {steam, config, launch, session}`; `dom
 1. **Detección**: localizar Steam nativo, bibliotecas, manifiestos y cuenta activa.
 2. **Catálogo**: construir `Game` con App ID, nombre, ruta, tipo (nativo/Proton) y estado.
 3. **Preparación**: instalar/actualizar el helper estable, verificar SpaceWar, pedir confirmación si Steam está abierto, cerrar Steam, backup + escribir launch option, verificar, relanzar Steam y lanzar SpaceWar.
-4. **Sesión**: el helper estable recibe target y token, construye el comando, lanza el target como hijo conservando la identidad Steam del donante y espera; la app refleja el estado.
+4. **Sesión**: el helper estable recibe target y token, construye el comando, lanza el target como hijo con su propio `SteamAppId` y la sesión/overlay del donante, y espera; la app refleja el estado.
 5. **Cierre**: al terminar el target, la app ofrece restaurar SpaceWar. La restauración vuelve a cerrar Steam si hace falta y deja el valor previo solo si el actual sigue siendo el nuestro.
 
 ## Fyne

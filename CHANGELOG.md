@@ -9,9 +9,10 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Fixed
 
-- El juego objetivo conserva la identidad Steam del donante, de modo que Steam
-  registra una sola partida y los invitados de Remote Play Together ya no ven
-  al host ocupado.
+- El juego objetivo usa su propio `SteamAppId` para que SteamAPI/DRM lo
+  reconozca, mientras `SteamGameId` y el overlay siguen asociados al donante;
+  la sesión de Remote Play Together permanece en SpaceWar y los invitados ya no
+  ven al host ocupado.
 
 ## [0.1.0] - 2026-10-19
 
