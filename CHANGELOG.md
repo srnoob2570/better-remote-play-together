@@ -12,6 +12,9 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - La aplicación se inicia ahora sobre Wails v3 y React, conservando la ventana
   de 1280×800, el mínimo de 1024×600, el bloqueo de instancia única y el
   registro de errores en stderr.
+- La biblioteca muestra búsqueda, filtros, contador, avisos, portadas e iconos
+  con carga diferida, además de los estados de carga, vacío, sin resultados y
+  error en la nueva interfaz.
 
 ## [0.1.2] - 2026-10-20 (57d6fc6)
 
