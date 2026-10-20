@@ -363,8 +363,7 @@ env -u DISPLAY XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-0 \
 La verificación de esta versión incluyó:
 
 - `dpkg-deb -I/-c` y `desktop-file-validate` sin errores.
-- Instalación real con `apt install ./better-rpt_0.1.2-1_amd64.deb` en un
-  contenedor Ubuntu 22.04 limpio.
+- Instalación real del `.deb` en un contenedor Ubuntu 22.04 limpio.
 - `dpkg-shlibdeps -O /usr/bin/better-rpt` -> `libc6 (>= 2.34)`.
 - Ejecución como root rechazada con código 1; GUI como usuario normal bajo
   Xvfb con HOME/XDG temporales.

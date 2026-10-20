@@ -152,8 +152,8 @@ print(f"{major}.{minor}.{patch}")
 fi
 
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "versión inválida: $version"
-if [ "$(printf '%s\n%s\n' "$prev_version" "$version" | sort -V | tail -n 1)" != "$version" ] ||
-	[ "$version" = "$prev_version" ]; then
+if [ "$version" != "$prev_version" ] &&
+	[ "$(printf '%s\n%s\n' "$prev_version" "$version" | sort -V | head -n 1)" = "$version" ]; then
 	die "la versión $version debe ser mayor que $prev_version"
 fi
 
@@ -164,6 +164,9 @@ grep -q "^## \[$version\]" CHANGELOG.md && changelog_has_section=1
 
 tag_exists=0
 git rev-parse -q --verify "refs/tags/$tag" >/dev/null && tag_exists=1
+if [ "$version" = "$prev_version" ] && [ "$tag_exists" = 0 ]; then
+	die "la versión $version ya es la última; indica una mayor"
+fi
 branch_exists=0
 git show-ref --verify --quiet "refs/heads/$release_branch" && branch_exists=1
 release_commit="$(git log --format='%H' --grep="^chore(release): $tag$" -1 || true)"
@@ -405,11 +408,7 @@ build_artifacts() {
 		cd dist
 		sha256sum "better-rpt_${version}-1_amd64.deb" "BetterRPT-${version}-x86_64.AppImage" >SHA256SUMS
 	)
-
-	[ "$(dist/better-rpt --version)" = "better-rpt $version" ] || die "versión incorrecta en better-rpt"
-	[ "$(dist/better-rpt-helper --version)" = "better-rpt-helper $version" ] || die "versión incorrecta en el helper"
-	[ "$(APPIMAGE_EXTRACT_AND_RUN=1 "dist/BetterRPT-${version}-x86_64.AppImage" --version)" = "better-rpt $version" ] ||
-		die "versión incorrecta en el AppImage"
+	verify_artifacts
 
 	if [ "$verify_install" = 1 ]; then
 		info "Instalando el .deb en un contenedor Ubuntu 22.04 limpio..."
@@ -420,6 +419,21 @@ build_artifacts() {
 			better-rpt --version
 		" | grep -qx "better-rpt $version" || die "la instalación limpia falló"
 	fi
+}
+
+verify_artifacts() {
+	local deb="dist/better-rpt_${version}-1_amd64.deb"
+	local app="dist/BetterRPT-${version}-x86_64.AppImage"
+	[ -f "$deb" ] || die "falta $deb; ejecuta sin --skip-build para generarlo"
+	[ -f "$app" ] || die "falta $app; ejecuta sin --skip-build para generarlo"
+	[ -f dist/SHA256SUMS ] || die "falta dist/SHA256SUMS; ejecuta sin --skip-build para generarlo"
+	[ "$(dpkg-deb -f "$deb" Version)" = "$version-1" ] || die "versión incorrecta en el .deb"
+	[ "$(APPIMAGE_EXTRACT_AND_RUN=1 "$app" --version)" = "better-rpt $version" ] ||
+		die "versión incorrecta en el AppImage"
+	(
+		cd dist
+		sha256sum -c SHA256SUMS >/dev/null
+	) || die "SHA256SUMS no coincide con los artefactos"
 }
 
 update_artifact_docs() {
@@ -442,7 +456,7 @@ megabytes = lambda n: f"{n / 1048576:.1f}".replace(".", ",")
 path = pathlib.Path("docs/appimage.md")
 text = path.read_text(encoding="utf-8")
 text, count = re.subn(
-    r"(SHA-256: `)[0-9a-f]{64}(` \()[0-9,]+ MB(\))",
+    r"(SHA-256: `)[0-9a-f]{64}(` \()[0-9,]+( MB\))",
     rf"\g<1>{app_sha}\g<2>{megabytes(app_size)}\g<3>",
     text,
     count=1,
@@ -494,6 +508,7 @@ header = re.search(rf"(?m)^## \[{re.escape(version)}\].*?$", text).group(0)
 print(subject)
 print()
 print(header)
+print()
 print(body)
 print()
 print(f"[{version}]: {repo_url}/compare/{prev_tag}...v{version}")
@@ -555,8 +570,7 @@ if [ -z "$release_commit" ]; then
 	update_release_state
 
 	if [ "$skip_build" = 1 ]; then
-		[ -f "dist/better-rpt_${version}-1_amd64.deb" ] || die "faltan artefactos para --skip-build"
-		[ -f "dist/BetterRPT-${version}-x86_64.AppImage" ] || die "faltan artefactos para --skip-build"
+		verify_artifacts
 	else
 		build_artifacts
 	fi
@@ -575,14 +589,7 @@ if [ "$branch_exists" = 0 ]; then
 	git branch "$release_branch" "$release_commit"
 fi
 
-for asset in "dist/better-rpt_${version}-1_amd64.deb" \
-	"dist/BetterRPT-${version}-x86_64.AppImage" "dist/SHA256SUMS"; do
-	[ -f "$asset" ] || die "falta $asset; ejecuta sin --skip-build para generarlo"
-done
-(
-	cd dist
-	sha256sum -c SHA256SUMS >/dev/null
-) || die "SHA256SUMS no coincide con los artefactos"
+verify_artifacts
 
 info ""
 info "Gate de publicación:"
