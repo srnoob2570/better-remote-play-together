@@ -1,11 +1,13 @@
 package ui
 
 import (
+	"image/color"
 	"math"
 	"testing"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
 	fynetest "fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/theme"
@@ -89,5 +91,22 @@ func TestActionButtonIconAndLabelStayCentered(t *testing.T) {
 	labelCenter := label.Position().Y + label.Size().Height/2
 	if math.Abs(float64(iconCenter-labelCenter)) > 1 {
 		t.Fatalf("icon center %.1f, label center %.1f", iconCenter, labelCenter)
+	}
+}
+
+// A scroll column should follow the viewport width even when its child still
+// reports the wider minimum size from a previous window size.
+func TestScrollColumnUsesViewportWidth(t *testing.T) {
+	child := canvas.NewRectangle(color.Transparent)
+	child.SetMinSize(fyne.NewSize(500, 120))
+	column := container.New(&scrollColumn{}, child)
+
+	if min := column.MinSize(); min.Width != 0 || min.Height != 120 {
+		t.Fatalf("MinSize() = %v, want width 0 and height 120", min)
+	}
+
+	column.Resize(fyne.NewSize(320, 200))
+	if got := child.Size(); got.Width != 320 || got.Height != 200 {
+		t.Fatalf("child size = %v, want 320x200", got)
 	}
 }

@@ -146,7 +146,11 @@ func (d *dashboard) buildContent() fyne.CanvasObject {
 	header := d.buildHeader()
 	library := d.buildLibrary()
 
-	content := container.NewVScroll(pad(d.sidebarBox, 0, 12, 24, 24))
+	// The vertical scrollbar overlays the right edge of the content; the extra
+	// right padding keeps wrapped prose from running under it. scrollColumn
+	// drops the content's cached minimum width so a narrower window reflows the
+	// labels instead of keeping the previous wrap width.
+	content := container.NewVScroll(container.New(&scrollColumn{}, pad(d.sidebarBox, 0, 12, 24, 36)))
 	content.SetMinSize(fyne.NewSize(260, 0))
 	d.sidebarScroll = content
 
@@ -1135,6 +1139,19 @@ func (d *dashboard) installSetup() {
 	}()
 }
 
+// addPrivacyNote reminds the user to hide the target game's activity before
+// launching. SpaceWar and games that cannot be launched do not need it.
+func (d *dashboard) addPrivacyNote(game domain.Game) {
+	if game.AppID == domain.SpaceWarAppID || !d.donorFound {
+		return
+	}
+	switch game.Status {
+	case domain.StatusIncompatible, domain.StatusMissing, domain.StatusError:
+		return
+	}
+	d.add(captionWrapLabel(d.svc.T("selection.privacy")))
+}
+
 func (d *dashboard) sidebarSelection() {
 	game, ok := findGame(d.catalog.Games, d.selectedID)
 	if !ok {
@@ -1165,6 +1182,7 @@ func (d *dashboard) sidebarSelection() {
 
 	d.add(d.gameCover(game))
 	d.add(d.gameInfo(game))
+	d.addPrivacyNote(game)
 
 	switch {
 	case !d.donorFound:

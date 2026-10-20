@@ -57,6 +57,26 @@ func (l *fixedHeightLayout) MinSize(objects []fyne.CanvasObject) fyne.Size {
 	return fyne.NewSize(width, l.height)
 }
 
+// scrollColumn keeps a vertical scroll at the viewport width. Fyne's Scroll
+// expands its content to the content's MinSize, which preserves a label's old
+// wrap width after the window shrinks and clips text under the scrollbar.
+type scrollColumn struct{}
+
+func (l *scrollColumn) Layout(objects []fyne.CanvasObject, size fyne.Size) {
+	for _, object := range objects {
+		object.Move(fyne.NewPos(0, 0))
+		object.Resize(size)
+	}
+}
+
+func (l *scrollColumn) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	height := float32(0)
+	for _, object := range objects {
+		height = fyne.Max(height, object.MinSize().Height)
+	}
+	return fyne.NewSize(0, height)
+}
+
 // twoPaneLayout gives the session stage a fixed share of the window and lets
 // the library take the rest. Unlike HSplit it has no draggable handle, so the
 // seam reads as a change of field instead of a scrollbar.

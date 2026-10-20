@@ -19,7 +19,7 @@ restauración. Better RPT no modifica los archivos del juego ni las opciones de
 otras aplicaciones. El flujo principal es una guía paso a paso; el lanzamiento
 automático es opcional y no cierra Steam.
 
-> Estado: MVP Linux amd64. No promete compatibilidad universal. Léase la sección
+> Estado: MVP Linux amd64. No promete compatibilidad universal. Lee la sección
 > de limitaciones antes de usarlo.
 
 ## Requisitos
@@ -35,7 +35,7 @@ automático es opcional y no cierra Steam.
   estas bibliotecas no pueden ejecutarlo.
 - Para ejecutar el AppImage con FUSE: `fuse3`/`fusermount3`. Si no está
   disponible, se puede usar `--appimage-extract-and-run`.
-- No se necesita root para usar la aplicación. Better RPT se niega a arrancar
+- No necesitas root para usar la aplicación. Better RPT se niega a arrancar
   como root.
 
 ## Instalación
@@ -82,8 +82,8 @@ Si FUSE no está disponible:
 APPIMAGE_EXTRACT_AND_RUN=1 ./BetterRPT-0.1.1-x86_64.AppImage
 ```
 
-El AppImage y el `.deb` comparten el helper estable y la configuración. No se
-recomienda usar ambos a la vez. El AppImage se probó con FUSE directo y con
+El AppImage y el `.deb` comparten el helper estable y la configuración. No uses
+ambos a la vez. El AppImage se probó con FUSE directo y con
 `--appimage-extract-and-run`; también se comprobó `--version` en Fedora 44 y
 Arch con las bibliotecas gráficas del sistema, pero no se declara soporte de GUI
 fuera de Ubuntu 22.04 en esta versión.
@@ -95,7 +95,11 @@ fuera de Ubuntu 22.04 en esta versión.
 2. Abre Better RPT.
 3. Busca el juego y selecciónalo en la biblioteca. El panel lateral muestra su
    estado, si es nativo o Proton y los detalles técnicos.
-4. Pulsa **Jugar**.
+4. Antes de jugar, marca el juego objetivo como privado en Steam: abre la
+   biblioteca, haz clic derecho en el juego y elige **Administrar** y luego
+   **Marcar como privado**. Así su actividad no sustituye a la de SpaceWar en
+   tu perfil.
+5. Pulsa **Jugar**.
    - Si es la primera vez, se abre la pestaña **Guía**. Pega el comando en
      Steam → SpaceWar → Propiedades → Opciones de lanzamiento. Steam lo aplica
      sin que Better RPT cierre ni reinicie nada.
@@ -103,14 +107,14 @@ fuera de Ubuntu 22.04 en esta versión.
      **Instalar automáticamente**. Better RPT nunca cierra Steam por ti.
    - Si el juego usa Proton, aparece un aviso de compatibilidad desconocida la
      primera vez en cada ejecución.
-5. Cuando el setup aparezca como **Instalado**, pulsa **Jugar**. Better RPT
+6. Cuando el setup aparezca como **Instalado**, pulsa **Jugar**. Better RPT
    arma la intención y pide a Steam que arranque SpaceWar con los parámetros de
    la sesión. Acepta el popup de Steam («Allow game launch?» / «¿Permitir
    iniciar el juego?»).
-6. Cuando la sesión esté activa, abre el overlay de Steam con **Shift+Tab** y
+7. Cuando la sesión esté activa, abre el overlay de Steam con **Shift+Tab** y
    usa **Remote Play Together** para invitar a tus amigos. Better RPT no envía
    invitaciones por APIs internas.
-7. Cuando termines, cierra el juego. En **Última sesión** puedes pulsar
+8. Cuando termines, cierra el juego. En **Última sesión** puedes pulsar
    **Jugar de nuevo** o **Restaurar**. La biblioteca sigue visible y navegable.
    Si cierras Better RPT antes, la próxima apertura reconocerá la última sesión.
    Si el arranque falla, no se escribe ninguna opción nueva: se muestra el error
@@ -199,6 +203,10 @@ Better RPT no descarga código ni envía datos por red. Todo queda en el equipo:
 - Runtime: `$XDG_RUNTIME_DIR/better-rpt/` para el bloqueo; no es dato
   persistente.
 
+Better RPT no cambia la privacidad de tus juegos. Si el juego objetivo no está
+marcado como privado en Steam, su actividad puede sustituir a la de SpaceWar en
+tu perfil. El panel de sesión de la app incluye este recordatorio.
+
 ## Problemas frecuentes
 
 ### «No se encontró una instalación nativa de Steam»
@@ -260,7 +268,7 @@ donante, no hay una solución universal en este MVP.
 
 ### El overlay de Steam va lento o se congela
 
-Cierra la ventana principal de Steam —no salgas de Steam— antes de jugar. El
+Cierra la ventana principal de Steam antes de jugar. No salgas de Steam. El
 cliente deja de renderizar la biblioteca y la tienda, y el overlay suele
 responder mejor. Es una mitigación de una regresión conocida de Steam; si
 persiste, prueba la beta o abre el overlay solo para invitar y ciérralo. Esto no

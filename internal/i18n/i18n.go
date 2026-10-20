@@ -39,6 +39,7 @@ var catalogs = map[Language]map[string]string{
 		"library.columnStatus": "Estado",
 		"selection.hint":       "Elige un juego de la biblioteca para preparar la sesión.",
 		"selection.donorHint":  "SpaceWar debe estar instalado para iniciar la sesión.",
+		"selection.privacy":    "Privacidad: marca el juego objetivo como privado en Steam para que su actividad no sustituya a la de SpaceWar.",
 
 		"action.clear":           "Limpiar",
 		"action.resetFilters":    "Quitar filtros",
@@ -280,6 +281,7 @@ var catalogs = map[Language]map[string]string{
 		"library.columnStatus": "Status",
 		"selection.hint":       "Choose a game from the library to prepare the session.",
 		"selection.donorHint":  "SpaceWar must be installed before a session can start.",
+		"selection.privacy":    "Privacy: mark the target game as private in Steam so its activity does not replace SpaceWar's activity.",
 
 		"action.clear":           "Clear",
 		"action.resetFilters":    "Clear filters",

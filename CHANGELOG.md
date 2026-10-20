@@ -7,6 +7,11 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- Aviso en el panel de sesión y en el README para marcar el juego objetivo como
+  privado en Steam y evitar que su actividad sustituya a la de SpaceWar.
+
 ## [0.1.1] - 2026-10-19 (e842cbc)
 
 ### Security
