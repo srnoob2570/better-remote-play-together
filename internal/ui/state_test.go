@@ -225,3 +225,19 @@ func TestLastSourceKey(t *testing.T) {
 		t.Fatalf("better-rpt source key = %q", got)
 	}
 }
+
+func TestLastOwnsSidebarOnlyForSameOrNoSelection(t *testing.T) {
+	last := &session.LastLaunch{AppID: 900002}
+	if !lastOwnsSidebar(0, last) {
+		t.Fatal("empty selection should show the full last card")
+	}
+	if !lastOwnsSidebar(900002, last) {
+		t.Fatal("selecting the last game should show the full last card")
+	}
+	if lastOwnsSidebar(900001, last) {
+		t.Fatal("selecting another game must keep the selected game as primary")
+	}
+	if lastOwnsSidebar(0, nil) {
+		t.Fatal("no last launch must not own the sidebar")
+	}
+}

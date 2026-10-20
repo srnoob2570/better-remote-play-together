@@ -685,7 +685,7 @@ func (d *dashboard) rebuildSidebar() {
 		d.sidebarPreparing()
 	case d.activeToken != "":
 		d.sidebarActive()
-	case d.last != nil:
+	case lastOwnsSidebar(d.selectedID, d.last):
 		d.sidebarLast()
 	default:
 		d.sidebarSelection()
@@ -948,34 +948,44 @@ func (d *dashboard) sidebarGuide() {
 	record := newActionButton(d.svc.T("action.prepareGuide"), d.recordGuideSetup)
 	record.Importance = widget.LowImportance
 	d.add(tall(record, 40))
+	d.add(captionWrapLabel(d.svc.T("guide.prepareHint")))
 	refresh := newActionButton(d.svc.T("action.refreshSetup"), d.refreshSituation)
 	refresh.Importance = widget.LowImportance
 	d.add(tall(refresh, 40))
 
+	d.add(widget.NewSeparator())
+	steps := []struct {
+		title, body string
+		image       fyne.Resource
+		imageTitle  string
+	}{
+		{"guide.step1.title", "guide.step1.body", nil, ""},
+		{"guide.step2.title", "guide.step2.body", guideImageLaunchOptions, "guide.image.launchOptions"},
+		{"guide.step3.title", "guide.step3.body", guideImageCommand, "guide.image.command"},
+		{"guide.step4.title", "guide.step4.body", nil, ""},
+		{"guide.step5.title", "guide.step5.body", guideImagePopup, "guide.image.popup"},
+		{"guide.step6.title", "guide.step6.body", guideImageInvite, "guide.image.invite"},
+	}
+	rows := make([]fyne.CanvasObject, 0, len(steps))
+	for index, step := range steps {
+		rows = append(rows, numberedRow(index+1, bodyLabel(d.svc.T(step.title)+". "+d.svc.T(step.body)), toneInfo))
+		if step.image != nil {
+			rows = append(rows, guideFigure(d.svc.T(step.imageTitle), step.image, d.svc.T("guide.image.placeholder")))
+		}
+	}
+	d.add(vbox(12, rows...))
+
 	if d.situation.SteamRunning {
+		d.add(widget.NewSeparator())
 		d.add(captionWrapLabel(d.svc.T("guide.steamOpen")))
 		install := newActionButton(d.svc.T("action.installAuto"), nil)
 		install.Disable()
 		d.add(captionWrapLabel(d.svc.T("guide.autoUnavailable")), tall(install, 40))
 	} else {
+		d.add(widget.NewSeparator())
 		d.add(captionWrapLabel(d.svc.T("guide.steamClosed")))
 		d.add(tall(primaryButton(d.svc.T("action.installAuto"), d.installSetup), 48))
 	}
-
-	d.add(widget.NewSeparator())
-	steps := []struct{ title, body string }{
-		{"guide.step1.title", "guide.step1.body"},
-		{"guide.step2.title", "guide.step2.body"},
-		{"guide.step3.title", "guide.step3.body"},
-		{"guide.step4.title", "guide.step4.body"},
-		{"guide.step5.title", "guide.step5.body"},
-		{"guide.step6.title", "guide.step6.body"},
-	}
-	rows := make([]fyne.CanvasObject, 0, len(steps))
-	for index, step := range steps {
-		rows = append(rows, numberedRow(index+1, bodyLabel(d.svc.T(step.title)+". "+d.svc.T(step.body)), toneInfo))
-	}
-	d.add(vbox(12, rows...))
 
 	if d.setup.Setup != nil && d.setup.Setup.Backup.Path != "" {
 		d.add(sectionLabel(d.svc.T("guide.originalValue")))
@@ -987,12 +997,6 @@ func (d *dashboard) sidebarGuide() {
 		}
 		d.add(captionWrapLabel(d.svc.T("guide.restoreHint")))
 	}
-
-	d.add(sectionLabel(d.svc.T("guide.images")))
-	d.add(guideFigure(d.svc.T("guide.image.launchOptions"), guideImageLaunchOptions, d.svc.T("guide.image.placeholder")))
-	d.add(guideFigure(d.svc.T("guide.image.command"), guideImageCommand, d.svc.T("guide.image.placeholder")))
-	d.add(guideFigure(d.svc.T("guide.image.popup"), guideImagePopup, d.svc.T("guide.image.placeholder")))
-	d.add(guideFigure(d.svc.T("guide.image.invite"), guideImageInvite, d.svc.T("guide.image.placeholder")))
 	d.sidebarNotice()
 }
 
@@ -1136,6 +1140,9 @@ func (d *dashboard) sidebarSelection() {
 			tall(primaryButton(d.svc.T("action.viewGuide"), d.openGuide), 48),
 		)
 	}
+	if d.last != nil && d.last.AppID != game.AppID {
+		d.addLastShortcut()
+	}
 	d.addPendingCallout()
 
 	if len(d.warnings) > 0 {
@@ -1148,8 +1155,66 @@ func (d *dashboard) sidebarSelection() {
 	d.sidebarNotice()
 }
 
+func (d *dashboard) addLastShortcut() {
+	if d.last == nil || d.last.AppID == d.selectedID {
+		return
+	}
+	last := d.last
+	game := d.gameForID(last.AppID)
+	installable := game.Status != domain.StatusIncompatible &&
+		game.Status != domain.StatusMissing && game.Status != domain.StatusError &&
+		game.Status != domain.StatusActive
+
+	d.add(widget.NewSeparator())
+	d.add(sectionLabel(d.svc.T("last.title")))
+	d.add(d.gameCoverSized(game, 64))
+	d.add(captionWrapLabel(d.gameName(game)))
+	d.add(captionLabel(d.svc.T(lastSourceKey(last.Source)) + " · " + d.svc.T(lastOutcomeKey(last.Outcome))))
+	if d.situation.Setup == session.SetupInstalled && installable {
+		d.add(tall(primaryButton(d.svc.T("action.playAgain"), d.replaySession), 40))
+	} else {
+		reason := d.svc.T("last.setupMissing")
+		if !installable {
+			reason = d.svc.T(statusLabelKey(game.Status))
+		}
+		button := primaryButton(d.svc.T("action.playAgain"), nil)
+		button.Disable()
+		d.add(captionWrapLabel(reason), tall(button, 40))
+	}
+	open := newActionButton(d.svc.T("action.openLast"), d.openLastSession)
+	open.Importance = widget.LowImportance
+	d.add(tall(open, 40))
+}
+
+func (d *dashboard) openLastSession() {
+	if d.last == nil {
+		return
+	}
+	d.selectedID = d.last.AppID
+	if d.list != nil {
+		for index, game := range d.visible {
+			if game.AppID != d.last.AppID {
+				continue
+			}
+			d.suppress = true
+			d.list.Select(index)
+			d.list.ScrollTo(index)
+			d.suppress = false
+			break
+		}
+		d.list.Refresh()
+	}
+	d.rebuildSidebar()
+}
+
 func (d *dashboard) gameCover(game domain.Game) fyne.CanvasObject {
-	const coverHeight float32 = 128
+	return d.gameCoverSized(game, 128)
+}
+
+func (d *dashboard) gameCoverSized(game domain.Game, coverHeight float32) fyne.CanvasObject {
+	if coverHeight <= 0 {
+		coverHeight = 128
+	}
 	if path := steamCoverPath(game); path != "" {
 		image := canvas.NewImageFromFile(path)
 		image.FillMode = canvas.ImageFillCover

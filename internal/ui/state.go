@@ -133,6 +133,12 @@ func lastSourceKey(source session.LaunchSource) string {
 	return "last.source.betterRpt"
 }
 
+// lastOwnsSidebar reports whether the full last-session card should replace the
+// selected-game card. A different selected game always keeps the primary card.
+func lastOwnsSidebar(selectedID uint32, last *session.LastLaunch) bool {
+	return last != nil && (selectedID == 0 || last.AppID == selectedID)
+}
+
 // visibleGames returns the sorted library subset matching a text query and one
 // of the four dashboard filters. It never mutates the input slice. SpaceWar is
 // the donor runtime, not a launchable target, so it stays out of the library.

@@ -1121,12 +1121,12 @@ func guideFigure(title string, resource fyne.Resource, caption string) fyne.Canv
 	if resource != nil {
 		image := canvas.NewImageFromResource(resource)
 		image.FillMode = canvas.ImageFillContain
-		image.SetMinSize(fyne.NewSize(0, 150))
-		visual = tall(image, 150)
+		image.SetMinSize(fyne.NewSize(1, 280))
+		visual = tall(image, 280)
 	} else {
 		background := canvas.NewRectangle(colorSurfaceRaised)
 		background.CornerRadius = 6
-		visual = tall(container.NewStack(background, container.NewCenter(captionWrapLabel(caption))), 150)
+		visual = tall(container.NewStack(background, container.NewCenter(captionWrapLabel(caption))), 280)
 	}
 	return vbox(6, titleLabel, visual, captionWrapLabel(caption))
 }

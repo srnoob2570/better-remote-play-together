@@ -60,7 +60,9 @@ No se presentan como «última sesión» ni seleccionan automáticamente un jueg
 
 ## Última sesión
 
-Cuando existe `last-launch.json`, la pestaña **Sesión** muestra:
+Cuando existe `last-launch.json`, la pestaña **Sesión** muestra una tarjeta
+completa del último juego si no hay otra selección o si el juego seleccionado es
+ese mismo último juego:
 
 - portada, nombre y App ID del último juego;
 - origen (Better RPT o Steam);
@@ -72,6 +74,12 @@ Cuando existe `last-launch.json`, la pestaña **Sesión** muestra:
   - **Restaurar**: deshace el setup o la transacción legacy. Si no hay nada que
     restaurar, está deshabilitado y muestra el motivo.
   - **Ver guía**: abre la guía sin cambiar la selección.
+
+Si el usuario selecciona otro juego, la tarjeta principal sigue siendo la del
+juego seleccionado. **Última sesión** aparece debajo en formato compacto, con
+portada pequeña, nombre, estado, **Jugar de nuevo** y **Abrir última sesión**;
+nunca reemplaza la selección actual. **Abrir última sesión** selecciona ese
+juego en la biblioteca.
 
 Si el último juego ya no está instalado o cambió su lanzamiento, **Jugar de
 nuevo** se deshabilita con el motivo visible. La biblioteca sigue navegable.
@@ -106,12 +114,14 @@ La guía es el flujo principal y debe poder consultarse sin Steam cerrado:
   6. Abrir el overlay (Shift+Tab) e invitar a Remote Play Together.
 - Valor original de `LaunchOptions`, para que el usuario sepa qué se
   restaurará.
-- Imágenes reales del proceso. Si una captura no está disponible, se muestra un
+- Imágenes reales inline, justo después del paso que explican: opciones de
+  lanzamiento tras el paso 2, comando pegado tras el 3, popup tras el 5 e
+  invitación tras el 6. Si una captura no está disponible, se muestra una
   ilustración claramente etiquetada y se documenta la tarea de sustitución en
-  sustitución en `docs/guide-images.md`.
-- Instalación automática: solo con Steam cerrado; con Steam abierto el botón
-  está deshabilitado y explica que debe pegarse el comando o cerrar Steam
-  manualmente.
+  `docs/guide-images.md`.
+- Instalación automática al final de la guía: solo con Steam cerrado; con Steam
+  abierto el botón está deshabilitado y explica que debe pegarse el comando o
+  cerrar Steam manualmente.
 - **Preparar guía**: registra el backup del valor actual sin escribir Steam, para
   poder restaurar después de que el usuario pegue el comando.
 
@@ -203,6 +213,7 @@ Patrón: qué pasó, acción primaria, detalle técnico plegable. Ejemplos:
 |---|---|---|
 | action.play | Jugar | Play |
 | action.playAgain | Jugar de nuevo | Play again |
+| action.openLast | Abrir última sesión | Open last session |
 | action.viewGuide | Ver guía | View guide |
 | action.copyCommand | Copiar comando | Copy command |
 | action.installAuto | Instalar automáticamente | Install automatically |
@@ -214,6 +225,7 @@ Patrón: qué pasó, acción primaria, detalle técnico plegable. Ejemplos:
 | last.hint | La biblioteca sigue disponible. | The library remains available. |
 | guide.title | Guía de lanzamiento | Launch guide |
 | guide.command | Comando para SpaceWar | SpaceWar command |
+| guide.prepareHint | Preparar guía guarda el valor original antes de pegar el comando. | Prepare guide saves the original value before pasting the command. |
 | guide.step1 | Abre Steam → Biblioteca → SpaceWar → Propiedades. | Open Steam → Library → SpaceWar → Properties. |
 | guide.step2 | Entra en Opciones de lanzamiento. | Open Launch Options. |
 | guide.step3 | Pega el comando y guarda. | Paste the command and save. |

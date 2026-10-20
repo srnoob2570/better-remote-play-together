@@ -383,7 +383,7 @@ Steam ni juegos reales.
 
 ## Estado de verificación de esta versión
 
-- 285 pruebas en 16 paquetes; `go vet` y `go test -race` pasan sin errores.
+- 286 pruebas en 16 paquetes; `go vet` y `go test -race` pasan sin errores.
 - Binario y helper construidos en Ubuntu 22.04; símbolo máximo `GLIBC_2.34`.
   `dpkg-shlibdeps` pidió `libc6 (>= 2.34)`; el paquete declara `2.35` como
   mínimo soportado.
