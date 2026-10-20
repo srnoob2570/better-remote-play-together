@@ -7,6 +7,13 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Security
+
+- Actualiza `golang.org/x/image` a `v0.47.0` y `golang.org/x/net` a `v0.61.0`,
+  junto con `x/sys` y `x/text`, para corregir las vulnerabilidades
+  CVE-2026-46599, CVE-2026-33809, CVE-2026-25680, CVE-2025-22872 y
+  CVE-2025-22870 en dependencias indirectas de Fyne.
+
 ## [0.1.0] - 2026-10-19 (36984f1)
 
 ### Added
