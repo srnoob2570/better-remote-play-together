@@ -60,6 +60,25 @@ Política:
 - La guía de sesión incluye: «Ajustes de Steam > En el juego > Activar el overlay» y el atajo configurado (`InGameOverlayShortcutKey`; por defecto Shift+Tab).
 - Mitigación local: cerrar la ventana principal de Steam (sin salir de Steam) antes de jugar reduce la contención del cliente CEF. No sustituye la corrección de Valve ni arregla la pérdida de paquetes de la red local.
 
+## Mando y Steam Input
+
+Hecho local: durante una sesión de RE2 vía SpaceWar, Steam cargó el action set de
+SpaceWar para el mando físico del invitado y para el control táctil, y mantuvo
+el foco en App ID 480. No cargó la configuración de 883710 durante la sesión.
+
+Política:
+
+- No bloquear el lanzamiento por el mando: es una limitación conocida, no una
+  condición verificable antes de jugar.
+- Si el invitado ve el mando conectado pero el target no responde, probar una
+  plantilla **Gamepad** genérica en SpaceWar y cerrar el overlay antes de
+  repetir. Son las dos causas mejor respaldadas.
+- No modificar automáticamente el layout del usuario ni cambiar
+  `SteamGameId`/`SteamOverlayGameId` sin una prueba real de RPT; conservar la
+  identidad del donante es lo que mantiene la sesión y el overlay asociados a
+  SpaceWar.
+- Documentar la evidencia y las pruebas pendientes en `docs/known-issues.md`.
+
 ## Target que sale inmediatamente
 
 - Si el target termina en menos de 2 s desde que el helper lo arranca: estado de error «El juego se cerró al iniciar», posible incompatibilidad y oferta de restaurar.

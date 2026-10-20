@@ -161,7 +161,11 @@ toca opciones de lanzamiento de otras aplicaciones.
   desconocida por diseño. Se permite intentarlo con aviso, pero no se
   garantiza.
 - **Overlay:** las invitaciones dependen del overlay de Steam (`Shift+Tab`).
-  Si el overlay no aparece, revisa la configuración de Steam y el juego.
+  Si el overlay no aparece, revisa la configuración de Steam y el juego. Hay una
+  regresión conocida de Steam documentada en `docs/known-issues.md`.
+- **Steam Input:** al conservar la identidad del donante, Steam puede cargar el
+  layout de SpaceWar para el mando del invitado. Usa una plantilla Gamepad
+  genérica en SpaceWar; ver `docs/known-issues.md`.
 - **Actualizaciones de Steam:** el formato de `localconfig.vdf` o `appinfo.vdf`
   puede cambiar. Better RPT muestra un error y no escribe datos dudosos.
 - **Flatpak/Snap:** se detectan, pero no se lanzan ni se modifican. Solo se
@@ -259,7 +263,17 @@ Cierra la ventana principal de Steam —no salgas de Steam— antes de jugar. El
 cliente deja de renderizar la biblioteca y la tienda, y el overlay suele
 responder mejor. Es una mitigación de una regresión conocida de Steam; si
 persiste, prueba la beta o abre el overlay solo para invitar y ciérralo. Esto no
-corrige la pérdida de paquetes de la red local.
+corrige la pérdida de paquetes de la red local. Detalles y enlaces en
+[`docs/known-issues.md`](docs/known-issues.md).
+
+### El mando del invitado aparece conectado pero no responde
+
+Steam Input está cargando el layout de SpaceWar (App ID 480) para el mando del
+invitado. En SpaceWar > Administrar > Configuración del controlador, elige una
+plantilla **Gamepad** genérica y vuelve a probar. Cierra el overlay antes de
+comprobar el mando; si está en crash-loop, reinicia Steam. Es la hipótesis mejor
+respaldada, pero aún no está verificada con un invitado real. Ver
+[`docs/known-issues.md`](docs/known-issues.md).
 
 ## Desinstalación
 

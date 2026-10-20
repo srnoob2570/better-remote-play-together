@@ -26,6 +26,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   como la última sesión.
 - Migración/reconciliación de estados legacy sin falsos positivos.
 - ADR `docs/adr/0001-guide-first-launch.md` y `docs/guide-images.md`.
+- `docs/known-issues.md` con la regresión del overlay de Steam y la limitación
+  del mando del invitado por el layout de Steam Input del donante.
 
 ### Changed
 

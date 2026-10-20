@@ -25,6 +25,9 @@ defecto.
   fija `SteamAppId` al App ID del target para que SteamAPI/DRM lo reconozca, pero
   conserva `SteamGameId`/`SteamOverlayGameId` del donante para que el overlay y
   la sesión RPT sigan asociados a SpaceWar.
+- Consecuencia: Steam Input asocia el mando del invitado al App ID 480 y puede
+  cargar el action set de SpaceWar; el soporte de mando del target hereda esa
+  limitación. Ver `docs/known-issues.md`.
 - No se usan APIs internas de Steam para lanzar el target ni para invitar.
 
 ## Paquetes
