@@ -1,0 +1,60 @@
+/*
+ * Design tokens for the React UI.
+ *
+ * The colour and size values mirror internal/ui/theme.go. Fyne remains the
+ * shipped UI during the migration, so keep both sides in sync until it is
+ * removed. The React prototype imports this file directly; the future Wails
+ * frontend can import it without copying values.
+ */
+:root {
+  /* Palette */
+  --color-ink: #0b1418;
+  --color-session: #0a1b1d;
+  --color-surface: #111f24;
+  --color-raised: #16282e;
+  --color-quiet: #0c171b;
+  --color-selected: #2a2118;
+  --color-hover: #241d15;
+  --color-line: #243a41;
+  --color-line-soft: #1a2c32;
+  --color-cream: #f2f5f4;
+  --color-muted: #8ca0a6;
+  --color-faint: #849ba2;
+  --color-amber: #f4a261;
+  --color-teal: #2a9d8f;
+  --color-seam: #1b3a3a;
+  --color-mint: #7bd6a8;
+  --color-cyan: #7fc8d8;
+  --color-coral: #ee7b66;
+  --color-gold: #e3b34f;
+
+  /* Typography */
+  --font-ui: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-code: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Fyne theme sizes (px) */
+  --size-text: 15px;
+  --size-heading: 26px;
+  --size-subheading: 16px;
+  --size-caption: 12px;
+  --size-row-title: 17px;
+  --size-field-value: 14px;
+  --size-padding: 12px;
+  --size-inner-padding: 10px;
+  --size-line-spacing: 5px;
+  --size-inline-icon: 18px;
+  --size-input-border: 1px;
+  --size-input-radius: 4px;
+  --size-button-radius: 4px;
+  --size-selection-radius: 3px;
+  --size-card-radius: 8px;
+  --size-dialog-radius: 8px;
+  --size-popup-radius: 8px;
+  --size-menu-radius: 6px;
+  --size-separator-thickness: 1px;
+  --size-scrollbar: 8px;
+  --size-scrollbar-small: 4px;
+  --size-scrollbar-radius: 4px;
+  --size-split-thickness: 8px;
+  --size-titlebar-height: 32px;
+}

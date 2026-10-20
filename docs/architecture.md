@@ -215,6 +215,23 @@ Al arrancar:
 - Cancelar antes de armar la intención no escribe nada; cancelar después limpia
   la intención y deja el estado/última sesión en un estado recuperable.
 
+## i18n y errores
+
+- `internal/i18n/catalogs/es.json` y `en.json` son la única fuente de textos.
+  Go los embebe con `go:embed`; React importa los mismos archivos. El
+  `i18n.Translator` conserva la detección de locale, el fallback a español y
+  `Language()`. Las claves interpoladas usan `%s`/`%d`; `T(key, args...)`
+  formatea solo cuando recibe argumentos.
+- Los errores del bridge llevan un `code` estable (una clave i18n, por ejemplo
+  `error.refresh`), un `message` técnico y un `detail`. React resuelve `code`
+  contra el catálogo compartido y cae a `error.generic` si no lo conoce. Go no
+  pre-traduce los errores del bridge, para que cambiar ES/EN en caliente no deje
+  mensajes antiguos. Los mensajes fatales del CLI sí los resuelve Go con el
+  mismo catálogo.
+- `design/tokens.css` contiene la paleta, tipografías y tamaños que consume
+  React. Mientras Fyne siga presente, `TestDesignTokensMatchTheme` comprueba que
+  los valores coinciden con `internal/ui/theme.go`.
+
 ## Fyne
 
 Fyne v2.8 sigue siendo la opción por defecto: CGO, sin WebKitGTK, Wayland y X11.

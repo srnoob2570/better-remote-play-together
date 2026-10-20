@@ -108,11 +108,12 @@ func (s *Service) Language() i18n.Language {
 	return s.tr.Language()
 }
 
-// T translates a UI key with the current language.
-func (s *Service) T(key string) string {
+// T translates a UI key with the current language. When args are provided,
+// the resolved value is formatted with fmt.Sprintf.
+func (s *Service) T(key string, args ...any) string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.tr.T(key)
+	return s.tr.T(key, args...)
 }
 
 // RefreshCatalog detects Steam and rebuilds the installed-game catalog.

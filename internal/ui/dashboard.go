@@ -303,7 +303,7 @@ func (d *dashboard) buildLibrary() fyne.CanvasObject {
 			}
 			row := object.(*gameRow)
 			game := d.visible[id]
-			row.SetGame(game, game.AppID == d.selectedID, d.svc.T, steamIconPath(game))
+			row.SetGame(game, game.AppID == d.selectedID, func(key string) string { return d.svc.T(key) }, steamIconPath(game))
 		},
 	)
 	d.list.HideSeparators = true
@@ -323,7 +323,7 @@ func (d *dashboard) buildLibrary() fyne.CanvasObject {
 	d.bannerBox.Hide()
 	d.libraryTop = vbox(14, toolbar, d.bannerBox)
 	header := container.NewThemeOverride(
-		vbox(0, vSpace(8), tall(newLibraryTableHeader(d.svc.T), 28)),
+		vbox(0, vSpace(8), tall(newLibraryTableHeader(func(key string) string { return d.svc.T(key) }), 28)),
 		&listPaddingTheme{Theme: fyne.CurrentApp().Settings().Theme()},
 	)
 	listView := container.NewThemeOverride(d.list, &listPaddingTheme{Theme: fyne.CurrentApp().Settings().Theme()})
@@ -397,7 +397,7 @@ func (d *dashboard) updateLibraryStatus() {
 	if count == 1 {
 		d.countLabel.SetText(d.svc.T("library.countOne"))
 	} else {
-		d.countLabel.SetText(fmt.Sprintf(d.svc.T("library.count"), count))
+		d.countLabel.SetText(d.svc.T("library.count", count))
 	}
 	d.countLabel.Refresh()
 
@@ -730,7 +730,7 @@ func (d *dashboard) sidebarPreparing() {
 	if step > len(prepSteps)-1 {
 		step = len(prepSteps) - 1
 	}
-	d.add(captionLabel(fmt.Sprintf(d.svc.T("prep.step"), step+1, len(prepSteps))))
+	d.add(captionLabel(d.svc.T("prep.step", step+1, len(prepSteps))))
 
 	rows := make([]fyne.CanvasObject, 0, len(prepSteps))
 	for index, key := range prepSteps {
@@ -903,7 +903,7 @@ func (d *dashboard) addPendingCallout(showRestore bool) {
 		title = d.svc.T("pending.orphanTitle")
 		body = d.svc.T("pending.orphanBody")
 	} else if d.pendingGame.AppID != 0 {
-		body = fmt.Sprintf(d.svc.T("pending.body"), d.gameName(d.pendingGame))
+		body = d.svc.T("pending.body", d.gameName(d.pendingGame))
 	}
 	d.add(newCallout(title, body, toneWarning).obj)
 	if showRestore {
