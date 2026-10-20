@@ -45,14 +45,17 @@ internal/steam/          # detección de raíces, bibliotecas, appinfo y ciclo d
 internal/config/         # setup del dispatcher, backups y transacción de localconfig
 internal/launch/         # planificador puro + ejecutor nativo/Proton
 internal/session/        # máquina de estados, intención, última sesión y helper
+internal/bridge/         # fachada Wails: DTOs, eventos, errores y contexto de sesión
 internal/ui/             # interfaz Fyne
 internal/i18n/           # textos ES/EN y locale del sistema
 internal/fsutil/         # escritura atómica y permisos
+frontend/                # contrato TypeScript de la futura UI React
 packaging/               # nfpm, AppImage, .desktop, icono
 ```
 
 Dependencias permitidas: `ui → app → {steam, config, launch, session}`;
-`domain` no importa nada del proyecto; `launch` no importa `ui`.
+`bridge → app` (solo la interfaz `App`, sin importar Fyne); `domain` no importa
+nada del proyecto; `launch` no importa `ui`.
 
 ## Flujo
 
@@ -231,6 +234,28 @@ Al arrancar:
 - `design/tokens.css` contiene la paleta, tipografías y tamaños que consume
   React. Mientras Fyne siga presente, `TestDesignTokensMatchTheme` comprueba que
   los valores coinciden con `internal/ui/theme.go`.
+
+## Bridge React
+
+`internal/bridge` es la única superficie que se bindea desde Wails:
+
+- `Bridge` envuelve la interfaz `App` (satisfecha por `*app.Service`) y traduce
+  `domain.Game`, `session.State`, `session.Situation`, `config.Setup` y
+  `config.SetupSnapshot` a DTOs camelCase. No importa Fyne.
+- `Snapshot` solo devuelve la caché; `RefreshCatalog` emite
+  `catalog.updated`. `StartSession` y `ReplaySession` usan un contexto propio
+  del bridge y emiten `session.updated` en cada fase observada y al terminar.
+  `CancelSession` solo cancela en `preparing`; el shell llama a `Shutdown`
+  para cancelar y esperar.
+- Los errores usan `Problem{code,message,detail}`; `MarshalError` es el hook de
+  Wails. `ErrorCode` mapea los centinelas de dominio/config/session/helper/
+  launch/steam a códigos estables y cae a `internal`.
+- `Recovery` incluye la situación, el setup y la última sesión para que la UI
+  actual pueda reconstruir la guía y el panel sin llamadas adicionales.
+- El contrato TS manual vive en `frontend/src/bridge/types.ts` y
+  `frontend/src/bridge/client.ts`; `TestTypeScriptContractMatchesDTOs` compara
+  los nombres de campo con los tags JSON de Go. El ticket 08 sustituye la
+  fachada manual por los bindings generados por Wails.
 
 ## Fyne
 
