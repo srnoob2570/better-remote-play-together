@@ -57,6 +57,16 @@
   el changelog.
 - El commit de release puede no cambiar la versión si ya estaba fijada; el tag
   apunta al commit que contiene el changelog y `.release/`.
+- `scripts/release.sh` deduce un patch cuando hay `feat` en 0.x. Si la versión
+  ya está fijada en `Makefile`, `build/config.yml` y los docs, pásale
+  `--version X.Y.Z` para no desincronizar las referencias.
+- El SSH al puerto 22 de GitHub puede cerrar la conexión al publicar. Si
+  `git push` falla, reintenta o usa `ssh.github.com:443`; no cambies el remoto
+  del repositorio. Una subida interrumpida de `gh release create` puede dejar
+  un draft duplicado: bórralo por ID sin tocar el tag.
+- El aviso alto de Dependabot sobre `braces` llega por la CLI de `shadcn`
+  (`fast-glob`), una dependencia de compilación; no entra en el bundle ni en
+  los artefactos publicados. Al publicar 0.2.0 no había versión parcheada.
 
 ## Preferencias
 

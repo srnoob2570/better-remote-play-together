@@ -6,7 +6,12 @@
     "commitStyle": "conventional",
     "tagPrefix": "v",
     "branchPrefix": "release/",
-    "githubReleases": true
+    "githubReleases": true,
+    "releaseTool": {
+      "name": "scripts/release.sh",
+      "commits": true,
+      "tags": true
+    }
   },
   "lastRelease": {
     "version": "0.2.0",
