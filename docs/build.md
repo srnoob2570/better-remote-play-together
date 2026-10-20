@@ -342,6 +342,31 @@ Pop!_OS 22.04+ y derivados.
   allí. Alpine/musl, glibc antigua
   y arm64 no están soportadas.
 
+## Pruebas
+
+```bash
+cd frontend
+npm test             # Vitest: biblioteca, sesión e i18n con bindings mockeados
+npm run test:e2e     # Playwright: paridad, snapshots y axe; usa Chrome del sistema
+```
+
+La suite Playwright usa `e2e.html` y un transporte mock; no descarga Chromium y
+no mete fixtures en el bundle de producción. Los snapshots viven en
+`frontend/e2e/visual.spec.ts-snapshots/`. Para cambios visuales intencionados:
+
+```bash
+npm run test:e2e:update
+```
+
+No hay workflow de CI todavía: el gate es local y requiere Go 1.27.2, Node,
+GTK3/WebKit2GTK 4.1, Xvfb y Chrome. Un CI futuro necesitará esa matriz; no se
+añadió en este ticket para no duplicar el entorno de escritorio.
+
+El smoke real se ejecutó con el binario de producción y XDG temporal bajo Xvfb:
+arranque, assets, `steam catalog refreshed libraries=1 games=5 warnings=0`,
+cambio a inglés (persistido en `config.json`), cierre limpio con `WM_DELETE`
+(exit 0). No se pulsó Preparar y jugar.
+
 ## Verificación
 
 ```bash
@@ -366,9 +391,9 @@ La verificación de esta versión incluyó:
 - `dpkg-shlibdeps -O /usr/bin/better-rpt` -> `libc6 (>= 2.34)`.
 - Ejecución como root rechazada con código 1; GUI como usuario normal bajo
   Xvfb con HOME/XDG temporales.
-- Dos compilaciones del AppImage y dos del `.deb` con
-  `SOURCE_DATE_EPOCH=1700000000` dieron el mismo SHA-256 en cada formato;
-  `dist/SHA256SUMS` contiene los hashes publicados.
+- El pipeline de release repite la compilación y compara los SHA-256 antes de
+  publicar; en esta ronda se construyó una vez cada formato. Los hashes finales
+  están en el ticket 12 y en `dist/`.
 - El paquete final está en `dist/`; no se usa un artefacto efímero de
   `/tmp` para la entrega.
 
