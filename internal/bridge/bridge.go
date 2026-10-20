@@ -140,6 +140,8 @@ func (b *Bridge) CancelSession() bool {
 
 // Shutdown cancels any in-flight preparation and waits for the start call to
 // finish. The Wails shell calls it before closing the service.
+//
+//wails:ignore
 func (b *Bridge) Shutdown() {
 	b.mu.Lock()
 	run := b.run

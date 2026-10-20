@@ -10,29 +10,46 @@ receta está en `docs/appimage.md`.
 
 ## Dependencias de compilación (Debian/Ubuntu)
 
+La UI migrada usa Wails v3 con GTK3/WebKit2GTK 4.1. Para desarrollo y pruebas:
+
 ```bash
 sudo apt-get install \
   build-essential pkgconf \
+  libgtk-3-dev libwebkit2gtk-4.1-dev \
   libgl-dev libwayland-dev libxkbcommon-dev \
   libx11-dev libxext-dev libxrender-dev libxfixes-dev \
   libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
 ```
 
 - La compilación final usa `libgl1-mesa-dev` en Ubuntu 22.04; en Ubuntu 26.04 el
-  paquete equivalente es `libgl-dev`. No se necesita WebKitGTK, GTK para
-  compilar, `libdecor-dev` ni `libegl-dev`.
-- GLFW enlaza X11 y Wayland; por eso se necesitan ambos conjuntos de headers.
+  paquete equivalente es `libgl-dev`.
+- Wails v3 se instala con el tag `gtk3`; el CLI por defecto busca GTK4:
+  `go install -tags gtk3 github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.33`.
+- El frontend requiere Node 20.19+ (probado con Node 24) y `npm ci`.
+- La sección de empaquetado de este documento todavía describe el binario Fyne;
+  el ticket 12 la actualiza para Wails/GTK3. Mientras tanto, `make build`
+  produce el binario Wails local y `make helper` no cambia.
 
 ## Desarrollo local
 
 Para iterar no hace falta instalar el `.deb` ni el AppImage:
 
 ```bash
-make dev       # go run ./cmd/better-rpt
-make build     # dist/better-rpt local, versión 0.1.2
+# una vez, con el CLI de Wails en PATH
+go install -tags gtk3 github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.33
+cd frontend && npm ci && cd ..
+
+make dev       # Wails dev + Vite; ventana con recarga en caliente
+make build     # frontend + dist/better-rpt con assets embebidos
 make helper    # dist/better-rpt-helper estático
 make all       # compila la app y el helper
 ```
+
+`make dev` arranca Vite en el puerto 9245 y el binario con el proxy de Wails;
+`make build` ejecuta `npm run build`, genera los bindings y compila con
+`-tags 'gtk3 production'`. `go test ./...` funciona sin GTK porque el paquete
+`cmd/better-rpt` tiene un stub sin tag; para compilar el shell real usa
+`go test -tags gtk3 ./cmd/better-rpt`.
 
 Para instalar ambos binarios y el lanzador en el sistema:
 

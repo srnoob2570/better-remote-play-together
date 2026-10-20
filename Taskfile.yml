@@ -1,0 +1,48 @@
+version: '3'
+
+vars:
+  APP_NAME: better-rpt
+  BIN_DIR: dist
+  VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+  DEV: '{{.DEV | default "false"}}'
+  VERSION:
+    sh: 'printf %s "${VERSION:-dev}"'
+
+tasks:
+  build:
+    cmds:
+      - task: install:frontend
+      - task: generate:bindings
+      - task: build:frontend
+        vars:
+          DEV: '{{.DEV}}'
+      - CGO_ENABLED=1 go build -tags '{{if eq .DEV "true"}}gtk3{{else}}gtk3 production{{end}}' -trimpath -buildvcs=false -ldflags '-s -w -X main.version={{.VERSION}}' -o {{.BIN_DIR}}/{{.APP_NAME}} ./cmd/better-rpt
+
+  install:frontend:
+    dir: frontend
+    status:
+      - test -d node_modules
+    cmds:
+      - npm ci
+
+  build:frontend:
+    dir: frontend
+    cmds:
+      - '{{if eq .DEV "true"}}true{{else}}npm run build{{end}}'
+
+  generate:bindings:
+    cmds:
+      - wails3 generate bindings -ts -i -clean=true -f '-tags gtk3' ./...
+
+  dev:
+    cmds:
+      - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
+
+  dev:frontend:
+    dir: frontend
+    cmds:
+      - npm run dev -- --port {{.VITE_PORT}} --strictPort
+
+  run:
+    cmds:
+      - ./{{.BIN_DIR}}/{{.APP_NAME}}

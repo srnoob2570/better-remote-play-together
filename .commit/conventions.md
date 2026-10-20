@@ -28,3 +28,11 @@
   `packaging/nfpm.yaml`; al preparar una versión nueva, mueve las entradas de
   `[Unreleased]` a la sección de la versión con su fecha y actualiza los enlaces
   de comparación del final de `CHANGELOG.md`.
+- El shell Wails requiere el CLI `wails3` instalado con `-tags gtk3`; `make build`
+  lo busca en `PATH` y en `$(go env GOPATH)/bin`.
+- `go test ./...` compila `cmd/better-rpt/main_stub.go` por defecto; para compilar
+  la entrada Wails hay que usar `-tags gtk3`. Los bindings generados en
+  `frontend/bindings/` se versionan para que el frontend compile sin regenerarlos.
+- Los tests de `internal/i18n` y `internal/ui/theme_tokens_test.go` comparan los
+  catálogos y los tokens CSS con sus fuentes Go; si cambia la paleta o el copy,
+  hay que actualizar ambos lados.

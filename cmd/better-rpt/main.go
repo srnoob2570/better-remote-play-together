@@ -1,3 +1,5 @@
+//go:build gtk3
+
 package main
 
 import (
@@ -7,10 +9,13 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/wailsapp/wails/v3/pkg/application"
+
 	"github.com/srnoob2570/better-rpt/internal/app"
+	"github.com/srnoob2570/better-rpt/internal/brand"
+	"github.com/srnoob2570/better-rpt/internal/bridge"
 	"github.com/srnoob2570/better-rpt/internal/domain"
 	"github.com/srnoob2570/better-rpt/internal/i18n"
-	"github.com/srnoob2570/better-rpt/internal/ui"
 )
 
 var version = "dev"
@@ -52,14 +57,62 @@ func run() int {
 		}
 	}()
 
-	runGUI(svc, logger)
+	if err := runGUI(svc, logger); err != nil {
+		logger.Error("gui failed", "error", err)
+		return 1
+	}
 	return 0
 }
 
-func runGUI(svc *app.Service, logger *slog.Logger) {
+func runGUI(svc *app.Service, logger *slog.Logger) error {
 	logger.Info("gui starting", "version", version)
-	ui.Run(svc, logger, version)
+
+	emitter := &wailsEmitter{}
+	b := bridge.New(svc, version, emitter)
+	wailsApp := application.New(application.Options{
+		Name:        svc.T("app.title"),
+		Description: svc.T("app.subtitle"),
+		Icon:        brand.Icon,
+		Logger:      logger,
+		LogLevel:    slog.LevelInfo,
+		Services: []application.Service{
+			application.NewService(b),
+		},
+		MarshalError: bridge.MarshalError,
+		Assets: application.AssetOptions{
+			Handler: application.BundledAssetFileServer(assets),
+		},
+		OnShutdown: b.Shutdown,
+	})
+	emitter.app = wailsApp
+
+	wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
+		Title:            svc.T("app.title"),
+		Width:            1280,
+		Height:           800,
+		MinWidth:         1024,
+		MinHeight:        600,
+		InitialPosition:  application.WindowCentered,
+		BackgroundColour: application.NewRGB(0x0b, 0x14, 0x18),
+		Linux: application.LinuxWindow{
+			Icon: brand.Icon,
+		},
+		URL: "/",
+	})
+
+	err := wailsApp.Run()
 	logger.Info("gui stopped")
+	return err
+}
+
+type wailsEmitter struct {
+	app *application.App
+}
+
+func (e *wailsEmitter) Emit(name string, data any) {
+	if e.app != nil {
+		e.app.Event.Emit(name, data)
+	}
 }
 
 func fatal(err error) {

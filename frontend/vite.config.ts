@@ -1,0 +1,22 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import wails from "@wailsio/runtime/plugins/vite";
+import { fileURLToPath, URL } from "node:url";
+
+export default defineConfig({
+  plugins: [react(), wails("./bindings")],
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
+  server: {
+    host: "127.0.0.1",
+    port: Number(process.env.WAILS_VITE_PORT) || 9245,
+    strictPort: true,
+  },
+  build: {
+    outDir: "../cmd/better-rpt/dist",
+    emptyOutDir: true,
+  },
+});

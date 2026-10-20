@@ -37,25 +37,28 @@ defecto.
 ## Paquetes
 
 ```text
-cmd/better-rpt/          # entrada GUI; --version, sin --donor en producción
+cmd/better-rpt/          # entrada Wails v3 (GTK3); --version, sin --donor
 cmd/better-rpt-helper/   # helper sin interfaz gráfica, sin CGO, --donor
+build/                   # configuración de build/dev de Wails
+design/                  # tokens CSS compartidos
+frontend/                # React + Vite, bindings Wails y assets del shell
 internal/domain/         # Game, Status, Session, LaunchSpec, errores centinela
 internal/app/            # servicio de aplicación y orquestación
+internal/brand/          # icono de la ventana, sin Fyne
 internal/steam/          # detección de raíces, bibliotecas, appinfo y ciclo de vida
 internal/config/         # setup del dispatcher, backups y transacción de localconfig
 internal/launch/         # planificador puro + ejecutor nativo/Proton
 internal/session/        # máquina de estados, intención, última sesión y helper
 internal/bridge/         # fachada Wails: DTOs, eventos, errores y contexto de sesión
-internal/ui/             # interfaz Fyne
+internal/ui/             # interfaz Fyne legada, compilable hasta el ticket 14
 internal/i18n/           # textos ES/EN y locale del sistema
 internal/fsutil/         # escritura atómica y permisos
-frontend/                # contrato TypeScript de la futura UI React
 packaging/               # nfpm, AppImage, .desktop, icono
 ```
 
-Dependencias permitidas: `ui → app → {steam, config, launch, session}`;
-`bridge → app` (solo la interfaz `App`, sin importar Fyne); `domain` no importa
-nada del proyecto; `launch` no importa `ui`.
+Dependencias permitidas: `cmd/better-rpt → bridge → app → {steam, config, launch, session}`;
+`internal/ui` (legado) también consume `app`; `bridge` no importa Fyne ni Wails;
+`domain` no importa nada del proyecto; `launch` no importa `ui`.
 
 ## Flujo
 
@@ -235,6 +238,25 @@ Al arrancar:
   React. Mientras Fyne siga presente, `TestDesignTokensMatchTheme` comprueba que
   los valores coinciden con `internal/ui/theme.go`.
 
+## Shell Wails
+
+- `cmd/better-rpt/main.go` mantiene el orden del MVP: flags, rechazo de root,
+  logger `slog` a stderr y `app.New` (lock de instancia) antes de crear la
+  ventana. Un segundo proceso falla con `error.instance` y no abre ventana.
+- Wails v3 `v3.0.0-beta.33` se compila con `-tags gtk3`; la ventana abre en
+  1280×800, mínimo 1024×600 y `InitialPosition: WindowCentered`. El icono viene
+  de `internal/brand`, sin importar Fyne.
+- `application.Options` registra el bridge como servicio, usa
+  `bridge.MarshalError`, los eventos tipados y `OnShutdown` para cancelar la
+  preparación en curso.
+- Producción (`-tags production`) embebe `cmd/better-rpt/dist`; desarrollo
+  (`wails3 dev`) proxya Vite y lee los assets de disco. `make build` orquesta
+  frontend, bindings y binario.
+- Los atajos Ctrl+F, F5 y Esc viven en React: son de la página, no atajos
+  globales del escritorio. Se implementan en los tickets 09/11.
+- `internal/ui` permanece compilable como referencia y rollback, pero el
+  binario ya no la importa. El ticket 14 la retira tras la paridad.
+
 ## Bridge React
 
 `internal/bridge` es la única superficie que se bindea desde Wails:
@@ -254,14 +276,16 @@ Al arrancar:
   actual pueda reconstruir la guía y el panel sin llamadas adicionales.
 - El contrato TS manual vive en `frontend/src/bridge/types.ts` y
   `frontend/src/bridge/client.ts`; `TestTypeScriptContractMatchesDTOs` compara
-  los nombres de campo con los tags JSON de Go. El ticket 08 sustituye la
-  fachada manual por los bindings generados por Wails.
+  los nombres de campo con los tags JSON de Go. `frontend/src/bridge/wails.ts`
+  adapta los bindings generados por Wails a esa fachada y normaliza los slices
+  que Wails modela como nullable.
 
 ## Fyne
 
-Fyne v2.8 sigue siendo la opción por defecto: CGO, sin WebKitGTK, Wayland y X11.
-La accesibilidad de Fyne en Linux es limitada. Si un requisito bloqueante no se
-puede cumplir, se documentará y se propondrá Wails v2 con aprobación previa.
+Fyne v2.8 ya no es la UI del binario: `internal/ui` queda como referencia y
+rollback compilable hasta que el ticket 14 la retire. La app Wails usa GTK3 y
+WebKit2GTK 4.1, disponibles en Ubuntu 22.04. La accesibilidad de Fyne en Linux
+era limitada; la UI React cubre teclado, foco y contraste en los tickets 09/11.
 
 ## Pruebas
 

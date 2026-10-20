@@ -1,0 +1,249 @@
+@import "../../design/tokens.css";
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/IBMPlexMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 700px at 50% -10%, rgb(42 157 143 / 8%), transparent 60%),
+    #05090b;
+  color: var(--color-cream);
+  font-family: var(--font-ui);
+  font-size: var(--size-text);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 2px;
+}
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-ink);
+}
+
+.shell-header {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 44px;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand-mark {
+  width: 28px;
+  height: 28px;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.brand p {
+  margin: 3px 0 0;
+  color: var(--color-muted-ink);
+  font-size: var(--size-caption);
+  white-space: nowrap;
+}
+
+.language-switch {
+  display: flex;
+  gap: 18px;
+}
+
+.language-switch button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--color-muted-ink);
+  font-size: 13px;
+  padding: 6px 0;
+}
+
+.language-switch button[data-active="true"] {
+  color: var(--color-cream);
+  border-bottom-color: var(--color-amber);
+}
+
+.shell-main {
+  flex: 1;
+  padding: 44px;
+}
+
+.shell-card {
+  max-width: 860px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  padding: 28px;
+}
+
+.shell-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--color-line-soft);
+  padding-bottom: 18px;
+}
+
+.shell-heading h2 {
+  margin: 0;
+  font-size: var(--size-heading);
+  line-height: 1.15;
+}
+
+.shell-heading p {
+  margin: 8px 0 0;
+  color: var(--color-muted-ink);
+  font-size: 13px;
+}
+
+.refresh {
+  border: 1px solid var(--color-line);
+  border-radius: var(--size-button-radius);
+  background: transparent;
+  color: var(--color-cream);
+  padding: 9px 16px;
+  font-size: 13px;
+}
+
+.refresh:hover:not(:disabled) {
+  background: var(--color-raised);
+}
+
+.refresh:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.shell-error {
+  margin-top: 18px;
+  border: 1px solid rgb(238 123 102 / 50%);
+  background: var(--color-quiet);
+  padding: 14px 16px;
+  color: var(--color-muted-ink);
+  font-size: 13px;
+}
+
+.shell-error strong {
+  color: var(--color-coral);
+}
+
+.shell-error p {
+  margin: 6px 0 0;
+}
+
+.shell-note {
+  margin: 18px 0 0;
+  color: var(--color-muted-ink);
+  font-size: 13px;
+}
+
+.shell-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 18px 0;
+}
+
+.shell-facts div {
+  border-bottom: 1px solid var(--color-line-soft);
+  padding-bottom: 12px;
+}
+
+.shell-facts dt {
+  color: var(--color-muted-ink);
+  font-size: var(--size-caption);
+}
+
+.shell-facts dd {
+  margin: 5px 0 0;
+  color: var(--color-cream);
+  font-size: var(--size-row-title);
+}
+
+.game-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.game-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+.game-name {
+  font-size: var(--size-field-value);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-meta {
+  color: var(--color-muted-ink);
+  font-size: var(--size-caption);
+  white-space: nowrap;
+}
+
+.shell-event {
+  min-height: 18px;
+  margin: 18px 0 0;
+  color: var(--color-faint);
+  font-family: var(--font-code);
+  font-size: 11px;
+}

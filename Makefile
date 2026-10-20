@@ -1,4 +1,5 @@
 GO ?= GOTOOLCHAIN=go1.27.2 go
+WAILS3 ?= $(shell command -v wails3 2>/dev/null || printf '%s/bin/wails3' "$$(go env GOPATH)")
 VERSION ?= 0.1.2
 BINARY ?= dist/better-rpt
 HELPER ?= dist/better-rpt-helper
@@ -7,13 +8,10 @@ ARGS ?=
 .PHONY: dev build helper deb test test-race vet release release-plan
 
 dev:
-	$(GO) run ./cmd/better-rpt $(ARGS)
+	PATH="$(dir $(WAILS3)):$$PATH" $(WAILS3) dev -config ./build/config.yml -port 9245
 
 build:
-	mkdir -p $(dir $(BINARY))
-	CGO_ENABLED=1 $(GO) build -trimpath -buildvcs=false \
-		-ldflags "-s -w -X main.version=$(VERSION)" \
-		-o $(BINARY) ./cmd/better-rpt
+	PATH="$(dir $(WAILS3)):$$PATH" VERSION=$(VERSION) $(WAILS3) build
 
 helper:
 	mkdir -p $(dir $(HELPER))

@@ -1,5 +1,9 @@
 # Artefactos de compilación y empaquetado
 /dist/
+/cmd/better-rpt/dist/
+/frontend/node_modules/
+/bin/
+/.task/
 
 # Espacio de trabajo de planificación
 /.scratch/

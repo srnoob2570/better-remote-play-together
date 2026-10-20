@@ -1,0 +1,42 @@
+version: '3'
+
+info:
+  companyName: "srnoob2570"
+  productName: "Better RPT"
+  productIdentifier: "com.srnoob.betterrpt"
+  description: "Remote Play Together for games that do not include it"
+  copyright: "(c) 2026, srnoob2570"
+  comments: "Better RPT desktop shell"
+  version: "0.1.2"
+
+dev_mode:
+  root_path: .
+  log_level: info
+  debounce: 500
+  ignore:
+    dir:
+      - .git
+      - node_modules
+      - frontend
+      - dist
+    file:
+      - .DS_Store
+      - .gitignore
+      - .gitkeep
+      - "*_test.go"
+    watched_extension:
+      - "*.go"
+  executes:
+    - cmd: wails3 build DEV=true
+      type: blocking
+    - cmd: wails3 task dev:frontend
+      type: background
+      readiness:
+        http: "http://127.0.0.1:9245/"
+        timeout: "60s"
+        interval: "200ms"
+    - cmd: wails3 task run
+      type: primary
+      exit_policy: shutdown
+
+fileAssociations: []

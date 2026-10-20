@@ -308,24 +308,28 @@ Para el AppImage, borra el archivo. Los datos anteriores siguen las mismas rutas
 ## Desarrollo local (sin instalar)
 
 No hace falta instalar el `.deb` ni el AppImage para desarrollar o probar la
-app. `make dev` compila y ejecuta el binario Fyne desde el repositorio:
+app. La UI migrada usa Wails v3 + React; `make dev` arranca Vite y el binario
+Wails con recarga en caliente:
 
 ```bash
+# una vez, con el CLI de Wails en PATH
+go install -tags gtk3 github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.33
+cd frontend && npm ci && cd ..
+
 make dev
-# equivalente sin Make:
-GOTOOLCHAIN=go1.27.2 go run ./cmd/better-rpt
 ```
 
 El `Makefile` usa `GOTOOLCHAIN=go1.27.2` y no necesita `sudo`. La versión en
 desarrollo se muestra como `dev`; la versión publicada (`0.1.2`) se inyecta
-con `-ldflags` al compilar el paquete. Fyne no recarga los cambios
-automáticamente: detén con `Ctrl+C`, edita y vuelve a ejecutar `make dev`.
+con `-ldflags` al compilar. `make dev` recarga Go y el frontend; detén con
+`Ctrl+C`.
 
-Si faltan dependencias de Fyne en Ubuntu/Debian:
+Si faltan dependencias en Ubuntu/Debian:
 
 ```bash
 sudo apt-get install \
   build-essential pkgconf \
+  libgtk-3-dev libwebkit2gtk-4.1-dev \
   libgl1-mesa-dev libwayland-dev libxkbcommon-dev \
   libx11-dev libxext-dev libxrender-dev libxfixes-dev \
   libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
@@ -334,9 +338,8 @@ sudo apt-get install \
 Comandos de desarrollo:
 
 ```bash
-make dev                         # compila y abre la GUI
-make dev ARGS=--version          # ejecuta con argumentos
-make build                       # dist/better-rpt, binario local
+make dev                         # Wails dev + Vite, recarga en caliente
+make build                       # frontend + dist/better-rpt con assets embebidos
 make helper                      # dist/better-rpt-helper, estático
 make deb                         # .deb de release (Ubuntu 22.04 + nfpm)
 make test                        # go test ./...
@@ -369,6 +372,8 @@ go_cache="${GOCACHE:-$HOME/.cache/go-build}"
 go_modcache="${GOMODCACHE:-$HOME/go/pkg/mod}"
 go_path="${GOPATH:-$HOME/go}"
 
+export PATH="$(go env GOPATH)/bin:$PATH"
+
 HOME="$base/home" \
 GOCACHE="$go_cache" \
 GOMODCACHE="$go_modcache" \
@@ -379,8 +384,8 @@ XDG_RUNTIME_DIR="$base/run" \
 make dev
 ```
 
-La primera ejecución puede descargar Go 1.27.2 y los módulos de Fyne; después
-reutiliza esas cachés.
+La primera ejecución puede descargar Go 1.27.2, los módulos de Wails y las
+dependencias npm; después reutiliza esas cachés.
 
 Esta prueba no toca `~/.local/share/Steam` ni lanza Steam o juegos reales. El
 conjunto incluye SpaceWar y targets nativo/Proton simulados.
