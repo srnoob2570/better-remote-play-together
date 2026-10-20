@@ -82,11 +82,13 @@
 html,
 body,
 #root {
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
 }
 
 body {
   margin: 0;
+  overflow: hidden;
   background:
     radial-gradient(1200px 700px at 50% -10%, rgba(42, 157, 143, 0.08), transparent 60%),
     #05090b;
@@ -111,8 +113,10 @@ button {
 }
 
 .app-window {
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
   width: 100%;
+  overflow: hidden;
   background: var(--color-ink);
   display: flex;
   flex-direction: column;
@@ -192,6 +196,7 @@ button {
   grid-template-columns: minmax(0, 1fr) minmax(400px, 40%);
   flex: 1 1 auto;
   min-height: 0;
+  overflow: hidden;
 }
 
 .library-pane {
@@ -199,6 +204,7 @@ button {
   padding: 24px clamp(13px, 2vw, 36px) 24px clamp(20px, 3.4vw, 44px);
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 
 .library-heading {
@@ -462,6 +468,7 @@ button {
   background: var(--color-session);
   border-left: 1px solid var(--color-seam);
   min-width: 0;
+  min-height: 0;
   padding: 28px 34px 28px 28px;
   display: flex;
   flex-direction: column;
@@ -1165,21 +1172,103 @@ button {
   color: var(--color-muted-ink);
 }
 
-.session-placeholder {
-  padding: 28px 34px;
+.inline-actions {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.session-placeholder-title {
-  margin: 0;
-  font-size: 18px;
+.session-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 12px;
+}
+
+.guide-actions {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.last-compact {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-line-soft);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.last-compact-label {
+  color: var(--color-muted-ink);
+}
+
+.last-compact-name {
+  color: var(--color-cream);
   font-weight: 600;
 }
 
-.session-placeholder-name {
+.last-compact-outcome {
+  color: var(--color-muted-ink);
+}
+
+.setup-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+.guide-command {
   margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line-soft);
+  background: var(--color-quiet);
   color: var(--color-cream);
-  font-size: 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.guide-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guide-step {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.guide-step h4 {
+  margin-bottom: 4px;
+}
+
+.guide-image {
+  display: block;
+  width: 100%;
+  height: 160px;
+  margin-top: 8px;
+  border: 1px solid var(--color-line-soft);
+  object-fit: cover;
+}
+
+@media (max-width: 1100px) {
+  .guide-image {
+    height: 120px;
+  }
 }

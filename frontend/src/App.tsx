@@ -19,6 +19,8 @@ import { toBridgeError } from "./bridge/client";
 import { bridge } from "./bridge/wails";
 import type { Catalog, Game, GameKind, GameStatus, Problem, Snapshot } from "./bridge/types";
 import { translate, type Language, type MessageKey } from "./i18n";
+import { SessionPanel } from "./components/SessionPanel";
+import { useSession } from "./session/useSession";
 
 type Filter = "all" | "ready" | "unknown" | "incompatible";
 type LibraryMode = "loading" | "ready" | "empty" | "no-results" | "error";
@@ -56,6 +58,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(0);
   const [busy, setBusy] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const session = useSession();
 
   useEffect(() => {
     let alive = true;
@@ -147,6 +150,7 @@ export default function App() {
   }, [catalog, filter, lang, query]);
 
   const selected = catalog?.games.find((game) => game.appId === selectedId);
+  const donorInstalled = catalog?.games.some((game) => game.appId === 480) ?? false;
   const mode: LibraryMode =
     busy || status === "loading"
       ? "loading"
@@ -260,15 +264,14 @@ export default function App() {
           onOpenSteam={() => void openSteam()}
           onReset={resetFilters}
         />
-        <aside className="session-pane" aria-label={t("session.section")}>
-          <div className="session-placeholder">
-            <h2 className="session-placeholder-title">{t("session.section")}</h2>
-            <p className="session-placeholder-name">
-              {selected ? selected.name : t("selection.hint")}
-            </p>
-            <p className="hint">{t("selection.privacy")}</p>
-          </div>
-        </aside>
+        <SessionPanel
+          lang={lang}
+          games={catalog?.games ?? []}
+          selected={selected}
+          donorInstalled={donorInstalled}
+          session={session}
+          onSelectLast={setSelectedId}
+        />
       </main>
     </div>
   );

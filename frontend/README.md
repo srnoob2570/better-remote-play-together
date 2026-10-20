@@ -1,9 +1,10 @@
 # Better RPT frontend
 
-React + TypeScript + Vite served by Wails v3. The library dashboard is
-implemented in this ticket; the session panel and dialogs arrive in ticket 11.
-The UI uses the shared i18n catalogs, `design/tokens.css`, Tailwind and the
-shadcn primitives in `src/components/ui`.
+React + TypeScript + Vite served by Wails v3. The library dashboard and session
+panel are implemented, including preparation, active session, last session,
+details, launch guide, restore flow and dialogs. The UI uses the shared i18n
+catalogs, `design/tokens.css`, Tailwind and the shadcn primitives in
+`src/components/ui`.
 
 ```bash
 npm ci

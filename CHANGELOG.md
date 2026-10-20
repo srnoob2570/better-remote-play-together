@@ -15,6 +15,9 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - La biblioteca muestra búsqueda, filtros, contador, avisos, portadas e iconos
   con carga diferida, además de los estados de carga, vacío, sin resultados y
   error en la nueva interfaz.
+- El panel de sesión permite preparar, cancelar, seguir y restaurar sesiones,
+  muestra los detalles y la guía de lanzamiento, y cubre la última sesión,
+  avisos y diálogos en ES/EN.
 
 ## [0.1.2] - 2026-10-20 (57d6fc6)
 

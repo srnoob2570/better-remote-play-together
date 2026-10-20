@@ -61,6 +61,7 @@ export interface Game {
   sizeBytes: number;
   kind: GameKind;
   status: GameStatus;
+  protonName?: string;
   problem?: Problem;
 }
 

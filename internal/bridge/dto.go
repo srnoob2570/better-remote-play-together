@@ -42,6 +42,7 @@ type Game struct {
 	SizeBytes   uint64   `json:"sizeBytes"`
 	Kind        string   `json:"kind"`
 	Status      string   `json:"status"`
+	ProtonName  string   `json:"protonName,omitempty"`
 	Problem     *Problem `json:"problem,omitempty"`
 }
 
@@ -173,6 +174,9 @@ func mapGame(game domain.Game) Game {
 		SizeBytes:   game.SizeBytes,
 		Kind:        game.Kind.String(),
 		Status:      game.Status.String(),
+	}
+	if game.Launch != nil {
+		out.ProtonName = game.Launch.ProtonName
 	}
 	out.Problem = mapProblem(game.Problem)
 	return out

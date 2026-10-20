@@ -37,6 +37,7 @@ export interface Game {
     "sizeBytes": number;
     "kind": string;
     "status": string;
+    "protonName"?: string;
     "problem"?: Problem | null;
 }
 

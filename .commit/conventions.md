@@ -36,3 +36,5 @@
 - Los tests de `internal/i18n` y `internal/ui/theme_tokens_test.go` comparan los
   catálogos y los tokens CSS con sus fuentes Go; si cambia la paleta o el copy,
   hay que actualizar ambos lados.
+- En Vitest/jsdom, Radix Tabs cambia de pestaña con `fireEvent.mouseDown`; un
+  `click` simple no dispara el cambio.
