@@ -1,5 +1,6 @@
 {
   "action.addSpacewar": "Add SpaceWar",
+  "action.back": "Back to library",
   "action.cancel": "Cancel",
   "action.cancelRestore": "Cancel and restore",
   "action.clear": "Clear",
