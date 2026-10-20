@@ -7,8 +7,26 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-19 (36984f1)
+
 ### Added
 
+- Aplicación de escritorio para Linux amd64 que abre juegos de Steam sin Remote
+  Play Together dentro del contexto de SpaceWar (App ID 480) como donante fijo.
+- Detección de Steam nativo, sus bibliotecas y `appinfo.vdf`, con elección del
+  lanzamiento nativo o del mapping de Proton.
+- Preparación y restauración de la opción de lanzamiento de SpaceWar en
+  `localconfig.vdf`, con copia de seguridad, verificación, bloqueo y recuperación
+  tras un cierre inesperado o un plan expirado.
+- Helper estático instalado en `$XDG_DATA_HOME/better-rpt/bin` que inicia el
+  juego objetivo como hijo del contexto del donante.
+- Interfaz Fyne con biblioteca, búsqueda por nombre o App ID, filtros por estado,
+  panel de sesión, detalles técnicos y textos en español e inglés.
+- Kit de marca Relay Link con logotipos, iconos y recursos para el escritorio y
+  el empaquetado.
+- Paquetes `.deb` y AppImage reproducibles para Linux amd64, con sumas SHA-256.
+- Documentación de arquitectura, compilación, compatibilidad, distribución y
+  diseño de la interfaz.
 - Guía paso a paso en español e inglés con el comando exacto, el popup de Steam,
   imágenes (capturas reales o placeholders documentados) y copia al portapapeles.
 - Dispatcher persistente de SpaceWar (`'<helper>' --donor -- %command%`) que
@@ -41,6 +59,11 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - La biblioteca permanece visible y navegable; se elimina la acción **Volver a
   la biblioteca** y el diálogo de cierre de Steam.
 - La restauración con Steam abierto muestra la guía y nunca cierra Steam.
+- La biblioteca pasa a tabla con iconos y portadas locales de Steam, oculta
+  SpaceWar del listado y fija las columnas; el panel separa Sesión y Detalles y
+  coloca la acción tras la información del juego.
+- La última sesión se compacta a una cabecera y una fila de acciones, y la guía
+  agrupa **Preparar guía** y **Verificar** en dos columnas.
 - README, arquitectura, UX, compatibilidad, distribución, glosario, gates y
   changelog reconciliados con el flujo nuevo.
 
@@ -52,32 +75,18 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   ven al host ocupado.
 - Lanzar el juego A y después el B ya no muestra una restauración pendiente de A
   como si fuera la última sesión.
+- La app adopta un dispatcher de SpaceWar ya instalado aunque falte `setup.json`,
+  lo muestra como instalado y permite jugar; **Restaurar** queda deshabilitado
+  con su motivo cuando no hay un valor original del que recuperar.
+- La pestaña Sesión prioriza el juego seleccionado y la guía coloca cada
+  ilustración junto al paso que explica. **Copiar comando** confirma con
+  «Copiado/Copied» y se restablece a los dos segundos; los errores de preparar o
+  instalar se muestran dentro de la guía.
 
 ### Removed
 
 - Cierre y reapertura automática de Steam durante la preparación.
 - Diálogo «Cerrar Steam para preparar» y textos asociados.
-
-## [0.1.0] - 2026-10-19
-
-### Added
-
-- Aplicación de escritorio para Linux amd64 que abre juegos de Steam sin Remote
-  Play Together dentro del contexto de SpaceWar (App ID 480) como donante fijo.
-- Detección de Steam nativo, sus bibliotecas y `appinfo.vdf`, con elección del
-  lanzamiento nativo o del mapping de Proton.
-- Preparación y restauración de la opción de lanzamiento de SpaceWar en
-  `localconfig.vdf`, con copia de seguridad, verificación, bloqueo y recuperación
-  tras un cierre inesperado o un plan expirado.
-- Helper estático instalado en `$XDG_DATA_HOME/better-rpt/bin` que inicia el
-  juego objetivo como hijo del contexto del donante.
-- Interfaz Fyne con biblioteca, búsqueda por nombre o App ID, filtros por estado,
-  panel de sesión, detalles técnicos y textos en español e inglés.
-- Kit de marca Relay Link con logotipos, iconos y recursos para el escritorio y
-  el empaquetado.
-- Paquetes `.deb` y AppImage reproducibles para Linux amd64, con sumas SHA-256.
-- Documentación de arquitectura, compilación, compatibilidad, distribución y
-  diseño de la interfaz.
 
 [Unreleased]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/srnoob2570/better-remote-play-together/releases/tag/v0.1.0
