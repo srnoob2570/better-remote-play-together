@@ -48,7 +48,7 @@ ICON_SIZES ?= 16 24 32 48 64 128 256 512
 # Instala los binarios ya compilados con el mismo layout que el .deb. La app
 # busca el helper del sistema en /usr/lib/better-rpt; mantén HELPERDIR en
 # sintonía con internal/helper/install.go. Usa DESTDIR para un árbol temporal.
-.PHONY: all install
+.PHONY: all install uninstall
 
 all: build helper
 
@@ -64,4 +64,16 @@ install:
 	for size in $(ICON_SIZES); do \
 		$(INSTALL) -Dm644 "packaging/icons/hicolor/$${size}x$${size}/apps/better-rpt.png" \
 			"$(DESTDIR)$(ICONDIR)/$${size}x$${size}/apps/better-rpt.png"; \
+	done
+
+# Elimina los archivos que crea 'install'. No toca los datos del usuario ni la
+# configuración de Steam. Usa los mismos BINDIR/HELPERDIR/ICONDIR que al
+# instalar; DESTDIR permite probar sobre un árbol temporal.
+uninstall:
+	rm -f "$(DESTDIR)$(BINDIR)/better-rpt"
+	rm -f "$(DESTDIR)$(HELPERDIR)/better-rpt-helper"
+	-rmdir "$(DESTDIR)$(HELPERDIR)" 2>/dev/null
+	rm -f "$(DESTDIR)$(APPSDIR)/better-rpt.desktop"
+	for size in $(ICON_SIZES); do \
+		rm -f "$(DESTDIR)$(ICONDIR)/$${size}x$${size}/apps/better-rpt.png"; \
 	done

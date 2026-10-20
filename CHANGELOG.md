@@ -30,6 +30,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   desplegable, abre la documentación en el navegador del sistema y confirma
   copiar o guardar con notificaciones toast. La guía usa capturas reales de
   Steam para las opciones de lanzamiento y el comando pegado.
+- `make uninstall` elimina los archivos que instala `sudo make install` y el
+  README separa esa vía de la desinstalación del `.deb`.
 
 ### Changed
 

@@ -318,14 +318,24 @@ Ver [`docs/known-issues.md`](docs/known-issues.md).
 
 ## Desinstalación
 
+Si instalaste el `.deb`:
+
 ```bash
 sudo apt remove better-rpt
 # o, para eliminar también los archivos de documentación del paquete:
 sudo apt purge better-rpt
 ```
 
-El paquete no borra configuración, backups ni el helper estable. Para eliminar
-todos los datos del usuario:
+Si instalaste con `sudo make install`, `apt` y `dpkg` no conocen la app; elimina
+los archivos desde este repositorio con los mismos `BINDIR`, `HELPERDIR` e
+`ICONDIR` que usaste al instalar:
+
+```bash
+sudo make uninstall
+```
+
+Ninguna de las dos vías borra configuración, backups ni el helper estable del
+usuario. Para eliminar todos los datos del usuario:
 
 ```bash
 rm -rf ~/.config/better-rpt
