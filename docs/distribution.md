@@ -4,8 +4,8 @@ Contrato del ticket 09 para el paquete `.deb` del MVP. El AppImage es un artefac
 
 ## Artefactos
 
-- **`.deb` principal**: `better-rpt_0.1.1-1_amd64.deb`, para Ubuntu 22.04+, Debian 12+ y derivados. Instalación limpia probada en Ubuntu 22.04.
-- **AppImage secundario**: `BetterRPT-0.1.1-x86_64.AppImage`, con el mismo helper estable; probado con FUSE, extracción y GUI en Ubuntu. Se detalla en `docs/appimage.md`.
+- **`.deb` principal**: `better-rpt_0.1.2-1_amd64.deb`, para Ubuntu 22.04+, Debian 12+ y derivados. Instalación limpia probada en Ubuntu 22.04.
+- **AppImage secundario**: `BetterRPT-0.1.2-x86_64.AppImage`, con el mismo helper estable; probado con FUSE, extracción y GUI en Ubuntu. Se detalla en `docs/appimage.md`.
 - Sin repositorio APT, firma GPG ni actualización automática en el MVP. `dist/SHA256SUMS` publica los hashes de ambos artefactos.
 
 ## Matriz de soporte
@@ -39,7 +39,7 @@ en `docs/build.md`.
 ## Metadatos del paquete
 
 - Nombre: `better-rpt`
-- Versión Debian: `0.1.1-1`
+- Versión Debian: `0.1.2-1`
 - Arquitectura: `amd64`
 - Sección: `games`; prioridad `optional`
 - Maintainer: `srnoob2570 <302417634+srnoob2570@users.noreply.github.com>`
@@ -76,13 +76,13 @@ libxinerama1, libxrandr2, libxxf86vm1
 ## Instalación
 
 ```bash
-sudo apt install ./better-rpt_0.1.1-1_amd64.deb
+sudo apt install ./better-rpt_0.1.2-1_amd64.deb
 ```
 
 Si `apt` no resuelve el archivo local:
 
 ```bash
-sudo dpkg -i ./better-rpt_0.1.1-1_amd64.deb
+sudo dpkg -i ./better-rpt_0.1.2-1_amd64.deb
 sudo apt-get install -f
 ```
 

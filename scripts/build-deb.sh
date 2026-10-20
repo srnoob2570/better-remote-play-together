@@ -5,7 +5,7 @@ set -euo pipefail
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
-version="${VERSION:-0.1.1}"
+version="${VERSION:-0.1.2}"
 image="${DEB_IMAGE:-better-rpt-build:22.04}"
 cache_prefix="${DEB_CACHE:-better-rpt-deb}"
 

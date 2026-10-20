@@ -7,6 +7,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-20 (57d6fc6)
+
 ### Added
 
 - Aviso en el panel de sesión y en el README para marcar el juego objetivo como
@@ -18,6 +20,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   extendidos o ACLs, como `security.selinux` en Fedora/Bazzite. La escritura
   atómica conserva esos metadatos y solo falla antes de reemplazar el original
   si no puede hacerlo.
+
+**Full changelog:** [v0.1.1...v0.1.2][0.1.2]
 
 ## [0.1.1] - 2026-10-19 (e842cbc)
 
@@ -111,6 +115,7 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Cierre y reapertura automática de Steam durante la preparación.
 - Diálogo «Cerrar Steam para preparar» y textos asociados.
 
-[Unreleased]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/srnoob2570/better-remote-play-together/releases/tag/v0.1.0

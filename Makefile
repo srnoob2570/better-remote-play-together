@@ -1,5 +1,5 @@
 GO ?= GOTOOLCHAIN=go1.27.2 go
-VERSION ?= 0.1.1
+VERSION ?= 0.1.2
 BINARY ?= dist/better-rpt
 HELPER ?= dist/better-rpt-helper
 ARGS ?=

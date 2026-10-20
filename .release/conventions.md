@@ -5,7 +5,7 @@
 - `0.1.0` es la primera release: no había tags, releases ni ramas `release/*`.
   Las entradas de `[Unreleased]` se integraron en `0.1.0` porque nunca se publicó
   una versión anterior.
-- La versión se define en `Makefile` (`VERSION ?= 0.1.1`) y se pasa a
+- La versión se define en `Makefile` (`VERSION ?= 0.1.2`) y se pasa a
   `packaging/nfpm.yaml`; no hay archivo `VERSION` ni herramienta de bump
   automático.
 - El changelog sigue Keep a Changelog 1.1.0 en español y guarda los enlaces en el
@@ -19,6 +19,9 @@
 ## Gotchas
 
 - `dist/` está ignorado y contiene los artefactos; nunca se versiona.
+- El AppImage se genera con los binarios que deja `make deb` en `dist/`
+  (compilados en Ubuntu 22.04), no con los del host; así comparte la base glibc
+  del `.deb`.
 - El `.deb` se compila en Ubuntu 22.04 con `make deb VERSION=<versión>` para no
   enlazar contra una glibc más nueva. No se compila la release en el host.
 - El AppImage se construye con `appimagetool` build 313 (`854e19e`) y el runtime
