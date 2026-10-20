@@ -31,6 +31,11 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   copiar o guardar con notificaciones toast. La guía usa capturas reales de
   Steam para las opciones de lanzamiento y el comando pegado.
 
+### Changed
+
+- El estado de la integración de SpaceWar se muestra como texto compacto en la
+  cabecera, en lugar de ocupar la tira de pestañas del panel lateral.
+
 ### Fixed
 
 - El resumen de la última sesión muestra “Resultado: Terminada” en lugar de

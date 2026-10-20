@@ -37,14 +37,6 @@ import { problemText } from "../session/problem";
 
 type Tab = "session" | "details" | "guide";
 
-const SETUP_KEY: Record<SetupStatus, MessageKey> = {
-  missing: "setup.missing",
-  guide: "setup.guide",
-  installed: "setup.installed",
-  restored: "setup.restored",
-  conflict: "setup.conflict",
-};
-
 const OUTCOME_KEY: Record<LastOutcome, MessageKey> = {
   pending: "last.outcome.pending",
   ok: "last.outcome.ok",
@@ -157,12 +149,6 @@ export function SessionPanel({
           <UITabsTrigger className="session-tab" value="guide">
             {t("session.tabGuide")}
           </UITabsTrigger>
-          {setupStatus && (
-            <span className="setup-indicator" data-tone={setupTone(setupStatus)}>
-              <span className="setup-indicator-label">{t("setup.title")}</span>
-              <span className="setup-indicator-value">{t(SETUP_KEY[setupStatus])}</span>
-            </span>
-          )}
         </UITabsList>
 
         <UITabsContent value="session">
@@ -895,12 +881,6 @@ function GuidePanel({ lang, session }: { lang: Language; session: SessionControl
       )}
     </div>
   );
-}
-
-function setupTone(status: SetupStatus): "mint" | "amber" | "coral" {
-  if (status === "installed") return "mint";
-  if (status === "conflict") return "coral";
-  return "amber";
 }
 
 function setupMessageKey(status: SetupStatus): MessageKey {

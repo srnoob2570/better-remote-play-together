@@ -7,8 +7,8 @@ acciones y textos del MVP. El flujo de cerrar Steam ya no existe.
 ## Ventana
 
 - Tamaño inicial 1280×800; mínimo 1024×600.
-- Cabecera: **Better RPT** a la izquierda; a la derecha, botón **Diagnóstico**,
-  versión y selector **ES | EN**.
+- Cabecera: **Better RPT** a la izquierda; a la derecha, estado de la
+  integración de SpaceWar, botón **Diagnóstico**, versión y selector **ES | EN**.
 - Cuerpo en dos columnas: biblioteca (≈60 %) y panel lateral (≈40 %, mínimo
   400 px).
 - La biblioteca y la sesión son dos campos de color distintos: tinta para la
@@ -77,9 +77,8 @@ Estados del setup: `missing`, `guide`, `installed`, `restored`, `conflict`.
 Estados de situación: `idle`, `prepared`, `active`, `finished`,
 `restore_pending`, `restored`, `orphan`, `conflict`.
 
-La tira de pestañas muestra el estado del setup como indicador compacto cuando
-existe; la guía lo repite con una instrucción y la acción **Verificar de
-nuevo**.
+La cabecera muestra el estado del setup como texto compacto cuando existe; la
+guía lo repite con una instrucción y la acción **Verificar de nuevo**.
 
 Una configuración huérfana o un conflicto se muestran como un aviso separado,
 con una sola explicación: no se añade además un motivo de restauración que
@@ -125,10 +124,10 @@ nuevo** se deshabilita con el motivo visible. La biblioteca sigue navegable.
 
 La guía es el flujo principal y debe poder consultarse con Steam abierto:
 
-- El estado del setup se muestra como indicador compacto en la tira de
-  pestañas (etiqueta **Integración de SpaceWar** + estado), visible también
-  fuera de la guía. Sustituye al aviso de compatibilidad y no usa una tarjeta
-  de aviso para el estado normal «no instalada».
+- El estado del setup se muestra como texto compacto en la cabecera (etiqueta
+  **Integración de SpaceWar** + estado), visible también fuera de la guía.
+  Sustituye al aviso de compatibilidad y no usa una tarjeta de aviso para el
+  estado normal «no instalada».
 - Dentro de la guía, una fila de estado en la parte superior muestra el mensaje
   correspondiente y **Verificar de nuevo**, siempre disponible. Al terminar
   muestra un toast **Estado actualizado**; no hay confirmación inline.

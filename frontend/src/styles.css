@@ -519,19 +519,20 @@ button {
 }
 
 .setup-indicator {
-  margin-left: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  max-width: 58%;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   font-size: var(--size-caption);
   line-height: 1.25;
-  text-align: right;
+  white-space: nowrap;
 }
 
 .setup-indicator-label {
   color: var(--color-muted-ink);
+}
+
+.setup-indicator-label::after {
+  content: ":";
 }
 
 .setup-indicator-value {

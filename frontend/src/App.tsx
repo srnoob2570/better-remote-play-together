@@ -22,6 +22,7 @@ import type { Catalog, Game, GameKind, GameStatus, Problem, Snapshot } from "./b
 import { translate, type Language, type MessageKey } from "./i18n";
 import { SessionPanel } from "./components/SessionPanel";
 import { DiagnosticsPane } from "./components/DiagnosticsPane";
+import { SetupIndicator } from "./components/SetupIndicator";
 import { problemText } from "./session/problem";
 import { useSession } from "./session/useSession";
 
@@ -275,6 +276,7 @@ export default function App() {
           </div>
         </div>
         <div className="header-right">
+          <SetupIndicator lang={lang} status={session.setup?.status} />
           <Button
             variant="ghost"
             className="diagnostics-button"
