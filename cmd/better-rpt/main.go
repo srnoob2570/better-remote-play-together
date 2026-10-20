@@ -80,7 +80,8 @@ func runGUI(svc *app.Service, logger *slog.Logger) error {
 		},
 		MarshalError: bridge.MarshalError,
 		Assets: application.AssetOptions{
-			Handler: application.BundledAssetFileServer(assets),
+			Handler:    application.BundledAssetFileServer(assets),
+			Middleware: bridge.ArtMiddleware(svc, logger),
 		},
 		OnShutdown: b.Shutdown,
 	})

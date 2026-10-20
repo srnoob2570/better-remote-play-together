@@ -18,3 +18,7 @@ wails3 generate bindings -ts -i -clean=true -f '-tags gtk3' ./...
 
 `src/bridge/wails.ts` adapts the generated bindings to the manual `Bridge`
 contract. Do not edit `bindings/` by hand.
+
+Artwork is served same-origin at `/api/art/{appId}/{cover|icon}` by the Go asset
+middleware; use `artUrl` from `src/art.ts`. A 404 means there is no artwork and
+the UI should keep the typographic fallback.

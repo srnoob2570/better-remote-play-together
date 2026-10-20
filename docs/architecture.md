@@ -44,6 +44,7 @@ design/                  # tokens CSS compartidos
 frontend/                # React + Vite, bindings Wails y assets del shell
 internal/domain/         # Game, Status, Session, LaunchSpec, errores centinela
 internal/app/            # servicio de aplicación y orquestación
+internal/art/            # resolución segura de portadas/iconos de la caché de Steam
 internal/brand/          # icono de la ventana, sin Fyne
 internal/steam/          # detección de raíces, bibliotecas, appinfo y ciclo de vida
 internal/config/         # setup del dispatcher, backups y transacción de localconfig
@@ -56,9 +57,10 @@ internal/fsutil/         # escritura atómica y permisos
 packaging/               # nfpm, AppImage, .desktop, icono
 ```
 
-Dependencias permitidas: `cmd/better-rpt → bridge → app → {steam, config, launch, session}`;
-`internal/ui` (legado) también consume `app`; `bridge` no importa Fyne ni Wails;
-`domain` no importa nada del proyecto; `launch` no importa `ui`.
+Dependencias permitidas: `cmd/better-rpt → bridge → {app, art}`;
+`app → {steam, config, launch, session}`; `internal/ui` (legado) también consume
+`app` y `art`; `art → domain`; `bridge` no importa Fyne ni Wails; `domain` no
+importa nada del proyecto; `launch` no importa `ui`.
 
 ## Flujo
 
@@ -279,6 +281,27 @@ Al arrancar:
   los nombres de campo con los tags JSON de Go. `frontend/src/bridge/wails.ts`
   adapta los bindings generados por Wails a esa fachada y normaliza los slices
   que Wails modela como nullable.
+
+## Arte local
+
+- `internal/art` resuelve portadas e iconos sin Fyne. Solo considera
+  `<root>/appcache/librarycache/<appId>` para las raíces de Steam conocidas; el
+  directorio de la app no puede ser un symlink. Cada candidato se canonicaliza,
+  debe quedar dentro de esa base, ser un archivo regular y no superar 8 MiB.
+- El orden de cover es `library_hero`, `library_header`, `header`,
+  `library_capsule`, `library_header_latam`, `library_600x900`, con un único
+  subdirectorio permitido. El icono prefiere el `.jpg` de 40 hex y cae a
+  `icon.jpg`/`icon.png`.
+- `bridge.ArtMiddleware` monta `/api/art/{appId}/{cover|icon}` como middleware
+  del asset server de Wails, antes de Vite en desarrollo. La única entrada es
+  App ID + enum: no hay rutas del filesystem en la URL ni en la respuesta.
+- El handler valida método (`GET`/`HEAD`), App ID y kind; responde 404 para arte
+  ausente o rechazado, 400 para entradas inválidas y 405 con `Allow`. Sirve solo
+  JPEG/PNG/WebP detectados por contenido, con `Cache-Control: private,
+  max-age=3600`, `ETag` débil y `X-Content-Type-Options: nosniff`; `If-None-Match`
+  produce 304. No copia imágenes ni las incrusta como base64.
+- `frontend/src/art.ts` expone `artUrl(appId, kind)`; si la imagen falla, la UI
+  conserva el fallback tipográfico.
 
 ## Fyne
 

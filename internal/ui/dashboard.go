@@ -23,6 +23,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	bapp "github.com/srnoob2570/better-rpt/internal/app"
+	"github.com/srnoob2570/better-rpt/internal/art"
 	"github.com/srnoob2570/better-rpt/internal/config"
 	"github.com/srnoob2570/better-rpt/internal/domain"
 	"github.com/srnoob2570/better-rpt/internal/i18n"
@@ -303,7 +304,8 @@ func (d *dashboard) buildLibrary() fyne.CanvasObject {
 			}
 			row := object.(*gameRow)
 			game := d.visible[id]
-			row.SetGame(game, game.AppID == d.selectedID, func(key string) string { return d.svc.T(key) }, steamIconPath(game))
+			iconPath, _ := art.IconPath(game)
+			row.SetGame(game, game.AppID == d.selectedID, func(key string) string { return d.svc.T(key) }, iconPath)
 		},
 	)
 	d.list.HideSeparators = true
@@ -1267,7 +1269,7 @@ func (d *dashboard) gameCoverSized(game domain.Game, coverHeight float32) fyne.C
 	if coverHeight <= 0 {
 		coverHeight = 128
 	}
-	if path := steamCoverPath(game); path != "" {
+	if path, err := art.CoverPath(game); err == nil && path != "" {
 		image := canvas.NewImageFromFile(path)
 		image.FillMode = canvas.ImageFillCover
 		image.CornerRadius = 4
