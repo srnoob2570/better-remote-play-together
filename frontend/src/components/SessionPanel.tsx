@@ -517,7 +517,7 @@ function LastFull({
         <h2 className="section-title">{t("last.title")}</h2>
         <h3 className="game-title">{last.name ?? `#${last.appId}`}</h3>
         <div className="game-meta">
-          <Meta label={t("situation.finished")} value={t(OUTCOME_KEY[last.outcome])} />
+          <Meta label={t("last.outcome")} value={t(OUTCOME_KEY[last.outcome])} />
           <Meta label={t("last.duration")} value={duration(last, t)} />
           <Meta label={t("last.started")} value={formatDate(last.startedAt, lang)} />
           <Meta label={t("last.ended")} value={formatDate(last.endedAt, lang)} />
@@ -704,7 +704,7 @@ function EndedPanel({
         {!error && (
           <div className="game-meta">
             <Meta
-              label={t("situation.finished")}
+              label={t("last.outcome")}
               value={t(OUTCOME_KEY[state.outcome ?? "unknown"])}
             />
             <Meta label={t("last.duration")} value={clock(Math.max(0, durationMs))} />

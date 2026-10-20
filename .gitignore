@@ -15,5 +15,7 @@
 /references/
 
 # Salidas de pruebas y cobertura
+/frontend/test-results/
+/frontend/playwright-report/
 *.test
 *.out

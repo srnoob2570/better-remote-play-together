@@ -22,6 +22,12 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   incluyen el helper estable y comprueban las bibliotecas del sistema antes de
   arrancar.
 
+### Fixed
+
+- El resumen de la última sesión muestra “Resultado: Terminada” en lugar de
+  repetir “Terminada Terminada”, y el panel de preparación cabe completo en
+  ventanas de 1024×600.
+
 ## [0.1.2] - 2026-10-20 (57d6fc6)
 
 ### Added

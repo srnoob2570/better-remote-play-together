@@ -137,6 +137,7 @@
   "last.ended": "Fin",
   "last.outcome.canceled": "Cancelada",
   "last.outcome.error": "Error",
+  "last.outcome": "Resultado",
   "last.outcome.ok": "Terminada",
   "last.outcome.pending": "Preparando",
   "last.outcome.timeout": "Sin respuesta de Steam",

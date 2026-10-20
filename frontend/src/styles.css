@@ -1272,3 +1272,25 @@ button {
     height: 120px;
   }
 }
+
+@media (max-height: 700px) {
+  .session-pane {
+    padding: 18px 24px 18px 20px;
+  }
+  .session-body {
+    gap: 10px;
+  }
+  .hero-frame {
+    height: 100px;
+  }
+  .game-title {
+    font-size: 22px;
+  }
+  .steps {
+    gap: 6px;
+  }
+  .session-actions {
+    gap: 8px;
+    padding-top: 14px;
+  }
+}
