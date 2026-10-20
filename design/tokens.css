@@ -1,10 +1,8 @@
 /*
  * Design tokens for the React UI.
  *
- * The colour and size values mirror internal/ui/theme.go. Fyne remains the
- * shipped UI during the migration, so keep both sides in sync until it is
- * removed. The React prototype imports this file directly; the future Wails
- * frontend can import it without copying values.
+ * Single source of truth for the palette, typography and spacing used by the
+ * Wails frontend. The React app imports this file directly.
  */
 :root {
   /* Palette */
@@ -33,7 +31,7 @@
   --font-ui: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-code: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 
-  /* Fyne theme sizes (px) */
+  /* UI type scale and spacing (px) */
   --size-text: 15px;
   --size-heading: 26px;
   --size-subheading: 16px;

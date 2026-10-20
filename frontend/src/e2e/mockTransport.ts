@@ -219,7 +219,7 @@ function scenarioData(name: Scenario, lang: "es" | "en") {
       if (name === "loading") return new Promise(() => {});
       return Promise.resolve({
         schemaVersion: 1,
-        version: "0.1.2",
+        version: "0.2.0",
         language: lang,
         config: { language: lang },
         catalog: snapshotCatalog,
@@ -300,7 +300,7 @@ export function installMockTransport(scenarioName: string, language: "es" | "en"
         case 3814729318:
           return;
         case 1761850530:
-          return "0.1.2";
+          return "0.2.0";
         default:
           throw new Error(`unmocked bridge call ${String(call?.methodID)}`);
       }

@@ -14,7 +14,7 @@ import (
 )
 
 // Service is the application-layer entry point. The UI consumes it; it does
-// not import Fyne and can be exercised without a display server.
+// not import the UI and can be exercised without a display server.
 type Service struct {
 	paths config.Paths
 	log   *slog.Logger

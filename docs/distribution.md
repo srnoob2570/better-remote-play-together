@@ -4,8 +4,8 @@ Contrato del ticket 09 para el paquete `.deb` del MVP. El AppImage es un artefac
 
 ## Artefactos
 
-- **`.deb` principal**: `better-rpt_0.1.2-1_amd64.deb`, para Ubuntu 22.04+, Debian 12+ y derivados. Instalación limpia probada en Ubuntu 22.04.
-- **AppImage secundario**: `BetterRPT-0.1.2-x86_64.AppImage`, con el mismo helper estable; probado con FUSE, extracción y GUI en Ubuntu. Se detalla en `docs/appimage.md`.
+- **`.deb` principal**: `better-rpt_0.2.0-1_amd64.deb`, para Ubuntu 22.04+, Debian 12+ y derivados. Instalación limpia probada en Ubuntu 22.04.
+- **AppImage secundario**: `BetterRPT-0.2.0-x86_64.AppImage`, con el mismo helper estable; probado con FUSE, extracción y GUI en Ubuntu. Se detalla en `docs/appimage.md`.
 - Sin repositorio APT, firma GPG ni actualización automática en el MVP. `dist/SHA256SUMS` publica los hashes de ambos artefactos.
 
 ## Matriz de soporte
@@ -29,7 +29,8 @@ binario usa como máximo `GLIBC_2.34`; `dpkg-shlibdeps` pidió `libc6 (>= 2.34)`
 El paquete declara `libc6 (>= 2.35)` como mínimo soportado. La receta está
 en `docs/build.md`.
 
-- Go 1.27.2, Fyne v2.8.2, CGO, `-trimpath -buildvcs=false`, `-ldflags '-s -w'`.
+- Go 1.27.2, Wails v3.0.0-beta.33, GTK3/WebKit2GTK 4.1, CGO,
+  `-trimpath -buildvcs=false`, `-ldflags '-s -w'`.
 - nfpm v2.48.0 y `SOURCE_DATE_EPOCH=1700000000`.
 - El AppImage se construye aparte sobre la misma base Ubuntu 22.04 y con el
   mismo helper; dos compilaciones consecutivas del AppImage y del `.deb` dieron el
@@ -39,7 +40,7 @@ en `docs/build.md`.
 ## Metadatos del paquete
 
 - Nombre: `better-rpt`
-- Versión Debian: `0.1.2-1`
+- Versión Debian: `0.2.0-1`
 - Arquitectura: `amd64`
 - Sección: `games`; prioridad `optional`
 - Maintainer: `srnoob2570 <302417634+srnoob2570@users.noreply.github.com>`
@@ -76,13 +77,13 @@ libxinerama1, libxrandr2, libxxf86vm1
 ## Instalación
 
 ```bash
-sudo apt install ./better-rpt_0.1.2-1_amd64.deb
+sudo apt install ./better-rpt_0.2.0-1_amd64.deb
 ```
 
 Si `apt` no resuelve el archivo local:
 
 ```bash
-sudo dpkg -i ./better-rpt_0.1.2-1_amd64.deb
+sudo dpkg -i ./better-rpt_0.2.0-1_amd64.deb
 sudo apt-get install -f
 ```
 

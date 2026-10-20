@@ -6,8 +6,7 @@ defecto.
 
 ## Principios
 
-- El núcleo no depende de Fyne ni de la UI. La UI consume un servicio de
-  aplicación.
+- El núcleo no depende de la UI. La UI consume un servicio de aplicación.
 - La lectura de Steam y la escritura de configuración están separadas: solo
   `internal/config` modifica `localconfig.vdf`.
 - Better RPT nunca cierra ni reinicia Steam como efecto de preparar, lanzar,
@@ -45,22 +44,20 @@ frontend/                # React + Vite, bindings Wails y assets del shell
 internal/domain/         # Game, Status, Session, LaunchSpec, errores centinela
 internal/app/            # servicio de aplicación y orquestación
 internal/art/            # resolución segura de portadas/iconos de la caché de Steam
-internal/brand/          # icono de la ventana, sin Fyne
+internal/brand/          # icono de la ventana
 internal/steam/          # detección de raíces, bibliotecas, appinfo y ciclo de vida
 internal/config/         # setup del dispatcher, backups y transacción de localconfig
 internal/launch/         # planificador puro + ejecutor nativo/Proton
 internal/session/        # máquina de estados, intención, última sesión y helper
 internal/bridge/         # fachada Wails: DTOs, eventos, errores y contexto de sesión
-internal/ui/             # interfaz Fyne legada, compilable hasta el ticket 14
 internal/i18n/           # textos ES/EN y locale del sistema
 internal/fsutil/         # escritura atómica y permisos
 packaging/               # nfpm, AppImage, .desktop, icono
 ```
 
 Dependencias permitidas: `cmd/better-rpt → bridge → {app, art}`;
-`app → {steam, config, launch, session}`; `internal/ui` (legado) también consume
-`app` y `art`; `art → domain`; `bridge` no importa Fyne ni Wails; `domain` no
-importa nada del proyecto; `launch` no importa `ui`.
+`app → {steam, config, launch, session}`; `art → domain`; `bridge` no importa
+Wails; `domain` no importa nada del proyecto.
 
 ## Flujo
 
@@ -218,7 +215,7 @@ Al arrancar:
 ## Concurrencia
 
 - `context.Context` en detección, lanzamiento, espera y restauración.
-- Trabajo de disco/procesos en goroutines; actualizaciones de UI con `fyne.Do`.
+- Trabajo de disco/procesos en goroutines; actualizaciones de UI en el hilo de React.
 - Una sola sesión activa; el helper toma un bloqueo en el store.
 - Cancelar antes de armar la intención no escribe nada; cancelar después limpia
   la intención y deja el estado/última sesión en un estado recuperable.
@@ -237,8 +234,7 @@ Al arrancar:
   mensajes antiguos. Los mensajes fatales del CLI sí los resuelve Go con el
   mismo catálogo.
 - `design/tokens.css` contiene la paleta, tipografías y tamaños que consume
-  React. Mientras Fyne siga presente, `TestDesignTokensMatchTheme` comprueba que
-  los valores coinciden con `internal/ui/theme.go`.
+  React; es la fuente única de los tokens visuales.
 
 ## Shell Wails
 
@@ -247,7 +243,7 @@ Al arrancar:
   ventana. Un segundo proceso falla con `error.instance` y no abre ventana.
 - Wails v3 `v3.0.0-beta.33` se compila con `-tags gtk3`; la ventana abre en
   1280×800, mínimo 1024×600 y `InitialPosition: WindowCentered`. El icono viene
-  de `internal/brand`, sin importar Fyne.
+  de `internal/brand`.
 - `application.Options` registra el bridge como servicio, usa
   `bridge.MarshalError`, los eventos tipados y `OnShutdown` para cancelar la
   preparación en curso.
@@ -255,9 +251,7 @@ Al arrancar:
   (`wails3 dev`) proxya Vite y lee los assets de disco. `make build` orquesta
   frontend, bindings y binario.
 - Los atajos Ctrl+F, F5 y Esc viven en React: son de la página, no atajos
-  globales del escritorio. Se implementan en los tickets 09/11.
-- `internal/ui` permanece compilable como referencia y rollback, pero el
-  binario ya no la importa. El ticket 14 la retira tras la paridad.
+  globales del escritorio.
 
 ## Bridge React
 
@@ -265,7 +259,7 @@ Al arrancar:
 
 - `Bridge` envuelve la interfaz `App` (satisfecha por `*app.Service`) y traduce
   `domain.Game`, `session.State`, `session.Situation`, `config.Setup` y
-  `config.SetupSnapshot` a DTOs camelCase. No importa Fyne.
+  `config.SetupSnapshot` a DTOs camelCase. No importa Wails.
 - `Snapshot` solo devuelve la caché; `RefreshCatalog` emite
   `catalog.updated`. `StartSession` y `ReplaySession` usan un contexto propio
   del bridge y emiten `session.updated` en cada fase observada y al terminar.
@@ -284,7 +278,7 @@ Al arrancar:
 
 ## Arte local
 
-- `internal/art` resuelve portadas e iconos sin Fyne. Solo considera
+- `internal/art` resuelve portadas e iconos sin dependencias de UI. Solo considera
   `<root>/appcache/librarycache/<appId>` para las raíces de Steam conocidas; el
   directorio de la app no puede ser un symlink. Cada candidato se canonicaliza,
   debe quedar dentro de esa base, ser un archivo regular y no superar 8 MiB.
@@ -302,13 +296,6 @@ Al arrancar:
   produce 304. No copia imágenes ni las incrusta como base64.
 - `frontend/src/art.ts` expone `artUrl(appId, kind)`; si la imagen falla, la UI
   conserva el fallback tipográfico.
-
-## Fyne
-
-Fyne v2.8 ya no es la UI del binario: `internal/ui` queda como referencia y
-rollback compilable hasta que el ticket 14 la retire. La app Wails usa GTK3 y
-WebKit2GTK 4.1, disponibles en Ubuntu 22.04. La accesibilidad de Fyne en Linux
-era limitada; la UI React cubre teclado, foco y contraste en los tickets 09/11.
 
 ## Pruebas
 

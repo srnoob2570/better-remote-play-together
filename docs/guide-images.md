@@ -4,10 +4,10 @@ La guía de la interfaz usa cuatro imágenes:
 
 | Recurso | Contenido | Estado |
 |---|---|---|
-| `internal/ui/assets/guide/launch-options.png` | Steam → SpaceWar → Propiedades → Opciones de lanzamiento | Placeholder / pendiente de captura real |
-| `internal/ui/assets/guide/command.png` | Comando pegado en el campo de opciones | Placeholder / pendiente de captura real |
-| `internal/ui/assets/guide/popup.png` | Popup «Allow game launch?» / «¿Permitir iniciar el juego?» | Placeholder / pendiente de captura real |
-| `internal/ui/assets/guide/invite.png` | Overlay Shift+Tab → Remote Play Together | Placeholder / pendiente de captura real |
+| `frontend/public/guide/launch-options.png` | Steam → SpaceWar → Propiedades → Opciones de lanzamiento | Placeholder / pendiente de captura real |
+| `frontend/public/guide/command.png` | Comando pegado en el campo de opciones | Placeholder / pendiente de captura real |
+| `frontend/public/guide/popup.png` | Popup «Allow game launch?» / «¿Permitir iniciar el juego?» | Placeholder / pendiente de captura real |
+| `frontend/public/guide/invite.png` | Overlay Shift+Tab → Remote Play Together | Placeholder / pendiente de captura real |
 
 ## Regla
 

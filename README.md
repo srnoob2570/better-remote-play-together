@@ -47,13 +47,13 @@ automático es opcional y no cierra Steam.
 
 ```bash
 sha256sum -c SHA256SUMS
-sudo apt install ./better-rpt_0.1.2-1_amd64.deb
+sudo apt install ./better-rpt_0.2.0-1_amd64.deb
 ```
 
 Si `apt` no acepta el archivo local:
 
 ```bash
-sudo dpkg -i ./better-rpt_0.1.2-1_amd64.deb
+sudo dpkg -i ./better-rpt_0.2.0-1_amd64.deb
 sudo apt-get install -f
 ```
 
@@ -73,16 +73,16 @@ para funcionar.
 ### AppImage (otras distribuciones)
 
 ```bash
-chmod +x BetterRPT-0.1.2-x86_64.AppImage
-./BetterRPT-0.1.2-x86_64.AppImage
+chmod +x BetterRPT-0.2.0-x86_64.AppImage
+./BetterRPT-0.2.0-x86_64.AppImage
 ```
 
 Si FUSE no está disponible:
 
 ```bash
-./BetterRPT-0.1.2-x86_64.AppImage --appimage-extract-and-run
+./BetterRPT-0.2.0-x86_64.AppImage --appimage-extract-and-run
 # o
-APPIMAGE_EXTRACT_AND_RUN=1 ./BetterRPT-0.1.2-x86_64.AppImage
+APPIMAGE_EXTRACT_AND_RUN=1 ./BetterRPT-0.2.0-x86_64.AppImage
 ```
 
 El AppImage y el `.deb` comparten el helper estable y la configuración. No uses
@@ -323,7 +323,7 @@ make dev
 ```
 
 El `Makefile` usa `GOTOOLCHAIN=go1.27.2` y no necesita `sudo`. La versión en
-desarrollo se muestra como `dev`; la versión publicada (`0.1.2`) se inyecta
+desarrollo se muestra como `dev`; la versión publicada (`0.2.0`) se inyecta
 con `-ldflags` al compilar. `make dev` recarga Go y el frontend; detén con
 `Ctrl+C`.
 
@@ -398,10 +398,10 @@ conjunto incluye SpaceWar y targets nativo/Proton simulados.
 Solo para validar la integración real del paquete:
 
 ```bash
-sudo apt install ./dist/better-rpt_0.1.2-1_amd64.deb
+sudo apt install ./dist/better-rpt_0.2.0-1_amd64.deb
 better-rpt
 # o
-./dist/BetterRPT-0.1.2-x86_64.AppImage
+./dist/BetterRPT-0.2.0-x86_64.AppImage
 ```
 
 ## Compilación reproducible

@@ -1,7 +1,7 @@
 // Package domain contains the pure vocabulary of Better RPT: game states,
 // launch descriptions, session state and the errors shared by the layers.
 //
-// It must not import Fyne, read files or execute processes.
+// It must not import UI packages, read files or execute processes.
 package domain
 
 import (

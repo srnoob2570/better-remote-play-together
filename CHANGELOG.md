@@ -28,6 +28,11 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   repetir “Terminada Terminada”, y el panel de preparación cabe completo en
   ventanas de 1024×600.
 
+### Removed
+
+- Se retiró la interfaz Fyne y sus dependencias; la aplicación usa
+  exclusivamente Wails v3, React y WebKitGTK.
+
 ## [0.1.2] - 2026-10-20 (57d6fc6)
 
 ### Added

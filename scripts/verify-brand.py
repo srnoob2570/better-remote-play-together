@@ -21,7 +21,6 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 BRAND = ROOT / "packaging" / "brand"
 PACKAGING = ROOT / "packaging"
-ASSETS = ROOT / "internal" / "ui" / "assets"
 
 
 def rel(path: Path) -> str:
@@ -220,12 +219,6 @@ def check_app_icons() -> None:
     check_png(require(PACKAGING / "better-rpt.png"), size=256)
     if sha256(PACKAGING / "better-rpt.png") != sha256(BRAND / "icon-256.png"):
         fail("packaging/better-rpt.png does not match brand/icon-256.png")
-    check_png(require(ASSETS / "better-rpt.png"), size=512)
-    if sha256(ASSETS / "better-rpt.png") != sha256(BRAND / "icon-512.png"):
-        fail("internal/ui/assets/better-rpt.png does not match brand/icon-512.png")
-    check_png(require(ASSETS / "better-rpt-small.png"), size=128)
-    if sha256(ASSETS / "better-rpt-small.png") != sha256(BRAND / "icon-small-128.png"):
-        fail("internal/ui/assets/better-rpt-small.png does not match brand/icon-small-128.png")
 
     for size in (16, 24, 32, 48, 64, 128, 256, 512):
         path = require(PACKAGING / "icons" / "hicolor" / f"{size}x{size}" / "apps" / "better-rpt.png")
@@ -252,21 +245,15 @@ def check_app_icons() -> None:
 
 
 def check_integration() -> None:
-    theme = require(ROOT / "internal" / "ui" / "theme.go").read_text(encoding="utf-8")
-    dashboard = require(ROOT / "internal" / "ui" / "dashboard.go").read_text(encoding="utf-8")
-    for needle in (
-        "//go:embed assets/better-rpt.png",
-        "//go:embed assets/better-rpt-small.png",
-        "appIconSmall",
+    brand = require(ROOT / "internal" / "brand" / "brand.go").read_text(encoding="utf-8")
+    for needle in ("//go:embed better-rpt.png", "var Icon"):
+        if needle not in brand:
+            fail(f"internal/brand/brand.go lacks {needle!r}")
+    check_png(require(ROOT / "frontend" / "public" / "brand" / "icon.png"), size=512)
+    if sha256(ROOT / "frontend" / "public" / "brand" / "icon.png") != sha256(
+        BRAND / "icon-512.png"
     ):
-        if needle not in theme:
-            fail(f"internal/ui/theme.go lacks {needle!r}")
-    for needle in (
-        "a.SetIcon(appIcon)",
-        "canvas.NewImageFromResource(appIconSmall)",
-    ):
-        if needle not in dashboard:
-            fail(f"internal/ui/dashboard.go lacks {needle!r}")
+        fail("frontend/public/brand/icon.png does not match brand/icon-512.png")
 
     nfpm = require(PACKAGING / "nfpm.yaml").read_text(encoding="utf-8")
     for size in (16, 24, 32, 48, 64, 128, 256, 512):

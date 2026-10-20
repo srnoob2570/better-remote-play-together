@@ -67,7 +67,7 @@ const catalog: Catalog = {
 function snapshot(value: Catalog = catalog): Snapshot {
   return {
     schemaVersion: 1,
-    version: "0.1.2",
+    version: "0.2.0",
     language: "es",
     config: { language: "es" },
     catalog: value,
@@ -152,7 +152,7 @@ describe("library UI", () => {
 
     expect(await screen.findAllByText("HELLDIVERS™ 2")).not.toHaveLength(0);
     expect(screen.getByText("3 juegos")).toBeInTheDocument();
-    expect(screen.getByText("Versión 0.1.2")).toBeInTheDocument();
+    expect(screen.getByText("Versión 0.2.0")).toBeInTheDocument();
 
     const image = document.querySelector<HTMLImageElement>("img.game-icon");
     expect(image).not.toBeNull();

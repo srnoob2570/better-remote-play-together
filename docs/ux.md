@@ -217,7 +217,9 @@ Patrón: qué pasó, acción primaria, detalle técnico plegable. Ejemplos:
 - Nombres accesibles en botones e iconos; los estados incluyen texto, no solo
   color.
 - Contraste y foco visibles.
-- Lector de pantalla: Fyne 2.8 no lo implementa en Linux. No bloquea el MVP.
+- Lector de pantalla: la UI React/WebKitGTK expone nombres y roles accesibles;
+  la auditoría automatizada cubre WCAG A/AA y el recorrido por teclado. Una
+  auditoría manual con lector de pantalla queda fuera del MVP.
 
 ## Textos ES/EN (extracto)
 

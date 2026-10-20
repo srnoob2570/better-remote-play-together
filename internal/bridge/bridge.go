@@ -1,6 +1,6 @@
 // Package bridge is the only surface the React frontend binds to. It owns the
 // translation from domain values to serializable DTOs, the session context and
-// the event emission. It deliberately does not import Fyne.
+// the event emission. It deliberately does not import Wails.
 package bridge
 
 import (

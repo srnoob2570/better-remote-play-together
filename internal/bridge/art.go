@@ -19,7 +19,7 @@ import (
 const artPrefix = "/api/art/"
 
 // CatalogProvider is the part of app.Service needed to resolve artwork. It is
-// intentionally small so the endpoint can be tested without Wails or Fyne.
+// intentionally small so the endpoint can be tested without Wails or a UI.
 type CatalogProvider interface {
 	Catalog() (steam.Catalog, bool)
 }
