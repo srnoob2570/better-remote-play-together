@@ -40,14 +40,8 @@ type Helper struct {
 
 // NewHelper validates the launch arguments and returns an executor.
 func NewHelper(options HelperOptions) (*Helper, error) {
-	if options.Store == nil {
-		return nil, fmt.Errorf("%w: nil session store", ErrStore)
-	}
-	if options.DonorAppID == 0 {
-		options.DonorAppID = domain.SpaceWarAppID
-	}
-	if options.DonorAppID != domain.SpaceWarAppID {
-		return nil, fmt.Errorf("%w: donor must be 480", ErrEnvironment)
+	if err := normalizeHelperOptions(&options); err != nil {
+		return nil, err
 	}
 	if options.TargetAppID == 0 || options.TargetAppID == domain.SpaceWarAppID {
 		return nil, fmt.Errorf("%w: invalid target %d", ErrPlanInvalid, options.TargetAppID)
@@ -55,13 +49,26 @@ func NewHelper(options HelperOptions) (*Helper, error) {
 	if !validToken(options.Token) {
 		return nil, fmt.Errorf("%w: invalid session token", ErrPlanInvalid)
 	}
+	return &Helper{options: options, now: options.Now}, nil
+}
+
+func normalizeHelperOptions(options *HelperOptions) error {
+	if options.Store == nil {
+		return fmt.Errorf("%w: nil session store", ErrStore)
+	}
+	if options.DonorAppID == 0 {
+		options.DonorAppID = domain.SpaceWarAppID
+	}
+	if options.DonorAppID != domain.SpaceWarAppID {
+		return fmt.Errorf("%w: donor must be 480", ErrEnvironment)
+	}
 	if options.HelperPID == 0 {
 		options.HelperPID = os.Getpid()
 	}
 	if options.HelperStart == 0 {
 		start, err := ProcessStartTime(options.HelperPID)
 		if err != nil {
-			return nil, fmt.Errorf("helper start time: %w", err)
+			return fmt.Errorf("helper start time: %w", err)
 		}
 		options.HelperStart = start
 	}
@@ -86,7 +93,7 @@ func NewHelper(options HelperOptions) (*Helper, error) {
 	if options.GroupGrace <= 0 {
 		options.GroupGrace = GroupGrace
 	}
-	return &Helper{options: options, now: options.Now}, nil
+	return nil
 }
 
 // Run validates the inherited Steam environment, takes the session lock, reads
@@ -115,7 +122,11 @@ func (h *Helper) Run(ctx context.Context) (State, error) {
 		state := h.newState(&plan, domain.PhaseError, now)
 		return h.finishError(state, "plan_mismatch", fmt.Errorf("%w: token/plan does not match arguments", ErrPlanInvalid))
 	}
+	return h.runPlan(ctx, plan, env)
+}
 
+func (h *Helper) runPlan(ctx context.Context, plan Plan, env []string) (State, error) {
+	now := h.now().UTC()
 	state := h.newState(&plan, domain.PhaseDonorStarting, now)
 	if err := h.options.Store.WriteState(state); err != nil {
 		return state, err

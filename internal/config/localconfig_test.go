@@ -164,6 +164,80 @@ func TestPrepareAlreadyPrepared(t *testing.T) {
 	}
 }
 
+func TestPrepareSupersedesStaleMarkerAndRestoresOriginal(t *testing.T) {
+	root := transactionRoot(t, "localconfig.vdf")
+	localConfig := filepath.Join(root, "userdata", "11111111", "config", "localconfig.vdf")
+	original, err := os.ReadFile(localConfig)
+	if err != nil {
+		t.Fatalf("read original: %v", err)
+	}
+	options := transactionOptions(t, root)
+	first, err := Prepare(options)
+	if err != nil {
+		t.Fatalf("first prepare: %v", err)
+	}
+	options.SessionToken = "fedcba9876543210fedcba9876543210"
+	second, err := Prepare(options)
+	if err != nil {
+		t.Fatalf("second prepare: %v", err)
+	}
+	if second.Backup.Path == first.Backup.Path {
+		t.Fatal("second prepare reused the stale backup")
+	}
+	if second.OriginalRaw != first.OriginalRaw || second.OriginalValue != first.OriginalValue {
+		t.Fatalf("second original = %q/%q, want %q/%q",
+			second.OriginalRaw, second.OriginalValue, first.OriginalRaw, first.OriginalValue)
+	}
+	if second.CreatedAppBlock != first.CreatedAppBlock || second.CreatedLaunchOptions != first.CreatedLaunchOptions {
+		t.Fatalf("second created flags = %+v, want %+v", second, first)
+	}
+	if second.Backup.Meta.OriginalRawTokenBase64 != first.Backup.Meta.OriginalRawTokenBase64 {
+		t.Fatalf("second backup original raw = %q, want %q",
+			second.Backup.Meta.OriginalRawTokenBase64, first.Backup.Meta.OriginalRawTokenBase64)
+	}
+	if _, err := Restore(RestoreOptions{
+		Paths:        options.Paths,
+		SteamRoot:    root,
+		BackupPath:   second.Backup.Path,
+		SteamRunning: options.SteamRunning,
+	}); err != nil {
+		t.Fatalf("restore second: %v", err)
+	}
+	after, err := os.ReadFile(localConfig)
+	if err != nil {
+		t.Fatalf("read restored: %v", err)
+	}
+	if !bytes.Equal(after, original) {
+		t.Fatal("restoring the superseding session did not reproduce the original bytes")
+	}
+}
+
+func TestPrepareRefusesOrphanMarkerWithoutBackup(t *testing.T) {
+	root := transactionRoot(t, "localconfig.vdf")
+	options := transactionOptions(t, root)
+	prepared, err := Prepare(options)
+	if err != nil {
+		t.Fatalf("prepare: %v", err)
+	}
+	if err := os.Remove(prepared.Backup.Path); err != nil {
+		t.Fatalf("remove backup: %v", err)
+	}
+	if err := os.Remove(prepared.Backup.MetaPath); err != nil {
+		t.Fatalf("remove metadata: %v", err)
+	}
+	options.SessionToken = "fedcba9876543210fedcba9876543210"
+	if _, err := Prepare(options); !errors.Is(err, ErrBackupMissing) {
+		t.Fatalf("error = %v, want ErrBackupMissing", err)
+	}
+	_, option, err := ReadCurrentLaunchOption(root)
+	if err != nil {
+		t.Fatalf("read current: %v", err)
+	}
+	if option.Value != prepared.NewValue {
+		t.Fatal("orphan marker was overwritten")
+	}
+}
+
 func TestPrepareMissingAppAndRestore(t *testing.T) {
 	root := transactionRoot(t, "localconfig_missing.vdf")
 	options := transactionOptions(t, root)

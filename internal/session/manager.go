@@ -12,26 +12,41 @@ import (
 	"github.com/srnoob2570/better-rpt/internal/steam"
 )
 
-// PrepareFunc is the localconfig transaction; it is injectable for tests.
-type PrepareFunc func(config.PrepareOptions) (config.Prepared, error)
-
-// RestoreFunc is the inverse transaction; it is injectable for tests.
+// RestoreFunc is the legacy localconfig transaction; it is injectable for
+// tests that exercise migration and manual restore paths.
 type RestoreFunc func(config.RestoreOptions) (config.Restored, error)
 
-// LaunchFunc starts the donor AppID through Steam; it is injectable for tests.
-type LaunchFunc func(ctx context.Context, appID uint32) error
+// SetupDetectFunc reads the persistent dispatcher state.
+type SetupDetectFunc func(config.Paths, string) (config.SetupSnapshot, error)
 
-// Manager orchestrates one donor/target session around the durable store. It
-// does not contain UI confirmation; CloseSteam is the caller's decision.
+// SetupInstallFunc installs the persistent dispatcher.
+type SetupInstallFunc func(config.InstallSetupOptions) (config.Setup, error)
+
+// SetupGuideFunc records a manual dispatcher installation.
+type SetupGuideFunc func(config.GuideSetupOptions) (config.Setup, error)
+
+// SetupRestoreFunc restores the persistent dispatcher.
+type SetupRestoreFunc func(config.RestoreSetupOptions) (config.Restored, error)
+
+// LaunchSessionFunc asks Steam to start the donor with a session token.
+type LaunchSessionFunc func(ctx context.Context, appID uint32, token string) error
+
+// Manager orchestrates launches around the durable store. It never closes or
+// relaunches Steam: the dispatcher is installed once and each launch is a
+// Steam URL request while Steam may remain open.
 type Manager struct {
 	Paths          config.Paths
 	Store          Store
 	Catalog        steam.Catalog
 	Lifecycle      *steam.Lifecycle
 	Installer      *helper.Installer
-	PrepareFn      PrepareFunc
 	RestoreFn      RestoreFunc
-	Launch         LaunchFunc
+	SetupDetect    SetupDetectFunc
+	SetupInstall   SetupInstallFunc
+	SetupGuide     SetupGuideFunc
+	SetupRestore   SetupRestoreFunc
+	LaunchSession  LaunchSessionFunc
+	LastPlayed     func(string) (*config.LastPlayed, error)
 	Now            func() time.Time
 	PollInterval   time.Duration
 	StartupTimeout time.Duration
@@ -40,28 +55,28 @@ type Manager struct {
 // StartOptions controls one session start.
 type StartOptions struct {
 	TargetAppID uint32
-	CloseSteam  bool
 	// OnState reports durable phases while Start waits. It is called from the
 	// manager goroutine and must not touch UI directly.
 	OnState func(State)
 }
 
-// Active is the result of a successful start, or the useful context after a
-// failed start.
+// Active is the result of a successful start or a failed launch attempt.
 type Active struct {
-	Token    string
-	Plan     Plan
-	Prepared config.Prepared
-	Game     domain.Game
-	State    State
+	Token string
+	Plan  Plan
+	Game  domain.Game
+	State State
+	Last  *LastLaunch
 }
 
 // Recovery describes startup recovery.
 type Recovery struct {
 	State        *State
 	HelperAlive  bool
-	Stale        *config.Stale
+	Situation    Situation
+	Setup        config.SetupSnapshot
 	ExpiredPlans []string
+	Last         *LastLaunch
 }
 
 // NewManager builds a manager for the detected catalog.
@@ -70,11 +85,7 @@ func NewManager(paths config.Paths, catalog steam.Catalog) (*Manager, error) {
 	if root == "" {
 		return nil, domain.ErrSteamNotFound
 	}
-	account, err := config.SelectAccount(root)
-	if err != nil {
-		return nil, err
-	}
-	lifecycle, err := steam.NewLifecycle(root, account.LocalConfigPath(root))
+	lifecycle, err := steam.NewLifecycle(root)
 	if err != nil {
 		return nil, err
 	}
@@ -84,18 +95,22 @@ func NewManager(paths config.Paths, catalog steam.Catalog) (*Manager, error) {
 		Catalog:        catalog,
 		Lifecycle:      lifecycle,
 		Installer:      helper.NewInstaller(paths),
-		PrepareFn:      config.Prepare,
 		RestoreFn:      config.Restore,
-		Launch:         lifecycle.AppLaunch,
+		SetupDetect:    config.DetectSetup,
+		SetupInstall:   config.InstallSetup,
+		SetupGuide:     config.RecordGuideSetup,
+		SetupRestore:   config.RestoreSetup,
+		LaunchSession:  lifecycle.AppLaunchSession,
+		LastPlayed:     config.ReadLastPlayed,
 		PollInterval:   time.Second,
 		StartupTimeout: StartupTimeout,
 		Now:            time.Now,
 	}, nil
 }
 
-// Start validates, prepares, launches the donor and waits for the helper to
-// reach active (or fail). It restores the launch option if the donor launch or
-// the helper fails terminally.
+// Start validates the target, arms a durable intent and asks Steam to launch
+// the donor. It never writes SpaceWar's launch option and never calls
+// Steam's shutdown or relaunch paths.
 func (m *Manager) Start(ctx context.Context, options StartOptions) (Active, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -139,22 +154,19 @@ func (m *Manager) Start(ctx context.Context, options StartOptions) (Active, erro
 	if m.Lifecycle == nil {
 		return Active{}, domain.ErrSteamNotFound
 	}
-	if m.Launch == nil {
-		return Active{}, fmt.Errorf("%w: no donor launcher", ErrStore)
+	if m.LaunchSession == nil {
+		m.LaunchSession = m.Lifecycle.AppLaunchSession
 	}
-	running, err := m.Lifecycle.IsRunning()
+
+	snapshot, err := m.setupSnapshot()
 	if err != nil {
 		return Active{}, err
 	}
-	steamWasRunning := false
-	if running {
-		if !options.CloseSteam {
-			return Active{}, fmt.Errorf("%w: confirmation required", domain.ErrSteamRunning)
+	if snapshot.Status != config.SetupInstalled {
+		if snapshot.Status == config.SetupConflict {
+			return Active{}, fmt.Errorf("%w: current SpaceWar configuration differs from the setup record", config.ErrSetupConflict)
 		}
-		if err := m.Lifecycle.Shutdown(ctx); err != nil {
-			return Active{}, err
-		}
-		steamWasRunning = true
+		return Active{}, fmt.Errorf("%w: install or paste the dispatcher from the guide first", config.ErrSetupMissing)
 	}
 
 	token, err := NewToken()
@@ -169,56 +181,47 @@ func (m *Manager) Start(ctx context.Context, options StartOptions) (Active, erro
 	preparing := NewState(plan, domain.PhasePreparing, now)
 	if err := m.Store.WriteState(preparing); err != nil {
 		_ = m.Store.RemovePlan(token)
-		relaunchErr := m.relaunchIfNeeded(ctx, steamWasRunning)
-		if relaunchErr != nil {
-			return Active{Token: token, Plan: plan, Game: game}, fmt.Errorf("%w; Steam relaunch failed: %v", err, relaunchErr)
-		}
-		return Active{Token: token, Plan: plan, Game: game}, err
+		return Active{}, err
 	}
 	if options.OnState != nil {
 		options.OnState(preparing)
 	}
-	if m.PrepareFn == nil {
-		m.PrepareFn = config.Prepare
-	}
-	prepared, err := m.PrepareFn(config.PrepareOptions{
-		Paths:        m.Paths,
-		SteamRoot:    m.Catalog.Installation.Root,
-		HelperPath:   m.Paths.HelperPath(),
-		TargetAppID:  options.TargetAppID,
-		SessionToken: token,
-		Now:          now,
-		SteamRunning: m.steamGuard,
-	})
-	if err != nil {
+	intent := NewIntent(token, options.TargetAppID, now)
+	if err := m.Store.WriteIntent(intent); err != nil {
 		_ = m.Store.RemovePlan(token)
 		_ = m.Store.RemoveState(token)
-		relaunchErr := m.relaunchIfNeeded(ctx, steamWasRunning)
-		if relaunchErr != nil {
-			return Active{Token: token, Plan: plan, Game: game}, fmt.Errorf("%w; Steam relaunch failed: %v", err, relaunchErr)
-		}
-		return Active{Token: token, Plan: plan, Game: game}, err
+		return Active{}, err
 	}
-	result := Active{Token: token, Plan: plan, Prepared: prepared, Game: game}
+	last := LastLaunch{
+		Version:    LastLaunchVersion,
+		AppID:      game.AppID,
+		Name:       game.Name,
+		Token:      token,
+		Parameters: append([]string(nil), game.Launch.Arguments...),
+		Kind:       game.Launch.Kind.String(),
+		Source:     SourceBetterRPT,
+		StartedAt:  now.UTC(),
+		Outcome:    LaunchPending,
+	}
+	if err := m.Store.WriteLastLaunch(last); err != nil {
+		_ = m.Store.ClearIntent()
+		_ = m.Store.RemovePlan(token)
+		_ = m.Store.RemoveState(token)
+		return Active{}, err
+	}
+	result := Active{Token: token, Plan: plan, Game: game, Last: &last}
 	if err := ctx.Err(); err != nil {
-		cleanupErr := m.restore(ctx, token, false, steamWasRunning)
-		if cleanupErr == nil {
-			_ = m.Store.RemovePlan(token)
-			_ = m.Store.RemoveState(token)
-		}
-		if cleanupErr != nil {
-			return result, fmt.Errorf("%w; restore failed: %v", err, cleanupErr)
-		}
+		_ = m.Store.ClearIntent()
+		_ = m.markStateError(token, "canceled", err)
+		_ = m.updateLast(token, LaunchCanceled, err, true)
 		return result, err
 	}
-	if err := m.Launch(ctx, domain.SpaceWarAppID); err != nil {
-		cleanupErr := m.restore(ctx, token, false, steamWasRunning)
-		if cleanupErr == nil {
-			_ = m.Store.RemovePlan(token)
-			_ = m.Store.RemoveState(token)
-		}
-		if cleanupErr != nil {
-			return result, fmt.Errorf("%w; restore failed: %v", err, cleanupErr)
+	if err := m.LaunchSession(ctx, domain.SpaceWarAppID, token); err != nil {
+		_ = m.Store.ClearIntent()
+		_ = m.markStateError(token, "launch_failed", err)
+		_ = m.updateLast(token, LaunchError, err, true)
+		if state, readErr := m.Store.ReadState(token); readErr == nil {
+			result.State = state
 		}
 		return result, err
 	}
@@ -233,59 +236,80 @@ func (m *Manager) Start(ctx context.Context, options StartOptions) (Active, erro
 			}
 			switch state.Phase {
 			case domain.PhaseActive:
+				_ = m.Store.ClearIntent()
+				_ = m.updateLast(token, LaunchOK, nil, false)
+				if updated, err := m.Store.ReadLastLaunch(); err == nil {
+					result.Last = updated
+				}
 				return result, nil
 			case domain.PhaseError, domain.PhaseEnded:
-				restoreErr := m.restore(ctx, token, false, steamWasRunning)
-				if restoreErr == nil {
-					_ = m.Store.RemovePlan(token)
+				_ = m.Store.ClearIntent()
+				_ = m.Store.RemovePlan(token)
+				outcome := LaunchOK
+				if state.Phase == domain.PhaseError {
+					outcome = LaunchError
 				}
-				if restoreErr != nil {
-					return result, fmt.Errorf("%w; restore failed: %v", m.stateError(state), restoreErr)
-				}
+				_ = m.updateLast(token, outcome, nil, true)
 				return result, m.stateError(state)
 			}
 		} else if !errors.Is(readErr, ErrStateMissing) {
-			_ = m.markStateError(token, "state_unreadable", readErr)
-			restoreErr := m.restore(ctx, token, false, steamWasRunning)
-			if restoreErr == nil {
-				_ = m.Store.RemovePlan(token)
-				if _, err := m.Store.ReadState(token); err != nil {
-					_ = m.Store.RemoveState(token)
-				}
+			_ = m.Store.ClearIntent()
+			if markErr := m.markStateError(token, "state_unreadable", readErr); markErr != nil {
+				_ = m.Store.RemoveState(token)
 			}
-			if restoreErr != nil {
-				return result, fmt.Errorf("%w; restore failed: %v", readErr, restoreErr)
+			_ = m.Store.RemovePlan(token)
+			_ = m.updateLast(token, LaunchError, readErr, true)
+			if state, stateErr := m.Store.ReadState(token); stateErr == nil {
+				result.State = state
 			}
 			return result, readErr
 		}
 		if !m.now().Before(deadline) {
 			err := fmt.Errorf("%w: helper did not reach active", ErrTimeout)
+			_ = m.Store.ClearIntent()
 			_ = m.markStateError(token, "startup_timeout", err)
-			restoreErr := m.restore(ctx, token, false, steamWasRunning)
-			if restoreErr == nil {
-				_ = m.Store.RemovePlan(token)
-			}
-			if restoreErr != nil {
-				return result, fmt.Errorf("%w; restore failed: %v", err, restoreErr)
+			_ = m.Store.RemovePlan(token)
+			_ = m.updateLast(token, LaunchTimeout, err, true)
+			if state, readErr := m.Store.ReadState(token); readErr == nil {
+				result.State = state
 			}
 			return result, err
 		}
 		if err := sleepContext(ctx, m.pollInterval()); err != nil {
+			_ = m.Store.ClearIntent()
 			_ = m.markStateError(token, "canceled", err)
-			restoreErr := m.restore(ctx, token, false, steamWasRunning)
-			if restoreErr == nil {
-				_ = m.Store.RemovePlan(token)
-			}
-			if restoreErr != nil {
-				return result, fmt.Errorf("%w; restore failed: %v", err, restoreErr)
+			_ = m.updateLast(token, LaunchCanceled, err, true)
+			if state, readErr := m.Store.ReadState(token); readErr == nil {
+				result.State = state
 			}
 			return result, err
 		}
 	}
 }
 
-// Restore closes a session's launch-option transaction. It refuses while the
-// helper is still alive in an active phase.
+// Replay starts the durable last launch again with the same target and
+// parameters. It refuses to reproduce a command whose appinfo launch
+// parameters changed since the record was written.
+func (m *Manager) Replay(ctx context.Context) (Active, error) {
+	last, err := m.Store.ReadLastLaunch()
+	if err != nil {
+		return Active{}, err
+	}
+	game, ok := m.game(last.AppID)
+	if !ok || game.Launch == nil {
+		return Active{}, fmt.Errorf("%w: last app %d is no longer installed", domain.ErrInvalidLaunchSpec, last.AppID)
+	}
+	if len(last.Parameters) > 0 {
+		if !sameStrings(last.Parameters, game.Launch.Arguments) {
+			return Active{}, fmt.Errorf("%w: last launch parameters changed for app %d", domain.ErrInvalidLaunchSpec, last.AppID)
+		}
+	}
+	return m.Start(ctx, StartOptions{TargetAppID: last.AppID})
+}
+
+// Restore closes one legacy session's launch-option transaction. It refuses
+// while the helper is alive and never closes Steam; with Steam open the caller
+// must show the manual guide.
 func (m *Manager) Restore(ctx context.Context, token string) error {
 	state, err := m.Store.ReadState(token)
 	if err != nil && !errors.Is(err, ErrStateMissing) {
@@ -299,7 +323,7 @@ func (m *Manager) Restore(ctx context.Context, token string) error {
 		return ErrSessionBusy
 	}
 	m.markRestoring(token)
-	if err := m.restore(ctx, token, active, false); err != nil {
+	if err := m.restore(ctx, token, active); err != nil {
 		return err
 	}
 	if err := m.Store.RemovePlan(token); err != nil {
@@ -308,8 +332,179 @@ func (m *Manager) Restore(ctx context.Context, token string) error {
 	return m.Store.RemoveState(token)
 }
 
-// Recover inspects startup state: a live helper is active; a dead active
-// helper is terminalized; otherwise a stale launch option is reported.
+// InstallSetup installs the persistent dispatcher. It requires Steam to be
+// closed and never closes Steam itself.
+func (m *Manager) InstallSetup(ctx context.Context) (config.Setup, error) {
+	if ctx != nil {
+		if err := ctx.Err(); err != nil {
+			return config.Setup{}, err
+		}
+	}
+	if m.Installer == nil {
+		m.Installer = helper.NewInstaller(m.Paths)
+	}
+	if _, err := m.Installer.Install(false); err != nil {
+		return config.Setup{}, err
+	}
+	if m.SetupInstall == nil {
+		m.SetupInstall = config.InstallSetup
+	}
+	return m.SetupInstall(config.InstallSetupOptions{
+		Paths:        m.Paths,
+		SteamRoot:    m.Catalog.Installation.Root,
+		HelperPath:   m.Paths.HelperPath(),
+		Now:          m.now(),
+		SteamRunning: m.steamGuard,
+	})
+}
+
+// RecordGuideSetup records the original value for a manual paste. It never
+// writes localconfig.
+func (m *Manager) RecordGuideSetup(ctx context.Context) (config.Setup, error) {
+	if ctx != nil {
+		if err := ctx.Err(); err != nil {
+			return config.Setup{}, err
+		}
+	}
+	if m.SetupGuide == nil {
+		m.SetupGuide = config.RecordGuideSetup
+	}
+	return m.SetupGuide(config.GuideSetupOptions{
+		Paths:      m.Paths,
+		SteamRoot:  m.Catalog.Installation.Root,
+		HelperPath: m.Paths.HelperPath(),
+		Now:        m.now(),
+	})
+}
+
+// RestoreSetup removes the persistent dispatcher. It requires Steam to be
+// closed; the caller shows the manual guide while Steam is open.
+func (m *Manager) RestoreSetup(ctx context.Context) (config.Restored, error) {
+	if ctx != nil {
+		if err := ctx.Err(); err != nil {
+			return config.Restored{}, err
+		}
+	}
+	if m.SetupRestore == nil {
+		m.SetupRestore = config.RestoreSetup
+	}
+	return m.SetupRestore(config.RestoreSetupOptions{
+		Paths:        m.Paths,
+		SteamRoot:    m.Catalog.Installation.Root,
+		SteamRunning: m.steamGuard,
+	})
+}
+
+// SetupSnapshot reads the current setup without writing.
+func (m *Manager) SetupSnapshot() (config.SetupSnapshot, error) {
+	return m.setupSnapshot()
+}
+
+// Situation classifies the current durable and Steam configuration state.
+func (m *Manager) Situation() (Situation, error) {
+	now := m.now()
+	last, err := m.Store.ReadLastLaunch()
+	if err != nil && !errors.Is(err, ErrLastLaunchMissing) {
+		return Situation{}, err
+	}
+	if last != nil {
+		last = m.reconcileLast(last)
+	}
+	last = m.reconcileSteamLast(last)
+
+	var snapshot config.SetupSnapshot
+	marker := MarkerNone
+	var legacy *LegacyEvidence
+	var stale *config.Stale
+	root := m.Catalog.Installation.Root
+	if root != "" {
+		snapshot, err = m.setupSnapshot()
+		if err != nil {
+			return Situation{}, err
+		}
+		if snapshot.Current.Exists && snapshot.Current.Value != "" {
+			switch {
+			case config.IsDispatcherMarker(snapshot.Current.Value):
+				marker = MarkerDispatcher
+			case config.IsSessionMarker(snapshot.Current.Value):
+				marker = MarkerLegacy
+			default:
+				marker = MarkerForeign
+			}
+		}
+		if marker == MarkerLegacy {
+			stale, err = config.DetectStale(m.Paths, root, false)
+			if err != nil {
+				return Situation{}, err
+			}
+			if stale != nil {
+				legacy = &LegacyEvidence{}
+				if stale.Backup.Path != "" {
+					legacy.BackupAvailable = true
+					legacy.BackupToken = stale.Backup.Meta.SessionToken
+					legacy.BackupTarget = stale.Backup.Meta.TargetAppID
+				}
+			}
+		}
+	}
+
+	var state *State
+	stateToken := ""
+	if legacy != nil && legacy.BackupToken != "" {
+		stateToken = legacy.BackupToken
+	} else if last != nil && last.Token != "" {
+		stateToken = last.Token
+	}
+	if stateToken != "" {
+		loaded, readErr := m.Store.ReadState(stateToken)
+		if readErr != nil && !errors.Is(readErr, ErrStateMissing) {
+			return Situation{}, readErr
+		}
+		if readErr == nil {
+			state = &loaded
+		}
+	}
+	if state == nil {
+		active, activeErr := m.Store.ActiveState()
+		if activeErr != nil {
+			return Situation{}, activeErr
+		}
+		if active != nil {
+			state = active
+		} else if states, listErr := m.Store.ListStates(); listErr == nil && len(states) > 0 {
+			state = &states[0]
+		}
+	}
+	helperAlive := false
+	if state != nil && state.HelperPID > 0 && !state.Terminal() {
+		helperAlive = ProcessAlive(state.HelperPID, state.HelperStartTime)
+	}
+	intent, intentErr := m.Store.ReadIntent(now)
+	if intentErr != nil && !errors.Is(intentErr, ErrIntentMissing) &&
+		!errors.Is(intentErr, ErrIntentExpired) {
+		return Situation{}, intentErr
+	}
+	steamRunning := false
+	if m.Lifecycle != nil {
+		steamRunning, err = m.Lifecycle.IsRunning()
+		if err != nil {
+			return Situation{}, err
+		}
+	}
+	return Classify(Evidence{
+		Setup:        setupState(snapshot.Status),
+		SetupBackup:  snapshot.Setup != nil && snapshot.Setup.Backup.Path != "",
+		Marker:       marker,
+		Legacy:       legacy,
+		Intent:       intent,
+		State:        state,
+		HelperAlive:  helperAlive,
+		SteamRunning: steamRunning,
+		Last:         last,
+	}), nil
+}
+
+// Recover inspects startup state and returns the classified situation.
 func (m *Manager) Recover(ctx context.Context) (*Recovery, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -318,43 +513,51 @@ func (m *Manager) Recover(ctx context.Context) (*Recovery, error) {
 	if err != nil {
 		return nil, err
 	}
+	recovery := &Recovery{}
 	if active != nil {
 		alive := active.HelperPID > 0 && ProcessAlive(active.HelperPID, active.HelperStartTime)
-		if alive {
-			return &Recovery{State: active, HelperAlive: true}, nil
+		recovery.State = active
+		recovery.HelperAlive = alive
+		if !alive {
+			active.Phase = domain.PhaseError
+			active.Outcome = "error"
+			active.ErrorCode = "helper_dead"
+			active.Error = "the session helper is no longer running"
+			active.EndedAt = m.now()
+			active.UpdatedAt = active.EndedAt
+			if err := m.Store.WriteState(*active); err != nil {
+				return nil, err
+			}
+			_ = m.updateLast(active.Token, LaunchError, errors.New(active.Error), true)
 		}
-		active.Phase = domain.PhaseError
-		active.Outcome = "error"
-		active.ErrorCode = "helper_dead"
-		active.Error = "the session helper is no longer running"
-		active.EndedAt = m.now()
-		active.UpdatedAt = active.EndedAt
-		if err := m.Store.WriteState(*active); err != nil {
-			return nil, err
-		}
-		return &Recovery{State: active}, nil
-	}
-	expired, err := m.Store.RemoveExpiredPlans(m.now())
-	if err != nil {
-		return nil, err
-	}
-	root := m.Catalog.Installation.Root
-	if root != "" {
-		stale, err := config.DetectStale(m.Paths, root, false)
+	} else {
+		expired, err := m.Store.RemoveExpiredPlans(m.now())
 		if err != nil {
 			return nil, err
 		}
-		if stale != nil {
-			return &Recovery{Stale: stale, ExpiredPlans: expired}, nil
-		}
+		recovery.ExpiredPlans = expired
 	}
-	if len(expired) > 0 {
-		return &Recovery{ExpiredPlans: expired}, nil
+	if intent, err := m.Store.ReadIntent(m.now()); errors.Is(err, ErrIntentExpired) {
+		_ = intent
+		_ = m.Store.ClearIntent()
 	}
-	return nil, nil
+	situation, err := m.Situation()
+	if err != nil {
+		return nil, err
+	}
+	recovery.Situation = situation
+	recovery.Last = situation.Last
+	if setup, setupErr := m.SetupSnapshot(); setupErr == nil {
+		recovery.Setup = setup
+	}
+	if recovery.State == nil && recovery.Last == nil && situation.Kind == SituationIdle &&
+		situation.Setup == SetupMissing && len(recovery.ExpiredPlans) == 0 {
+		return nil, nil
+	}
+	return recovery, nil
 }
 
-func (m *Manager) restore(ctx context.Context, token string, active, relaunch bool) (err error) {
+func (m *Manager) restore(ctx context.Context, token string, active bool) (err error) {
 	defer func() {
 		if err != nil {
 			_ = m.markStateError(token, "restore_failed", err)
@@ -365,48 +568,122 @@ func (m *Manager) restore(ctx context.Context, token string, active, relaunch bo
 	}
 	cleanupCtx, cancel := m.cleanupContext(ctx)
 	defer cancel()
-
-	wasRunning := false
-	if m.Lifecycle != nil {
-		running, err := m.Lifecycle.IsRunning()
-		if err != nil {
-			return err
-		}
-		if running {
-			wasRunning = true
-			relaunch = true
-			if err := m.Lifecycle.Shutdown(cleanupCtx); err != nil {
-				_ = m.Lifecycle.Relaunch(cleanupCtx)
-				return err
-			}
-		}
+	if err := cleanupCtx.Err(); err != nil {
+		return err
 	}
-	_, restoreErr := m.RestoreFn(config.RestoreOptions{
+	_, err = m.RestoreFn(config.RestoreOptions{
 		Paths:         m.Paths,
 		SteamRoot:     m.Catalog.Installation.Root,
 		SessionToken:  token,
 		ActiveSession: active,
 		SteamRunning:  m.steamGuard,
 	})
+	return err
+}
 
-	var relaunchErr error
-	if relaunch || wasRunning {
-		if m.Lifecycle == nil {
-			relaunchErr = domain.ErrSteamNotFound
-		} else {
-			relaunchErr = m.Lifecycle.Relaunch(cleanupCtx)
+func (m *Manager) setupSnapshot() (config.SetupSnapshot, error) {
+	if m.SetupDetect == nil {
+		m.SetupDetect = config.DetectSetup
+	}
+	return m.SetupDetect(m.Paths, m.Catalog.Installation.Root)
+}
+
+func (m *Manager) reconcileSteamLast(last *LastLaunch) *LastLaunch {
+	root := m.Catalog.Installation.Root
+	if root == "" {
+		return last
+	}
+	if m.LastPlayed == nil {
+		m.LastPlayed = config.ReadLastPlayed
+	}
+	played, err := m.LastPlayed(root)
+	if err != nil || played == nil {
+		return last
+	}
+	if last != nil {
+		// A Better RPT record for the same app carries the token and exact
+		// parameters needed by Replay. Steam's LastPlayed must not erase them.
+		if last.AppID == played.AppID {
+			return last
+		}
+		if !played.At.After(last.StartedAt) {
+			return last
+		}
+		if last.Token != "" {
+			if state, readErr := m.Store.ReadState(last.Token); readErr == nil && !state.Terminal() {
+				return last
+			}
 		}
 	}
-	switch {
-	case restoreErr != nil && relaunchErr != nil:
-		return fmt.Errorf("%w; Steam relaunch failed: %v", restoreErr, relaunchErr)
-	case restoreErr != nil:
-		return restoreErr
-	case relaunchErr != nil:
-		return fmt.Errorf("launch option restored but Steam did not relaunch: %w", relaunchErr)
-	default:
+	name := ""
+	if game, ok := m.game(played.AppID); ok {
+		name = game.Name
+	}
+	next := LastLaunch{
+		Version:   LastLaunchVersion,
+		AppID:     played.AppID,
+		Name:      name,
+		Source:    SourceSteam,
+		StartedAt: played.At.UTC(),
+		Outcome:   LaunchUnknown,
+	}
+	if err := m.Store.WriteLastLaunch(next); err != nil {
+		return last
+	}
+	return &next
+}
+
+func (m *Manager) reconcileLast(last *LastLaunch) *LastLaunch {
+	if last == nil || last.Token == "" {
+		return last
+	}
+	state, err := m.Store.ReadState(last.Token)
+	if err != nil {
+		return last
+	}
+	changed := false
+	switch state.Phase {
+	case domain.PhaseActive:
+		if last.Outcome != LaunchOK {
+			last.Outcome = LaunchOK
+			changed = true
+		}
+	case domain.PhaseEnded:
+		last.Outcome = LaunchOK
+		changed = true
+	case domain.PhaseError:
+		last.Outcome = LaunchError
+		changed = true
+	}
+	if !state.EndedAt.IsZero() && !state.EndedAt.Equal(last.EndedAt) {
+		last.EndedAt = state.EndedAt
+		changed = true
+	}
+	if changed {
+		_ = m.Store.WriteLastLaunch(*last)
+	}
+	return last
+}
+
+func (m *Manager) updateLast(token string, outcome LaunchOutcome, cause error, ended bool) error {
+	last, err := m.Store.ReadLastLaunch()
+	if err != nil {
+		if errors.Is(err, ErrLastLaunchMissing) {
+			return nil
+		}
+		return err
+	}
+	if last.Token != token {
 		return nil
 	}
+	last.Outcome = outcome
+	if cause != nil {
+		last.Error = cause.Error()
+	}
+	if ended {
+		last.EndedAt = m.now().UTC()
+	}
+	return m.Store.WriteLastLaunch(*last)
 }
 
 func (m *Manager) markRestoring(token string) {
@@ -434,18 +711,6 @@ func (m *Manager) markStateError(token, code string, cause error) error {
 	state.EndedAt = now
 	state.UpdatedAt = now
 	return m.Store.WriteState(state)
-}
-
-func (m *Manager) relaunchIfNeeded(ctx context.Context, needed bool) error {
-	if !needed {
-		return nil
-	}
-	if m.Lifecycle == nil {
-		return domain.ErrSteamNotFound
-	}
-	cleanupCtx, cancel := m.cleanupContext(ctx)
-	defer cancel()
-	return m.Lifecycle.Relaunch(cleanupCtx)
 }
 
 func (m *Manager) cleanupContext(ctx context.Context) (context.Context, context.CancelFunc) {
@@ -490,6 +755,33 @@ func (m *Manager) startupTimeout() time.Duration {
 		return m.StartupTimeout
 	}
 	return StartupTimeout
+}
+
+func setupState(status config.SetupStatus) SetupState {
+	switch status {
+	case config.SetupGuide:
+		return SetupGuide
+	case config.SetupInstalled:
+		return SetupInstalled
+	case config.SetupRestored:
+		return SetupRestored
+	case config.SetupConflict:
+		return SetupConflict
+	default:
+		return SetupMissing
+	}
+}
+
+func sameStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func sleepContext(ctx context.Context, duration time.Duration) error {

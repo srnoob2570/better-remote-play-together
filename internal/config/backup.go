@@ -19,24 +19,34 @@ import (
 
 const backupRetention = 10
 
+// BackupKind distinguishes the legacy per-session transaction from the
+// persistent dispatcher setup.
+type BackupKind string
+
+const (
+	BackupSession    BackupKind = "session"
+	BackupDispatcher BackupKind = "dispatcher"
+)
+
 // BackupMeta is the durable description of one localconfig backup.
 type BackupMeta struct {
-	Version                int       `json:"version"`
-	Source                 string    `json:"source"`
-	SteamID64              string    `json:"steam_id_64"`
-	AccountID              uint32    `json:"account_id"`
-	AccountName            string    `json:"account_name"`
-	AppID                  uint32    `json:"app_id"`
-	TargetAppID            uint32    `json:"target_app_id"`
-	SessionToken           string    `json:"session_token"`
-	OriginalSHA256         string    `json:"original_sha256"`
-	OriginalMode           uint32    `json:"original_mode"`
-	OriginalRawTokenBase64 string    `json:"original_raw_token_base64,omitempty"`
-	OriginalValue          string    `json:"original_value"`
-	NewValue               string    `json:"new_value"`
-	CreatedAppBlock        bool      `json:"created_app_block"`
-	CreatedLaunchOptions   bool      `json:"created_launch_options"`
-	CreatedAt              time.Time `json:"created_at"`
+	Version                int        `json:"version"`
+	Kind                   BackupKind `json:"kind,omitempty"`
+	Source                 string     `json:"source"`
+	SteamID64              string     `json:"steam_id_64"`
+	AccountID              uint32     `json:"account_id"`
+	AccountName            string     `json:"account_name"`
+	AppID                  uint32     `json:"app_id"`
+	TargetAppID            uint32     `json:"target_app_id"`
+	SessionToken           string     `json:"session_token"`
+	OriginalSHA256         string     `json:"original_sha256"`
+	OriginalMode           uint32     `json:"original_mode"`
+	OriginalRawTokenBase64 string     `json:"original_raw_token_base64,omitempty"`
+	OriginalValue          string     `json:"original_value"`
+	NewValue               string     `json:"new_value"`
+	CreatedAppBlock        bool       `json:"created_app_block"`
+	CreatedLaunchOptions   bool       `json:"created_launch_options"`
+	CreatedAt              time.Time  `json:"created_at"`
 }
 
 // Backup is a backup file and its metadata.
@@ -49,10 +59,24 @@ type Backup struct {
 // CreateBackup writes data to a new 0600 backup plus a 0600 metadata sibling.
 // The directory is private and the current backup is never pruned here.
 func CreateBackup(paths Paths, source string, data []byte, meta BackupMeta) (Backup, error) {
-	if source == "" || meta.Source == "" || meta.AppID != domain.SpaceWarAppID ||
-		meta.TargetAppID == 0 || meta.TargetAppID == domain.SpaceWarAppID ||
-		!domain.ValidSessionToken(meta.SessionToken) || meta.NewValue == "" {
+	if meta.Kind == "" {
+		meta.Kind = BackupSession
+	}
+	if source == "" || meta.Source == "" || meta.AppID != domain.SpaceWarAppID || meta.NewValue == "" {
 		return Backup{}, fmt.Errorf("%w: invalid backup metadata", ErrBackup)
+	}
+	switch meta.Kind {
+	case BackupSession:
+		if meta.TargetAppID == 0 || meta.TargetAppID == domain.SpaceWarAppID ||
+			!domain.ValidSessionToken(meta.SessionToken) {
+			return Backup{}, fmt.Errorf("%w: invalid session backup metadata", ErrBackup)
+		}
+	case BackupDispatcher:
+		if meta.TargetAppID != 0 || meta.SessionToken != "" {
+			return Backup{}, fmt.Errorf("%w: invalid dispatcher backup metadata", ErrBackup)
+		}
+	default:
+		return Backup{}, fmt.Errorf("%w: unknown kind %q", ErrBackup, meta.Kind)
 	}
 	dir := paths.BackupsDir()
 	if err := fsutil.EnsurePrivateDir(dir); err != nil {
@@ -124,11 +148,25 @@ func LoadBackup(path string) (Backup, error) {
 	if err := json.Unmarshal(data, &meta); err != nil {
 		return Backup{}, fmt.Errorf("%w: parse %s: %v", ErrBackupCorrupt, metaPath, err)
 	}
+	if meta.Kind == "" {
+		meta.Kind = BackupSession
+	}
 	if meta.Version != 1 || meta.Source == "" || meta.OriginalSHA256 == "" ||
-		meta.SessionToken == "" || !domain.ValidSessionToken(meta.SessionToken) ||
-		meta.AppID != domain.SpaceWarAppID || meta.TargetAppID == 0 ||
-		meta.TargetAppID == domain.SpaceWarAppID || meta.NewValue == "" {
+		meta.AppID != domain.SpaceWarAppID || meta.NewValue == "" {
 		return Backup{}, fmt.Errorf("%w: incomplete metadata %s", ErrBackupCorrupt, metaPath)
+	}
+	switch meta.Kind {
+	case BackupSession:
+		if !domain.ValidSessionToken(meta.SessionToken) ||
+			meta.TargetAppID == 0 || meta.TargetAppID == domain.SpaceWarAppID {
+			return Backup{}, fmt.Errorf("%w: incomplete session metadata %s", ErrBackupCorrupt, metaPath)
+		}
+	case BackupDispatcher:
+		if meta.SessionToken != "" || meta.TargetAppID != 0 {
+			return Backup{}, fmt.Errorf("%w: incomplete dispatcher metadata %s", ErrBackupCorrupt, metaPath)
+		}
+	default:
+		return Backup{}, fmt.Errorf("%w: unknown kind %q in %s", ErrBackupCorrupt, meta.Kind, metaPath)
 	}
 	metaInfo, err := os.Stat(metaPath)
 	if err != nil {
@@ -205,6 +243,9 @@ func FindBackupBySession(paths Paths, token string) (Backup, error) {
 		return Backup{}, err
 	}
 	for _, backup := range backups {
+		if backup.Meta.Kind == BackupDispatcher {
+			continue
+		}
 		if backup.Meta.SessionToken == token {
 			return backup, nil
 		}

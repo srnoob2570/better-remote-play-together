@@ -13,9 +13,11 @@ Remote Play Together para juegos de Steam que no lo incluyen.
 
 Better RPT usa SpaceWar (App ID 480) como donante fijo para abrir un juego
 seleccionado dentro de un contexto que Steam reconoce como Remote Play Together.
-La opción de lanzamiento de SpaceWar se modifica solo durante la sesión, con
-copia de seguridad, verificación y restauración. Better RPT no modifica los
-archivos del juego ni las opciones de otras aplicaciones.
+La integración se instala una sola vez como un dispatcher persistente en la
+opción de lanzamiento de SpaceWar, con copia de seguridad, verificación y
+restauración. Better RPT no modifica los archivos del juego ni las opciones de
+otras aplicaciones. El flujo principal es una guía paso a paso; el lanzamiento
+automático es opcional y no cierra Steam.
 
 > Estado: MVP Linux amd64. No promete compatibilidad universal. Léase la sección
 > de limitaciones antes de usarlo.
@@ -93,35 +95,56 @@ fuera de Ubuntu 22.04 en esta versión.
 2. Abre Better RPT.
 3. Busca el juego y selecciónalo en la biblioteca. El panel lateral muestra su
    estado, si es nativo o Proton y los detalles técnicos.
-4. Pulsa **Preparar y jugar**.
+4. Pulsa **Jugar**.
+   - Si es la primera vez, se abre la pestaña **Guía**. Pega el comando en
+     Steam → SpaceWar → Propiedades → Opciones de lanzamiento. Steam lo aplica
+     sin que Better RPT cierre ni reinicie nada.
+   - Si prefieres la instalación automática, ciérrala tú mismo y pulsa
+     **Instalar automáticamente**. Better RPT nunca cierra Steam por ti.
    - Si el juego usa Proton, aparece un aviso de compatibilidad desconocida la
      primera vez en cada ejecución.
-   - Si Steam está abierto, Better RPT pide confirmación para cerrarlo y lo
-     relanzará al terminar la preparación.
-5. Cuando la sesión esté activa, abre el overlay de Steam con **Shift+Tab** y
+5. Cuando el setup aparezca como **Instalado**, pulsa **Jugar**. Better RPT
+   arma la intención y pide a Steam que arranque SpaceWar con los parámetros de
+   la sesión. Acepta el popup de Steam («Allow game launch?» / «¿Permitir
+   iniciar el juego?»).
+6. Cuando la sesión esté activa, abre el overlay de Steam con **Shift+Tab** y
    usa **Remote Play Together** para invitar a tus amigos. Better RPT no envía
    invitaciones por APIs internas.
-6. Cuando termines, cierra el juego. En el panel de la sesión pulsa
-   **Restaurar SpaceWar** para devolver su opción de lanzamiento al valor
-   original. Si cierras Better RPT antes, la próxima apertura detectará la
-   restauración pendiente.
+7. Cuando termines, cierra el juego. En **Última sesión** puedes pulsar
+   **Jugar de nuevo** o **Restaurar**. La biblioteca sigue visible y navegable.
+   Si cierras Better RPT antes, la próxima apertura reconocerá la última sesión.
+   Si el arranque falla, no se escribe ninguna opción nueva: se muestra el error
+   y se puede reintentar.
 
 El botón de restaurar solo actúa si el valor actual sigue siendo el que escribió
 Better RPT. Si Steam u otro programa cambió la opción de lanzamiento, no se
-sobrescribe y se muestra el conflicto con el detalle técnico.
+sobrescribe y se muestra el conflicto con el detalle técnico. Con Steam abierto,
+**Restaurar** muestra la guía para quitar el comando; no cierra Steam.
+
+> Las imágenes de la guía deben ser capturas reales de Steam. Si alguna no está
+> disponible en el entorno de compilación, se usa una ilustración claramente
+> etiquetada y se registra la sustitución pendiente en
+> [`docs/guide-images.md`](docs/guide-images.md).
 
 ## Qué hace exactamente
 
 - Detecta una instalación nativa de Steam y sus bibliotecas.
 - Lee `appinfo.vdf` para elegir el lanzamiento nativo o el mapping de Proton.
-- Prepara SpaceWar como donante dentro de `localconfig.vdf`.
+- Instala un dispatcher persistente en la opción de lanzamiento de SpaceWar,
+  con backup, verificación y restauración. La instalación es única y reversible.
 - Instala un helper estático en
   `$XDG_DATA_HOME/better-rpt/bin/better-rpt-helper`.
-- Lanza Steam/SpaceWar y el target como hijo del contexto donante.
-- Mantiene un plan y un estado de sesión privados, con bloqueo y seguimiento
-  por PID + hora de inicio.
+- Pide a Steam que arranque SpaceWar con la intención de sesión; el helper lanza
+  el target como hijo del contexto donante.
+- Mantiene un plan, un estado, una intención y la última sesión en archivos
+  privados, con bloqueo y seguimiento por PID + hora de inicio.
+- Reconoce también el último juego lanzado desde Steam (`LastPlayed` de
+  `localconfig.vdf`, ignorando SpaceWar) y lo muestra como última sesión, sin
+  confundirlo con una restauración pendiente.
 - Restaura la opción de lanzamiento de SpaceWar y ofrece recuperación tras un
   cierre inesperado o un plan expirado.
+- No cierra ni reinicia Steam como parte de preparar, lanzar, cancelar o
+  restaurar.
 
 Better RPT **no** usa APIs internas de Steam para invitar, no mata procesos y no
 toca opciones de lanzamiento de otras aplicaciones.
@@ -163,8 +186,12 @@ Better RPT no descarga código ni envía datos por red. Todo queda en el equipo:
 - Helper estable: `$XDG_DATA_HOME/better-rpt/bin/better-rpt-helper`
   (por defecto `~/.local/share/better-rpt/bin/better-rpt-helper`).
 - Copias de `localconfig.vdf`: `$XDG_DATA_HOME/better-rpt/backups/`
-  (directorio `0700`, archivos `0600`, retención limitada).
-- Plan/estado de la sesión: `$XDG_RUNTIME_DIR/better-rpt/`; no es dato
+  (directorio `0700`, archivos `0600`, retención limitada; `Kind=session` o
+  `dispatcher`).
+- Setup del dispatcher: `$XDG_DATA_HOME/better-rpt/setup.json`.
+- Sesiones: `$XDG_DATA_HOME/better-rpt/sessions/` con plan/estado,
+  `launch-intent.json` y `last-launch.json`.
+- Runtime: `$XDG_RUNTIME_DIR/better-rpt/` para el bloqueo; no es dato
   persistente.
 
 ## Problemas frecuentes
@@ -181,18 +208,34 @@ Instala SpaceWar (gratuito, App ID 480) desde Steam. Better RPT ofrece el botón
 **Añadir SpaceWar**; si Steam no responde, instálalo manualmente desde la tienda
 y vuelve a abrir Better RPT.
 
-### Steam no se cierra o no vuelve a abrir
+### Steam está abierto y quiero instalar el comando
 
-Cierra Steam manualmente, espera unos segundos y vuelve a intentarlo. Better RPT
-solo escribe cuando Steam está cerrado. Si el cierre queda a medias, no se
-modifica `localconfig.vdf` y se muestra el error.
+No hace falta cerrarlo: abre la pestaña **Guía**, copia el comando y pégalo en
+Steam → SpaceWar → Propiedades → Opciones de lanzamiento. Steam lo aplica en
+memoria. Better RPT no escribe `localconfig.vdf` mientras Steam está abierto.
+Steam puede tardar en guardar el cambio hasta que cierre; si la guía sigue en
+estado «Guía», pulsa **Verificar de nuevo** o cierra Steam una vez para que
+Better RPT pueda leerlo. La app no lo cierra por ti.
 
-### «Restauración pendiente» o conflicto
+Si prefieres la instalación automática, cierra Steam manualmente y pulsa
+**Instalar automáticamente**. Better RPT no cierra Steam por ti.
 
-Abre Better RPT y pulsa **Restaurar SpaceWar** antes de desinstalar. Si la opción
-de lanzamiento cambió fuera de Better RPT, la app no la sobrescribe: restaura
-manualmente el valor original o reinstala la misma versión para recuperar la
-copia si existe.
+### «Restauración pendiente», configuración huérfana o conflicto
+
+Una restauración pendiente solo aparece si hay un marcador legacy, un backup y
+un estado/token coherentes. Un `LaunchOptions` no estándar de SpaceWar no basta
+para crearla.
+
+- **Pendiente:** pulsa **Restaurar** con Steam cerrado. Con Steam abierto, la
+  app muestra la guía; no cierra Steam.
+- **Huérfana:** el marcador no tiene sesión/backup coherente. Se muestra aparte
+  y no se presenta como la última sesión; si no hay backup, no se sobrescribe.
+- **Conflicto:** el valor actual cambió fuera de Better RPT. No se sobrescribe;
+  restaura manualmente el valor original o revisa el backup.
+
+La biblioteca sigue disponible. No hay que pulsar «Volver a la biblioteca»: ya
+está en pantalla. **Jugar de nuevo** repite el último lanzamiento con los mismos
+parámetros.
 
 ### El AppImage no arranca
 
@@ -340,7 +383,7 @@ Steam ni juegos reales.
 
 ## Estado de verificación de esta versión
 
-- 223 pruebas en 16 paquetes; `go vet` y `go test -race` pasan sin errores.
+- 285 pruebas en 16 paquetes; `go vet` y `go test -race` pasan sin errores.
 - Binario y helper construidos en Ubuntu 22.04; símbolo máximo `GLIBC_2.34`.
   `dpkg-shlibdeps` pidió `libc6 (>= 2.34)`; el paquete declara `2.35` como
   mínimo soportado.

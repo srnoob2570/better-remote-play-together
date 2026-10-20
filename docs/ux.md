@@ -1,116 +1,175 @@
 # Interfaz de Better RPT
 
-Documento de apoyo del ticket 04. Define jerarquía, estados, acciones y textos del MVP. El ticket 07 cierra la taxonomía final de errores.
+Documento de apoyo del rediseño «guía primero». Define jerarquía, estados,
+acciones y textos del MVP. El flujo de cerrar Steam ya no existe.
 
 ## Ventana
 
 - Tamaño inicial 1280×800; mínimo 1024×600.
 - Cabecera: **Better RPT** a la izquierda; selector **ES | EN** a la derecha.
-- Cuerpo en dos columnas: biblioteca (≈60 %) y panel lateral (≈40 %, mínimo 400 px).
-- La biblioteca y la sesión son dos campos de color distintos: tinta para la biblioteca y verde profundo para la sesión. Sin tarjeta contenedora ni borde alrededor del panel.
-- Sin barra de menús ni pantallas adicionales. La ayuda y los errores se muestran en diálogos o en el panel lateral.
+- Cuerpo en dos columnas: biblioteca (≈60 %) y panel lateral (≈40 %, mínimo
+  400 px).
+- La biblioteca y la sesión son dos campos de color distintos: tinta para la
+  biblioteca y verde profundo para la sesión.
+- Sin barra de menús ni pantallas adicionales. La guía vive en una pestaña del
+  panel lateral; los errores se muestran en el panel o en diálogos.
 
 ## Biblioteca
 
 - Campo de búsqueda siempre visible: nombre o App ID.
 - Filtro por estado: Todos, Listos, Desconocidos, No compatibles.
 - Botón de refrescar.
-- La biblioteca es una tabla con cabecera **Juego / Tipo / Estado**. Las columnas mantienen su posición; el nombre se trunca si no cabe.
-- Fila: icono de Steam del juego, nombre, tipo (**Nativo** o **Proton**) y estado en texto. Sin puntos, insignias, chips ni pastillas.
-- La portada se obtiene de la caché de arte de Steam; si el juego no tiene arte local (por ejemplo, Spacewar), se muestra una portada tipográfica con el nombre, no una imagen inventada.
-- El App ID, la biblioteca, la ruta y el Proton resuelto viven en la pestaña **Detalles** del panel lateral.
-- Orden alfabético por nombre; sin ordenación configurable en el MVP.
-- Las herramientas/runtimes no aparecen; SpaceWar (donante) tampoco se lista.
-- Si no hay resultados: «Ningún juego coincide con la búsqueda.» + «Quitar filtros».
-- Si la biblioteca está vacía: «No hay juegos instalados» + «Actualizar» + «Abrir Steam».
+- Tabla con cabecera **Juego / Tipo / Estado**. Las columnas mantienen su
+  posición; el nombre se trunca si no cabe.
+- Fila: icono de Steam, nombre, tipo (**Nativo** o **Proton**) y estado en
+  texto. Sin puntos, insignias, chips ni pastillas.
+- La portada se obtiene de la caché de arte de Steam; si no existe, se muestra
+  una portada tipográfica con el nombre, no una imagen inventada.
+- El App ID, la biblioteca, la ruta y el Proton resuelto viven en **Detalles**.
+- Orden alfabético por nombre; sin ordenación configurable.
+- Las herramientas/runtimes y SpaceWar no se listan.
+- La biblioteca sigue visible y navegable durante la sesión, la guía y la
+  restauración. No hay una pantalla que obligue a «volver a la biblioteca».
+
+## Panel lateral: tres pestañas
+
+1. **Sesión**: última sesión, sesión activa, preparación, errores o selección.
+2. **Detalles**: App ID, biblioteca, tipo, ruta y Proton resuelto.
+3. **Guía**: comando exacto, instalación, pasos e imágenes.
+
+La pestaña activa se conserva al cambiar de juego. Abrir la guía no pierde la
+selección ni el estado de la biblioteca.
 
 ## Estados y acciones
 
-Propuesta sujeta a la tabla definitiva del ticket 07.
-
 | Estado | Acción principal | Notas |
 |---|---|---|
-| Listo (verde) | Preparar y jugar | Sin aviso adicional |
-| Desconocido (ámbar) | Preparar y jugar | El panel avisa de que la compatibilidad no está confirmada; aviso una vez por juego y ejecución de la app |
-| No compatible (rojo) | Deshabilitada | Mostrar el motivo en la pestaña **Detalles** |
-| No instalado (gris) | Deshabilitada | «Actualizar biblioteca» |
-| Error (rojo) | Reintentar | Detalle técnico plegable |
-| Sesión activa (azul) | Deshabilitada | «Sesión activa» en la pestaña **Sesión** |
+| Listo | Jugar (si el dispatcher está instalado) o Ver guía | Sin aviso adicional |
+| Desconocido | Jugar o Ver guía | Aviso de compatibilidad no confirmada, una vez por juego/ejecución |
+| No compatible | Deshabilitada | Motivo en **Detalles** |
+| No instalado | Deshabilitada | «Actualizar biblioteca» |
+| Error | Reintentar | Detalle técnico plegable |
+| Sesión activa | Deshabilitada | «Sesión activa» en **Sesión** |
 
-Estados del donante/sesión: Steam cerrado, SpaceWar ausente, listo, preparando, sesión activa, terminada, error, restaurando, estado obsoleto.
+Estados del setup: `missing`, `guide`, `installed`, `restored`, `conflict`.
+Estados de situación: `idle`, `prepared`, `active`, `finished`,
+`restore_pending`, `restored`, `orphan`, `conflict`.
 
-## Acción principal
+Una configuración huérfana o un conflicto se muestran como un aviso separado.
+No se presentan como «última sesión» ni seleccionan automáticamente un juego.
 
-El panel lateral tiene dos pestañas: **Sesión** y **Detalles**. La pestaña Sesión muestra arriba la portada ancha del juego obtenida de Steam y, debajo, el nombre del juego como título, sin la etiqueta «Objetivo». Su información va en dos columnas —**Proton**, **Estado** y **App ID**—; después aparece la acción principal. La nota de compatibilidad no confirmada se muestra arriba, al final de la fila de pestañas, después de Detalles. **Proton** indica Sí/No; la versión concreta aparece en Detalles. La pestaña Detalles queda junto a Sesión y contiene App ID, biblioteca, tipo, ruta y Proton resuelto.
+## Última sesión
 
-Un único botón contextual en la pestaña Sesión, después de la información del juego:
+Cuando existe `last-launch.json`, la pestaña **Sesión** muestra:
 
-- **Preparar y jugar**: prepara SpaceWar y lanza el donante. El helper inicia el target automáticamente; no hay un segundo botón «Jugar».
-- Durante la preparación: botón «Cancelar» antes de escribir; después, «Cancelar y restaurar».
-- Durante la sesión: deshabilitado con el texto «Sesión activa».
-- Al terminar: **Restaurar SpaceWar**.
-- Sin selección: deshabilitado con «Selecciona un juego».
-- Juego no compatible: deshabilitado con «No compatible».
+- portada, nombre y App ID del último juego;
+- origen (Better RPT o Steam);
+- estado: pendiente, correcto, error, timeout, cancelado o desconocido;
+- fecha de inicio y duración;
+- acciones:
+  - **Jugar de nuevo**: repite el mismo target y los mismos parámetros con un
+    token nuevo.
+  - **Restaurar**: deshace el setup o la transacción legacy. Si no hay nada que
+    restaurar, está deshabilitado y muestra el motivo.
+  - **Ver guía**: abre la guía sin cambiar la selección.
 
-## Preparación
+Si el último juego ya no está instalado o cambió su lanzamiento, **Jugar de
+nuevo** se deshabilita con el motivo visible. La biblioteca sigue navegable.
 
-El panel lateral muestra una lista de pasos con estado pendiente/activo/hecho/error:
+## Acción principal al seleccionar un juego
 
-1. Verificar Steam y SpaceWar.
-2. Instalar o actualizar el helper estable.
-3. Cerrar Steam si está abierto.
-4. Guardar backup de la configuración.
-5. Instalar la opción de lanzamiento.
-6. Iniciar Steam y SpaceWar.
-7. Esperar al helper e iniciar el juego.
+- **Jugar**: solo si el setup está instalado y el juego es lanzable.
+- **Ver guía**: si falta el setup. La guía explica cómo instalarlo.
+- **No compatible / No instalado / Sesión activa**: deshabilitado con motivo.
+- Si hay una restauración pendiente de otro juego, se muestra un aviso aparte,
+  sin bloquear la selección actual.
 
-Si la app cerró Steam y el usuario cancela antes de escribir, la app vuelve a iniciar Steam. Si cancela después de escribir, ofrece restaurar. No se puede cancelar una vez que el donante está arrancando: se muestra «La sesión está iniciando» y se espera.
+## Guía
+
+La guía es el flujo principal y debe poder consultarse sin Steam cerrado:
+
+- Estado del setup y motivo si hay conflicto.
+- Comando exacto:
+
+  ```text
+  '<helper>' --donor -- %command%
+  ```
+
+- Botón **Copiar comando**.
+- Pasos:
+  1. Steam → Biblioteca → SpaceWar → Propiedades.
+  2. Opciones de lanzamiento.
+  3. Pegar el comando y guardar.
+  4. Lanzar SpaceWar desde Steam.
+  5. Aceptar el popup de Steam («Allow game launch?» / «¿Permitir iniciar el
+     juego?»).
+  6. Abrir el overlay (Shift+Tab) e invitar a Remote Play Together.
+- Valor original de `LaunchOptions`, para que el usuario sepa qué se
+  restaurará.
+- Imágenes reales del proceso. Si una captura no está disponible, se muestra un
+  ilustración claramente etiquetada y se documenta la tarea de sustitución en
+  sustitución en `docs/guide-images.md`.
+- Instalación automática: solo con Steam cerrado; con Steam abierto el botón
+  está deshabilitado y explica que debe pegarse el comando o cerrar Steam
+  manualmente.
+- **Preparar guía**: registra el backup del valor actual sin escribir Steam, para
+  poder restaurar después de que el usuario pegue el comando.
 
 ## Sesión activa
 
-Panel lateral:
-
-- Estado **Sesión activa**.
-- Nombre del target y tiempo transcurrido.
-- Estado del helper: iniciando, activo, terminando.
+- Estado **Sesión activa**, nombre del target y tiempo transcurrido.
 - Guía:
   1. Abre el overlay de Steam (Shift+Tab por defecto).
   2. Invita a tus amigos a Remote Play Together.
   3. Cuando termines, cierra el juego.
-- Sin botón para «abrir overlay»: no es fiable. Si el usuario cambió el atajo, el texto dice «abre el overlay de Steam».
-
-La biblioteca sigue visible y navegable, pero los botones de lanzamiento están deshabilitados.
+- Sin botón para «abrir overlay»: no es fiable.
+- La biblioteca sigue navegable; los lanzamientos están deshabilitados.
 
 ## Fin de sesión
 
-- Título «Sesión terminada»; target y duración.
-- Botón principal **Restaurar SpaceWar**.
-- Botón secundario **Volver a la biblioteca**.
-- No se cierra Steam automáticamente. Si hace falta para restaurar, se pide confirmación.
-- Si la sesión terminó por error: mostrar el error y la misma acción de restaurar.
-- Si la restauración no puede aplicarse porque el usuario cambió la opción de lanzamiento, no se sobrescribe: se muestra el conflicto y la ruta del backup.
+- Se actualiza **Última sesión** con el resultado y la duración.
+- **Restaurar** queda disponible si hay setup/backup; si no, deshabilitado con
+  motivo.
+- **Jugar de nuevo** y **Ver guía** siguen disponibles.
+- No se cierra Steam automáticamente.
+- Si la sesión terminó por error, se muestra el error y se mantiene la última
+  sesión recuperable.
+- Si la restauración no puede aplicarse porque el usuario cambió la opción, no
+  se sobrescribe: se muestra el conflicto y la ruta del backup.
+
+## Restauración con Steam abierto
+
+- La app **no** cierra Steam.
+- Se abre la guía con las instrucciones para quitar el comando en la UI de
+  Steam.
+- La acción **Restaurar** aparece deshabilitada con el motivo «Steam está
+  abierto…»; si el usuario pega el valor original y cierra Steam, la app
+  verificará y marcará `restored`.
+- Si el usuario prefiere la restauración automática, debe cerrar Steam
+  manualmente.
 
 ## Diálogos
 
-**Cerrar Steam para preparar**
-
-> Better RPT necesita cerrar Steam para configurar SpaceWar. Se cerrará y se volverá a abrir.
->
-> [Cerrar Steam y continuar] [Cancelar]
-
 **Compatibilidad desconocida**
 
-> La compatibilidad de «{juego}» con Remote Play Together no está garantizada. Algunos juegos con anti-cheat, launcher propio o overlay no funcionan.
+> La compatibilidad de «{juego}» con Remote Play Together no está garantizada.
+> Algunos juegos con anti-cheat, launcher propio u overlay no funcionan.
 >
 > [Continuar] [Cancelar]
 
-Se muestra una vez por juego en cada ejecución de la app.
+Se muestra una vez por juego en cada ejecución.
 
-**Estado obsoleto**
+**Restaurar**
 
-> SpaceWar quedó preparado para una sesión anterior. ¿Quieres restaurar su configuración?
->
-> [Restaurar] [Ignorar por ahora]
+> Se restaurará la opción de lanzamiento original de SpaceWar. ¿Continuar?
+
+Solo se muestra si la restauración es posible con Steam cerrado.
+
+**Conflicto**
+
+> La configuración actual no coincide con la copia. No se sobrescribirá.
+
+Con **Ver guía** y **Ver detalles**.
 
 **Error**
 
@@ -118,71 +177,58 @@ Patrón: qué pasó, acción primaria, detalle técnico plegable. Ejemplos:
 
 - «No encontramos Steam» → [Reintentar] [Ver guía]
 - «SpaceWar no está instalado» → [Añadir SpaceWar] [Reintentar]
-- «No se puede escribir la configuración de Steam» → [Reintentar] [Ver detalles]
-- «El juego se cerró al iniciar» → [Ver detalles] [Restaurar SpaceWar]
-
-«Añadir SpaceWar» abre `steam://install/480`; no instala nada por su cuenta.
+- «Falta instalar el comando» → [Ver guía]
+- «El juego se cerró al iniciar» → [Ver detalles] [Jugar de nuevo] [Restaurar]
 
 ## Idioma
 
 - Inicial: `LANGUAGE`, `LC_ALL` o `LANG`; si no hay ninguna, español.
-- Selector en cabecera, cambio instantáneo, persistido en la configuración de la app.
+- Selector en cabecera, cambio instantáneo, persistido en la configuración.
 - Todos los textos viven en `internal/i18n`; no hay cadenas incrustadas en la UI.
+- Las claves ES/EN deben tener el mismo conjunto.
 
 ## Accesibilidad
 
-- Navegación completa por teclado: Tab por cabecera → búsqueda → filtro → biblioteca → panel; Enter selecciona/activa; Ctrl+F enfoca la búsqueda; F5 refresca; Esc cierra diálogos.
-- Nombres accesibles en botones e iconos; los estados incluyen texto, no solo color.
+- Navegación completa por teclado: Tab por cabecera → búsqueda → filtro →
+  biblioteca → pestañas → panel; Enter selecciona/activa; Ctrl+F enfoca la
+  búsqueda; F5 refresca; Esc cierra diálogos.
+- Nombres accesibles en botones e iconos; los estados incluyen texto, no solo
+  color.
 - Contraste y foco visibles.
-- Lector de pantalla: Fyne 2.8 no lo implementa en Linux. El ticket 08 evalúa la compilación de accesibilidad. No bloquea el MVP.
+- Lector de pantalla: Fyne 2.8 no lo implementa en Linux. No bloquea el MVP.
 
-## Textos ES/EN
+## Textos ES/EN (extracto)
 
 | Clave | ES | EN |
 |---|---|---|
-| app.title | Better RPT | Better RPT |
-| search.placeholder | Buscar juego o App ID | Search game or App ID |
-| filter.all | Todos | All |
-| filter.ready | Listos | Ready |
-| filter.unknown | Desconocidos | Unknown |
-| filter.incompatible | No compatibles | Incompatible |
-| action.refresh | Actualizar | Refresh |
-| action.prepare | Preparar y jugar | Prepare and play |
-| action.cancel | Cancelar | Cancel |
-| action.cancelRestore | Cancelar y restaurar | Cancel and restore |
-| action.restore | Restaurar SpaceWar | Restore SpaceWar |
-| action.back | Volver a la biblioteca | Back to library |
-| action.retry | Reintentar | Retry |
-| action.details | Ver detalles | View details |
-| action.addSpacewar | Añadir SpaceWar | Add SpaceWar |
-| action.openSteam | Abrir Steam | Open Steam |
-| status.ready | Listo | Ready |
-| status.unknown | Desconocido | Unknown |
-| status.incompatible | No compatible | Incompatible |
-| status.missing | No instalado | Not installed |
-| status.error | Error | Error |
-| status.active | Sesión activa | Session active |
-| donor.steamClosed | Steam está cerrado | Steam is closed |
-| donor.spacewarMissing | SpaceWar no está instalado | SpaceWar is not installed |
-| donor.ready | Listo para preparar | Ready to prepare |
-| prep.title | Preparando la sesión | Preparing session |
-| prep.closeSteam | Cerrar Steam | Close Steam |
-| prep.backup | Guardar backup | Save backup |
-| prep.launchOption | Configurar SpaceWar | Configure SpaceWar |
-| prep.startDonor | Iniciar Steam y SpaceWar | Start Steam and SpaceWar |
-| prep.waitHelper | Iniciar el juego | Start the game |
-| session.title | Sesión activa | Session active |
-| session.elapsed | Tiempo | Elapsed |
-| session.guide1 | Abre el overlay de Steam (Shift+Tab por defecto). | Open the Steam overlay (Shift+Tab by default). |
-| session.guide2 | Invita a tus amigos a Remote Play Together. | Invite your friends to Remote Play Together. |
-| session.guide3 | Cuando termines, cierra el juego. | When you are done, close the game. |
-| ended.title | Sesión terminada | Session ended |
-| ended.duration | Duración | Duration |
-| stale.title | Configuración pendiente | Pending configuration |
-| stale.body | SpaceWar quedó preparado para una sesión anterior. | SpaceWar was left prepared for a previous session. |
-| common.continue | Continuar | Continue |
-| common.cancel | Cancelar | Cancel |
-| common.close | Cerrar | Close |
-| common.ignore | Ignorar por ahora | Ignore for now |
-| language.es | Español | Spanish |
-| language.en | English | English |
+| action.play | Jugar | Play |
+| action.playAgain | Jugar de nuevo | Play again |
+| action.viewGuide | Ver guía | View guide |
+| action.copyCommand | Copiar comando | Copy command |
+| action.installAuto | Instalar automáticamente | Install automatically |
+| action.prepareGuide | Preparar guía | Prepare guide |
+| action.restore | Restaurar | Restore |
+| last.title | Última sesión | Last session |
+| last.started | Inicio | Started |
+| last.duration | Duración | Duration |
+| last.hint | La biblioteca sigue disponible. | The library remains available. |
+| guide.title | Guía de lanzamiento | Launch guide |
+| guide.command | Comando para SpaceWar | SpaceWar command |
+| guide.step1 | Abre Steam → Biblioteca → SpaceWar → Propiedades. | Open Steam → Library → SpaceWar → Properties. |
+| guide.step2 | Entra en Opciones de lanzamiento. | Open Launch Options. |
+| guide.step3 | Pega el comando y guarda. | Paste the command and save. |
+| guide.step4 | Lanza SpaceWar desde Steam. | Launch SpaceWar from Steam. |
+| guide.step5 | Acepta el popup de confirmación de Steam. | Accept Steam's confirmation popup. |
+| guide.step6 | Abre el overlay con Shift+Tab e invita a tus amigos. | Open the overlay with Shift+Tab and invite your friends. |
+| situation.active | Sesión activa | Session active |
+| situation.finished | Sesión terminada | Session finished |
+| situation.restorePending | Restauración pendiente | Restore pending |
+| situation.orphan | Configuración huérfana | Orphaned configuration |
+| situation.conflict | Conflicto de configuración | Configuration conflict |
+| restore.reason.steamRunning | Steam está abierto. Ciérralo manualmente o restaura desde la guía; Better RPT no lo cerrará. | Steam is open. Close it manually or restore from the guide; Better RPT will not close it. |
+| restore.reason.notNeeded | No hay nada que restaurar. | There is nothing to restore. |
+| pending.title | Configuración anterior | Previous configuration |
+| pending.orphanTitle | Configuración huérfana | Orphaned configuration |
+
+La lista completa está en `internal/i18n/i18n.go`; este extracto no sustituye la
+fuente.

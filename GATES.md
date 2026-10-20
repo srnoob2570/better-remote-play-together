@@ -9,7 +9,7 @@ Scope: make the helper launch the target with the donor's Steam identity so Stea
   EXPECT: LINT OK
   EVIDENCE: automatic-evidence=v1; definition-sha256=7ac42e5bc687311a4301536eea2e5c645e79aaf039958f397bc5e5b76984d29a; exit=0; EXPECT=matched; output-sha256=1166862ed4bd530892551c8fb62b876dd866137927e0d25bb987cc29dd89acf4; output-bytes=268; shell=/bin/sh; cwd=/home/srnoob/Documentos/srnoob2570/better-remote-play-together; path=c2a2a5586ce5/20 entries
 
-- [x] G2: BuildCommand preserves SteamAppId/SteamGameId from the donor environment for native and Proton targets and never writes the target AppID into Steam identity variables
+- [x] G2: BuildCommand sets the target's SteamAppId for SteamAPI/DRM while preserving the donor's SteamGameId and SteamOverlayGameId for native and Proton targets
   CHECK: GOTOOLCHAIN=go1.27.2 go test ./internal/launch -count=1 && printf 'LAUNCH_ENV_TESTS_OK\n'
   EXPECT: LAUNCH_ENV_TESTS_OK
   EVIDENCE: automatic-evidence=v1; definition-sha256=ce1ed7a6cdebbd5619d654d8fccbaeb91c6e18016555c6ae0085deffd19f9c5a; exit=0; EXPECT=matched; output-sha256=f4d519dbc0ea8a63c031a2ae1024c603380f6c15cf64a81facac7269b7094053; output-bytes=81; shell=/bin/sh; cwd=/home/srnoob/Documentos/srnoob2570/better-remote-play-together; path=c2a2a5586ce5/20 entries
@@ -29,8 +29,26 @@ Scope: make the helper launch the target with the donor's Steam identity so Stea
   EXPECT: GO_BUILD_OK
   EVIDENCE: automatic-evidence=v1; definition-sha256=66c4c627af021d834abb0ece32bbffeb1f29689e84104d35872e229ae4c4b5de; exit=0; EXPECT=matched; output-sha256=250b9b2b0f161708a5cce8d225769628bbf63e1165683eaf77779d85c78eaea5; output-bytes=12; shell=/bin/sh; cwd=/home/srnoob/Documentos/srnoob2570/better-remote-play-together; path=c2a2a5586ce5/20 entries
 
-- [x] G6: tracked documentation states that the target inherits the donor Steam identity and uses its AppID only for launch paths, not for Steam presence
-  EVIDENCE: reviewed docs/architecture.md, GLOSSARY.md and docs/compatibility.md on 2026-10-19; all three state that the target inherits SteamAppId/SteamGameId from the donor and that its AppID is used only for executable/prefix paths, never for Steam presence.
+- [x] G6: tracked documentation states that the target uses its own SteamAppId for SteamAPI/DRM paths and inherits the donor SteamGameId/overlay identity
+  EVIDENCE: reviewed docs/architecture.md, GLOSSARY.md and docs/compatibility.md on 2026-10-19; all three state that the target uses its own SteamAppId and preserves the donor SteamGameId/SteamOverlayGameId for the RPT session and overlay.
 
 - [ ] G7: a real Steam session tracks the donor as the only running game and a Remote Play Together guest connects without the host-busy message
   EVIDENCE: pending
+
+- [x] G8: launch, cancel, setup and restore paths never invoke Steam shutdown or relaunch
+  CHECK: GOTOOLCHAIN=go1.27.2 go test ./internal/session -run 'TestManagerStartNeverShutsDownSteam|TestManagerRestore.*Shutdown|TestManagerSetupHelpersDoNotShutdownSteam' -count=1 && printf 'NO_SHUTDOWN_OK\n'
+  EXPECT: NO_SHUTDOWN_OK
+
+- [x] G9: session classification distinguishes idle, prepared, active, finished, restore pending, restored, orphan and conflict without inferring pending from LaunchOptions alone
+  CHECK: GOTOOLCHAIN=go1.27.2 go test ./internal/session -run 'TestClassify|TestManagerSituation' -count=1 && printf 'SITUATION_OK\n'
+  EXPECT: SITUATION_OK
+
+- [x] G10: the last launched app survives restart and replay keeps the same parameters with a new token
+  CHECK: GOTOOLCHAIN=go1.27.2 go test ./internal/session -run 'TestStoreLast|TestManager.*Last|TestManagerReplay' -count=1 && printf 'LAST_LAUNCH_OK\n'
+  EXPECT: LAST_LAUNCH_OK
+
+- [x] G11: tracked documentation no longer presents closing Steam as the default flow and describes guide-first, optional direct launch and durable pending evidence
+  EVIDENCE: reviewed README.md, docs/architecture.md, docs/ux.md, docs/compatibility.md, docs/distribution.md, GLOSSARY.md and docs/adr/0001-guide-first-launch.md on 2026-10-19; no default close/relaunch flow is described.
+
+- [x] G12: the real Steam URL launch shows the confirmation popup and delivers the session argument to the dispatcher, or the automatic option is disabled with a visible reason
+  EVIDENCE: verified on 2026-10-19 with real Steam build 1791918634; console_log.txt recorded `LaunchApp waiting for user response to ShowGameArgs "--better-rpt-session=0123..."`; after accepting, the probe wrapper received `--donor -- <game command> --better-rpt-session=...`. The temporary LaunchOptions and backup were restored to the original RPD command.

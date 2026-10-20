@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/srnoob2570/better-rpt/internal/domain"
+	"github.com/srnoob2570/better-rpt/internal/session"
 )
 
 func sampleGames() []domain.Game {
@@ -132,11 +133,11 @@ func TestFormatDuration(t *testing.T) {
 func TestPrepStepForPhase(t *testing.T) {
 	cases := map[domain.Phase]int{
 		domain.PhasePreparing:      0,
-		domain.PhaseDonorStarting:  5,
-		domain.PhaseTargetStarting: 6,
-		domain.PhaseActive:         7,
-		domain.PhaseEnded:          7,
-		domain.PhaseError:          7,
+		domain.PhaseDonorStarting:  3,
+		domain.PhaseTargetStarting: 4,
+		domain.PhaseActive:         5,
+		domain.PhaseEnded:          5,
+		domain.PhaseError:          5,
 	}
 	for phase, want := range cases {
 		if got := prepStepForPhase(phase); got != want {
@@ -146,10 +147,81 @@ func TestPrepStepForPhase(t *testing.T) {
 }
 
 func TestPrepSteps(t *testing.T) {
-	if len(prepSteps) != 7 {
-		t.Fatalf("prep steps = %d, want 7", len(prepSteps))
+	if len(prepSteps) != 5 {
+		t.Fatalf("prep steps = %d, want 5", len(prepSteps))
 	}
 	if !reflect.DeepEqual(filterKeys, []filterKey{filterAll, filterReady, filterUnknown, filterIncompatible}) {
 		t.Fatalf("filter keys = %v", filterKeys)
+	}
+}
+
+func TestRestoreReasonKey(t *testing.T) {
+	cases := map[session.RestoreState]string{
+		session.RestoreAvailable:     "",
+		session.RestoreSteamRunning:  "restore.reason.steamRunning",
+		session.RestoreSessionActive: "restore.reason.sessionActive",
+		session.RestoreConflict:      "restore.reason.conflict",
+		session.RestoreNoBackup:      "restore.reason.noBackup",
+		session.RestoreNotNeeded:     "restore.reason.notNeeded",
+	}
+	for state, want := range cases {
+		if got := restoreReasonKey(state); got != want {
+			t.Fatalf("restoreReasonKey(%q) = %q, want %q", state, got, want)
+		}
+	}
+}
+
+func TestSituationAndSetupLabels(t *testing.T) {
+	situations := map[session.SituationKind]string{
+		session.SituationIdle:           "situation.idle",
+		session.SituationPrepared:       "situation.prepared",
+		session.SituationActive:         "situation.active",
+		session.SituationFinished:       "situation.finished",
+		session.SituationRestorePending: "situation.restorePending",
+		session.SituationRestored:       "situation.restored",
+		session.SituationOrphan:         "situation.orphan",
+		session.SituationConflict:       "situation.conflict",
+	}
+	for kind, want := range situations {
+		if got := situationLabelKey(kind); got != want {
+			t.Fatalf("situationLabelKey(%q) = %q, want %q", kind, got, want)
+		}
+	}
+	setups := map[session.SetupState]string{
+		session.SetupMissing:   "setup.missing",
+		session.SetupGuide:     "setup.guide",
+		session.SetupInstalled: "setup.installed",
+		session.SetupRestored:  "setup.restored",
+		session.SetupConflict:  "setup.conflict",
+	}
+	for state, want := range setups {
+		if got := setupLabelKey(state); got != want {
+			t.Fatalf("setupLabelKey(%q) = %q, want %q", state, got, want)
+		}
+	}
+}
+
+func TestLastOutcomeKey(t *testing.T) {
+	cases := map[session.LaunchOutcome]string{
+		session.LaunchPending:  "last.outcome.pending",
+		session.LaunchOK:       "last.outcome.ok",
+		session.LaunchError:    "last.outcome.error",
+		session.LaunchTimeout:  "last.outcome.timeout",
+		session.LaunchCanceled: "last.outcome.canceled",
+		session.LaunchUnknown:  "last.outcome.unknown",
+	}
+	for outcome, want := range cases {
+		if got := lastOutcomeKey(outcome); got != want {
+			t.Fatalf("lastOutcomeKey(%q) = %q, want %q", outcome, got, want)
+		}
+	}
+}
+
+func TestLastSourceKey(t *testing.T) {
+	if got := lastSourceKey(session.SourceSteam); got != "last.source.steam" {
+		t.Fatalf("steam source key = %q", got)
+	}
+	if got := lastSourceKey(session.SourceBetterRPT); got != "last.source.betterRpt" {
+		t.Fatalf("better-rpt source key = %q", got)
 	}
 }

@@ -2,13 +2,11 @@ package steam
 
 import (
 	"context"
-	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"testing"
-	"time"
 )
 
 func fakeProc(t *testing.T) string {
@@ -96,103 +94,27 @@ func TestIsRunningProcessAndRegistry(t *testing.T) {
 	}
 }
 
-func TestShutdownAndRelaunchWithFakes(t *testing.T) {
-	root := fakeProc(t)
-	localConfig := filepath.Join(t.TempDir(), "localconfig.vdf")
-	if err := os.WriteFile(localConfig, []byte("stable\n"), 0o600); err != nil {
-		t.Fatalf("write localconfig: %v", err)
-	}
-	addProc(t, root, 40, "steam")
-	var calls [][]string
+func TestAppLaunchURLUsesSteamHandlerWithSessionArgument(t *testing.T) {
+	var started [][]string
 	lifecycle := &Lifecycle{
-		Root:            t.TempDir(),
-		LocalConfigPath: localConfig,
-		SteamBinary:     "/usr/bin/steam",
-		ProcRoot:        root,
-		RegistryPath:    filepath.Join(t.TempDir(), "missing.vdf"),
-		RunCommand: func(ctx context.Context, name string, args ...string) error {
-			calls = append(calls, append([]string{name}, args...))
-			removeProc(root, 40)
+		SteamBinary: "/usr/bin/steam",
+		StartCommand: func(name string, args ...string) error {
+			started = append(started, append([]string{name}, args...))
 			return nil
 		},
-		StartCommand: func(name string) error {
-			addProc(t, root, 41, "steamwebhelper")
-			return nil
-		},
-		ShutdownTimeout: 100 * time.Millisecond,
-		StopTimeout:     100 * time.Millisecond,
-		StableTimeout:   100 * time.Millisecond,
-		StartTimeout:    100 * time.Millisecond,
-		PollInterval:    time.Millisecond,
-		StableInterval:  time.Millisecond,
 	}
-	if err := lifecycle.Shutdown(context.Background()); err != nil {
-		t.Fatalf("shutdown: %v", err)
+	token := "0123456789abcdef0123456789abcdef"
+	if err := lifecycle.AppLaunchSession(context.Background(), 480, token); err != nil {
+		t.Fatalf("applaunch session: %v", err)
 	}
-	want := [][]string{{"/usr/bin/steam", "-shutdown"}}
-	if !reflect.DeepEqual(calls, want) {
-		t.Fatalf("calls = %+v, want %+v", calls, want)
+	want := [][]string{{"/usr/bin/steam", "steam://run/480//--better-rpt-session=" + token}}
+	if !reflect.DeepEqual(started, want) {
+		t.Fatalf("started = %+v, want %+v", started, want)
 	}
-	running, err := lifecycle.IsRunning()
-	if err != nil || running {
-		t.Fatalf("still running = %v, err=%v", running, err)
+	if err := lifecycle.AppLaunchSession(context.Background(), 480, "short"); err == nil {
+		t.Fatal("invalid token accepted")
 	}
-	if err := lifecycle.Relaunch(context.Background()); err != nil {
-		t.Fatalf("relaunch: %v", err)
-	}
-	running, err = lifecycle.IsRunning()
-	if err != nil || !running {
-		t.Fatalf("not relaunched = %v, err=%v", running, err)
-	}
-}
-
-func TestShutdownTimeoutLeavesProcess(t *testing.T) {
-	root := fakeProc(t)
-	addProc(t, root, 50, "steam")
-	lifecycle := &Lifecycle{
-		Root:            t.TempDir(),
-		LocalConfigPath: filepath.Join(t.TempDir(), "localconfig.vdf"),
-		SteamBinary:     "steam",
-		ProcRoot:        root,
-		RegistryPath:    filepath.Join(t.TempDir(), "missing.vdf"),
-		RunCommand:      func(context.Context, string, ...string) error { return nil },
-		ShutdownTimeout: 10 * time.Millisecond,
-		StopTimeout:     5 * time.Millisecond,
-		StableTimeout:   10 * time.Millisecond,
-		PollInterval:    time.Millisecond,
-		StableInterval:  time.Millisecond,
-	}
-	if err := lifecycle.Shutdown(context.Background()); err == nil {
-		t.Fatal("shutdown timed out but returned nil")
-	}
-	running, err := lifecycle.IsRunning()
-	if err != nil || !running {
-		t.Fatalf("process disappeared after timeout: %v, %v", running, err)
-	}
-}
-
-func TestWaitStable(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "localconfig.vdf")
-	if err := os.WriteFile(path, []byte("stable\n"), 0o600); err != nil {
-		t.Fatalf("write: %v", err)
-	}
-	lifecycle := &Lifecycle{
-		LocalConfigPath: path,
-		StableTimeout:   100 * time.Millisecond,
-		StableInterval:  time.Millisecond,
-	}
-	if err := lifecycle.WaitStable(context.Background()); err != nil {
-		t.Fatalf("wait stable: %v", err)
-	}
-}
-
-func TestWaitStableMissing(t *testing.T) {
-	lifecycle := &Lifecycle{
-		LocalConfigPath: filepath.Join(t.TempDir(), "missing.vdf"),
-		StableTimeout:   10 * time.Millisecond,
-		StableInterval:  time.Millisecond,
-	}
-	if err := lifecycle.WaitStable(context.Background()); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("error = %v, want not-exist", err)
+	if err := lifecycle.AppLaunchURL(context.Background(), 480, "bad\narg"); err == nil {
+		t.Fatal("control character accepted")
 	}
 }

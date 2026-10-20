@@ -14,8 +14,8 @@ Documento de apoyo del ticket 07. Define la política de estados, bloqueos, adve
 
 | Estado | Condición exacta | Acción | UI |
 |---|---|---|---|
-| **Listo** | Instalado, appinfo `InfoState=2`, `common.type=Game`, launch para Linux, ejecutable presente y ruta segura; sin Proton forzado. | Preparar y jugar | Chip verde |
-| **Desconocido** | Target Windows/Proton con launch resuelto, ejecutable presente y Proton resuelto. La compatibilidad RPT no se puede verificar. | Preparar y jugar + aviso una vez por juego/ejecución | Chip ámbar |
+| **Listo** | Instalado, appinfo `InfoState=2`, `common.type=Game`, launch para Linux, ejecutable presente y ruta segura; sin Proton forzado. | Jugar o Ver guía | Chip verde |
+| **Desconocido** | Target Windows/Proton con launch resuelto, ejecutable presente y Proton resuelto. La compatibilidad RPT no se puede verificar. | Jugar o Ver guía + aviso una vez por juego/ejecución | Chip ámbar |
 | **No compatible** | Herramienta/runtime, app sin appinfo, `InfoState≠2`, sin configuración de lanzamiento, sin lanzamiento para el SO, plantilla `%command%`, ruta no segura, ejecutable ausente/ambiguo o Proton no resuelto. | Deshabilitada; Ver detalles | Chip gris/rojo |
 | **No instalado** | El juego estaba en el catálogo y su manifiesto/directorio desapareció tras refrescar. | Actualizar biblioteca | Chip gris |
 | **Error** | Fallo de lectura/detección específico de esa app (appinfo corrupta, permisos, error inesperado). | Reintentar; Ver detalles | Chip rojo |
@@ -30,14 +30,17 @@ Documento de apoyo del ticket 07. Define la política de estados, bloqueos, adve
 | Steam no detectado | Error global | Reintentar; Ver guía |
 | Steam Flatpak/Snap | Variante no soportada | Ver guía; no se intenta lanzar |
 | SpaceWar ausente | Donante no disponible | Añadir SpaceWar; Reintentar |
-| Steam cerrado | Donante cerrado | Preparar y jugar inicia Steam; no es error |
-| Steam abierto | Requiere confirmación | Cerrar Steam y continuar; Cancelar |
+| Steam cerrado | Instalación automática disponible | Instalar el dispatcher o pegar el comando; no es error |
+| Steam abierto | No se escribe `localconfig.vdf` | Guía para pegar el comando, o lanzar si el dispatcher ya está instalado; Better RPT no cierra Steam |
+| Setup del dispatcher ausente | Guía como flujo principal | Ver guía; el botón Jugar abre la guía |
+| Setup instalado | Lanzamiento disponible | Jugar, Jugar de nuevo o Restaurar |
+| Popup de Steam rechazado o no aceptado | El helper no arranca; timeout de inicio | Reintentar o Ver guía |
 | `appinfo.vdf` desconocido/corrupto | Error global de catálogo | Actualizar Better RPT / Reintentar; no se lanza |
 | Permisos de lectura/escritura | Error de entorno | Reintentar; Ver detalles |
 | Overlay explícitamente desactivado | Advertencia | Ver guía; no bloquea |
 | Helper no arranca | Error de sesión | Reintentar; Restaurar |
-| Target sale en <2 s | Error de lanzamiento | Ver detalles; Restaurar |
-| Target sale en ≥2 s | Fin normal | Restaurar SpaceWar |
+| Target sale en <2 s | Error de lanzamiento | Ver detalles; Jugar de nuevo; Restaurar |
+| Target sale en ≥2 s | Fin normal | Restaurar si hay algo que deshacer |
 
 ## Bloquear vs intentar
 
@@ -86,7 +89,10 @@ Política:
 | steam_not_found | No encontramos Steam. | Steam was not found. | Reintentar / Ver guía |
 | steam_unsupported | Esta instalación de Steam no es compatible. | This Steam installation is not supported. | Ver guía |
 | spacewar_missing | SpaceWar no está instalado. | SpaceWar is not installed. | Añadir SpaceWar / Reintentar |
-| steam_close_failed | No se pudo cerrar Steam. | Steam could not be closed. | Reintentar / Ver detalles |
+| setup_missing | Falta instalar el comando del dispatcher. | The dispatcher command is not installed. | Ver guía |
+| setup_conflict | La configuración de SpaceWar cambió fuera de Better RPT. | SpaceWar's configuration changed outside Better RPT. | Ver guía / Ver detalles |
+| dispatcher_launch_failed | Steam no inició el contexto donante. | Steam did not start the donor context. | Reintentar / Ver guía |
+| restore_steam_running | Steam está abierto; la restauración automática no está disponible. | Steam is open; automatic restore is unavailable. | Cerrar Steam manualmente / Ver guía |
 | config_read | No se pudo leer la configuración de Steam. | Steam configuration could not be read. | Reintentar |
 | config_write | No se pudo escribir la configuración de Steam. | Steam configuration could not be written. | Reintentar / Ver detalles |
 | backup_failed | No se pudo guardar el backup. | The backup could not be saved. | Reintentar |
@@ -117,7 +123,19 @@ Política:
 ## Limitaciones documentadas
 
 - Mecanismo no oficial; una actualización de Steam puede romperlo.
-- Juegos con anti-cheat de kernel, launchers que se separan del proceso o protección que bloquea el overlay pueden fallar. Ejemplos de categoría: shooters competitivos con anti-cheat, juegos con launcher propio de otra tienda y títulos que desactivan el overlay; no se afirma que un título concreto falle.
+- El popup de confirmación de Steam depende de la versión y de la configuración
+  del cliente. Si `steam://run/480//...` no lo muestra o no propaga los
+  argumentos, Better RPT no simula el lanzamiento: deja la opción automática
+  deshabilitada con motivo y mantiene la guía como flujo principal.
+- Editar `localconfig.vdf` con Steam abierto no es fiable. Better RPT no lo hace:
+  la vía con Steam abierto es la UI de Steam o un dispatcher ya instalado.
+- La restauración automática requiere Steam cerrado. Con Steam abierto se ofrece
+  la guía; Better RPT nunca lo cierra.
+- Juegos con anti-cheat de kernel, launchers que se separan del proceso o
+  protección que bloquea el overlay pueden fallar. Ejemplos de categoría:
+  shooters competitivos con anti-cheat, juegos con launcher propio de otra
+  tienda y títulos que desactivan el overlay; no se afirma que un título
+  concreto falle.
 - Proton no garantiza RPT aunque el prefijo se cree correctamente.
 - El target usa su propio `SteamAppId` para SteamAPI/DRM, pero conserva `SteamGameId`/`SteamOverlayGameId` del donante para que Steam lo asocie a SpaceWar; la presencia y los logros del target no están garantizados.
 - Juegos nativos fuera de Steam o con lanzadores propios pueden no registrarse igual.

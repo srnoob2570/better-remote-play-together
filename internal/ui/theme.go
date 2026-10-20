@@ -47,14 +47,30 @@ var appIconData []byte
 //go:embed assets/better-rpt-small.png
 var appIconSmallData []byte
 
+//go:embed assets/guide/launch-options.png
+var guideLaunchOptionsData []byte
+
+//go:embed assets/guide/command.png
+var guideCommandData []byte
+
+//go:embed assets/guide/popup.png
+var guidePopupData []byte
+
+//go:embed assets/guide/invite.png
+var guideInviteData []byte
+
 var (
-	fontSans           = loadFont("assets/fonts/IBMPlexSans-Regular.ttf")
-	fontSansBold       = loadFont("assets/fonts/IBMPlexSans-SemiBold.ttf")
-	fontSansItalic     = loadFont("assets/fonts/IBMPlexSans-Italic.ttf")
-	fontSansBoldItalic = loadFont("assets/fonts/IBMPlexSans-SemiBoldItalic.ttf")
-	fontMono           = loadFont("assets/fonts/IBMPlexMono-Regular.ttf")
-	appIcon            = fyne.NewStaticResource("better-rpt.png", appIconData)
-	appIconSmall       = fyne.NewStaticResource("better-rpt-small.png", appIconSmallData)
+	fontSans                = loadFont("assets/fonts/IBMPlexSans-Regular.ttf")
+	fontSansBold            = loadFont("assets/fonts/IBMPlexSans-SemiBold.ttf")
+	fontSansItalic          = loadFont("assets/fonts/IBMPlexSans-Italic.ttf")
+	fontSansBoldItalic      = loadFont("assets/fonts/IBMPlexSans-SemiBoldItalic.ttf")
+	fontMono                = loadFont("assets/fonts/IBMPlexMono-Regular.ttf")
+	appIcon                 = fyne.NewStaticResource("better-rpt.png", appIconData)
+	appIconSmall            = fyne.NewStaticResource("better-rpt-small.png", appIconSmallData)
+	guideImageLaunchOptions = fyne.NewStaticResource("guide-launch-options.png", guideLaunchOptionsData)
+	guideImageCommand       = fyne.NewStaticResource("guide-command.png", guideCommandData)
+	guideImagePopup         = fyne.NewStaticResource("guide-popup.png", guidePopupData)
+	guideImageInvite        = fyne.NewStaticResource("guide-invite.png", guideInviteData)
 )
 
 func loadFont(path string) fyne.Resource {

@@ -15,6 +15,16 @@ var (
 	ErrStateMissing = errors.New("session state is missing")
 	// ErrStateInvalid means the state file is malformed or inconsistent.
 	ErrStateInvalid = errors.New("session state is invalid")
+	// ErrIntentMissing means no launch intent has been armed.
+	ErrIntentMissing = errors.New("launch intent is missing")
+	// ErrIntentExpired means the launch intent is older than its startup window.
+	ErrIntentExpired = errors.New("launch intent expired")
+	// ErrIntentInvalid means the launch intent is malformed or inconsistent.
+	ErrIntentInvalid = errors.New("launch intent is invalid")
+	// ErrLastLaunchMissing means no last-launch record exists yet.
+	ErrLastLaunchMissing = errors.New("last launch is missing")
+	// ErrLastLaunchInvalid means the last-launch record is malformed.
+	ErrLastLaunchInvalid = errors.New("last launch is invalid")
 	// ErrSessionBusy means another helper holds the session lock.
 	ErrSessionBusy = errors.New("another session is active")
 	// ErrEnvironment means the helper was not started in the SpaceWar donor context.

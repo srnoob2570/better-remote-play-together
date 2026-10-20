@@ -1,15 +1,31 @@
-# Arquitectura propuesta
+# Arquitectura
 
-Estado: propuesta inicial. Los tickets 01 a 03 y 08 cierran los detalles pendientes.
+Estado: implementación del rediseño «guía primero». El flujo anterior, que
+cerraba y relanzaba Steam para cada sesión, ya no es el comportamiento por
+defecto.
 
 ## Principios
 
-- El núcleo no depende de Fyne ni de la UI. La UI consume un servicio de aplicación.
-- La lectura de Steam y la escritura de configuración están separadas: solo `internal/config` modifica `localconfig.vdf`.
-- Toda operación externa usa `context.Context`; la UI nunca bloquea el hilo principal.
-- Los errores son valores tipados/sentinelas, se envuelven con `%w` y se traducen a mensajes accionables en la capa UI.
-- Las escrituras de configuración son transaccionales: backup, temporal en el mismo filesystem, `fsync`, `rename` y verificación.
-- El helper se ejecuta dentro del contexto donante y lanza el target como hijo; fija `SteamAppId` al App ID del target para que SteamAPI/DRM lo reconozca, pero conserva `SteamGameId`/`SteamOverlayGameId` del donante para que el overlay y la sesión RPT sigan asociados a SpaceWar. No usa APIs internas de Steam.
+- El núcleo no depende de Fyne ni de la UI. La UI consume un servicio de
+  aplicación.
+- La lectura de Steam y la escritura de configuración están separadas: solo
+  `internal/config` modifica `localconfig.vdf`.
+- Better RPT nunca cierra ni reinicia Steam como efecto de preparar, lanzar,
+  cancelar o restaurar.
+- Con Steam abierto, la app no escribe `localconfig.vdf`: la vía fiable es que
+  el usuario pegue el comando en la UI de Steam. La escritura automática solo se
+  ofrece con Steam cerrado.
+- El lanzamiento automático usa un **dispatcher persistente** instalado una vez
+  en SpaceWar. No se reescribe la opción de lanzamiento en cada sesión.
+- El estado «pendiente» se deriva de evidencia durable (sesión, token y backup
+  coherentes), nunca solo de que `LaunchOptions` no sea el valor de fábrica.
+- Las escrituras de configuración son transaccionales: backup, temporal en el
+  mismo filesystem, `fsync`, `rename` y verificación semántica.
+- El helper se ejecuta dentro del contexto donante y lanza el target como hijo;
+  fija `SteamAppId` al App ID del target para que SteamAPI/DRM lo reconozca, pero
+  conserva `SteamGameId`/`SteamOverlayGameId` del donante para que el overlay y
+  la sesión RPT sigan asociados a SpaceWar.
+- No se usan APIs internas de Steam para lanzar el target ni para invitar.
 
 ## Paquetes
 
@@ -18,52 +34,200 @@ cmd/better-rpt/          # entrada GUI; --version, sin --donor en producción
 cmd/better-rpt-helper/   # helper sin interfaz gráfica, sin CGO, --donor
 internal/domain/         # Game, Status, Session, LaunchSpec, errores centinela
 internal/app/            # servicio de aplicación y orquestación
-internal/steam/          # detección de raíces y bibliotecas
-  ├── library/           # libraryfolders.vdf + appmanifest_*.acf
-  ├── appinfo/           # parser binario v41 (ticket 02)
-  └── compat/            # Proton/runtime, config.vdf (ticket 03)
-internal/config/         # transacción de localconfig.vdf + backups (ticket 01)
+internal/steam/          # detección de raíces, bibliotecas, appinfo y ciclo de vida
+internal/config/         # setup del dispatcher, backups y transacción de localconfig
 internal/launch/         # planificador puro + ejecutor nativo/Proton
-internal/helper/         # instalación estable + modo donante
-internal/session/        # máquina de estados y detección de procesos (ticket 03)
+internal/session/        # máquina de estados, intención, última sesión y helper
 internal/ui/             # interfaz Fyne
 internal/i18n/           # textos ES/EN y locale del sistema
 internal/fsutil/         # escritura atómica y permisos
 packaging/               # nfpm, AppImage, .desktop, icono
 ```
 
-Dependencias permitidas: `ui → app → {steam, config, launch, session}`; `domain` no importa nada del proyecto; `launch` no importa `ui`.
+Dependencias permitidas: `ui → app → {steam, config, launch, session}`;
+`domain` no importa nada del proyecto; `launch` no importa `ui`.
 
 ## Flujo
 
-1. **Detección**: localizar Steam nativo, bibliotecas, manifiestos y cuenta activa.
-2. **Catálogo**: construir `Game` con App ID, nombre, ruta, tipo (nativo/Proton) y estado.
-3. **Preparación**: instalar/actualizar el helper estable, verificar SpaceWar, pedir confirmación si Steam está abierto, cerrar Steam, backup + escribir launch option, verificar, relanzar Steam y lanzar SpaceWar.
-4. **Sesión**: el helper estable recibe target y token, construye el comando, lanza el target como hijo con su propio `SteamAppId` y la sesión/overlay del donante, y espera; la app refleja el estado.
-5. **Cierre**: al terminar el target, la app ofrece restaurar SpaceWar. La restauración vuelve a cerrar Steam si hace falta y deja el valor previo solo si el actual sigue siendo el nuestro.
+### 1. Detección y catálogo
 
-## Fyne
+Se localizan Steam nativo, bibliotecas, manifiestos y cuenta activa. El catálogo
+se construye con App ID, nombre, ruta, tipo (nativo/Proton) y estado. SpaceWar
+(480) no aparece como target.
 
-Fyne v2.8 sigue siendo la opción por defecto: se compila con CGO y sin WebKitGTK, soporta Wayland y X11 y mantiene la interfaz en una sola base de código. La accesibilidad de Fyne en Linux es limitada. Si un requisito bloqueante de accesibilidad o UI no se puede cumplir, se documentará la evidencia y se propondrá Wails v2 con aprobación previa, asumiendo WebKitGTK.
+### 2. Instalación única del dispatcher
+
+La opción de lanzamiento de SpaceWar se sustituye una sola vez por:
+
+```text
+'<helper absoluto>' --donor -- %command%
+```
+
+Steam ejecuta el helper dentro del contexto donante. El helper lee
+`launch-intent.json`; si hay una intención armada y válida, lanza el target. Si
+no la hay, ejecuta `%command%`, de modo que SpaceWar sigue funcionando como
+juego normal.
+
+Hay dos vías:
+
+- **Guía (principal):** el usuario pega el comando en Steam → SpaceWar →
+  Propiedades → Opciones de lanzamiento. Steam lo aplica en memoria y es la vía
+  fiable con Steam abierto. Better RPT no escribe el archivo. Steam puede
+  escribir `localconfig.vdf` al cerrarse; hasta entonces Better RPT no puede
+  verificar el setup. **Verificar de nuevo** vuelve a leerlo y, si sigue en
+  guía, el usuario puede cerrar Steam una vez (la app nunca lo hace).
+- **Instalación automática (opcional):** solo con Steam cerrado. La app crea un
+  backup `dispatcher`, escribe, verifica y registra `setup.json`. Si algo falla,
+  restaura el original.
+
+El setup queda instalado hasta que el usuario pulse **Restaurar**. Es una
+decisión explícita, reversible y visible, no un efecto secundario de cada
+partida.
+
+### 3. Lanzamiento
+
+1. La app valida el juego, el setup instalado y la ausencia de otra sesión.
+2. Escribe plan, estado `preparing`, intención armada y `last-launch.json`
+   (`outcome=pending`).
+3. Pide a Steam que arranque SpaceWar con
+   `steam://run/480//--better-rpt-session=<token>`. Ese URI muestra el popup de
+   confirmación de Steam («Allow game launch?» / «¿Permitir iniciar el juego?»),
+   verificado con Steam nativo en Linux. Si esa forma no estuviera disponible en
+   la versión de Steam del usuario, Better RPT no simula el lanzamiento: muestra
+   la guía y el error, y la opción automática queda deshabilitada.
+4. El dispatcher lee la intención, la marca `consumed` y lanza el target como
+   hijo del contexto donante.
+5. La app sigue el estado por PID + hora de inicio. Al terminar, actualiza
+   `last-launch.json` con `ok`/`error` y la duración.
+
+No se escribe `LaunchOptions` en este paso y no se ejecuta `steam -shutdown` ni
+se reinicia Steam.
+
+### 4. Última sesión
+
+`last-launch.json` guarda App ID, nombre, token, parámetros, tipo, origen
+(`better-rpt`/`steam`), fechas y resultado. Es independiente del estado de
+restauración:
+
+- **Jugar de nuevo** repite el mismo target con los mismos parámetros y un token
+  nuevo.
+- **Restaurar** deshace el setup o la transacción legacy si hay algo que
+  restaurar; si no, aparece deshabilitado con motivo visible.
+- **Ver guía** abre la guía sin perder selección ni filtros.
+
+Para lanzamientos hechos desde Steam, la app reconcilia con `LastPlayed` de
+`localconfig.vdf` e ignora SpaceWar. Si el juego B es más reciente que una
+configuración legacy de A, la UI muestra B como última sesión y A aparte como
+configuración anterior/huérfana.
+
+### 5. Restauración
+
+- **Setup instalado y Steam cerrado:** `RestoreSetup` carga el backup
+  `dispatcher`, comprueba que el valor actual sigue siendo el que escribió
+  Better RPT, restaura el original y verifica el archivo completo.
+- **Steam abierto:** la app abre la guía para que el usuario quite el comando en
+  la UI de Steam. No cierra Steam y no escribe el archivo.
+- **Sesión legacy:** se conserva la restauración por token y backup, con
+  detección de conflictos.
+- Si el valor actual cambió fuera de Better RPT, no se sobrescribe; se muestra
+  el conflicto y la ruta del backup.
+
+## Máquina de estados
+
+`session.Classify(Evidence)` es una función pura y testeable. Recibe evidencia ya
+validada y devuelve un `Situation`:
+
+```text
+idle              sin setup, intención ni marcador
+prepared          intención armada + plan/estado + setup
+active            helper vivo + estado active
+finished          estado terminal
+restore_pending   marcador legacy + backup + estado/token coherentes
+restored          setup restaurado y sin marcador
+orphan            marcador de Better RPT sin sesión/backup coherente
+conflict          setup o backup no coincide con el valor actual
+```
+
+Reglas:
+
+- Un `LaunchOptions` no predeterminado y ajeno a Better RPT es `idle`, no
+  `restore_pending`.
+- Un marcador legacy sin estado es `orphan`; sin backup, además, no es
+  restaurable.
+- Un marcador del dispatcher sin `setup.json` es `orphan`.
+- Un setup instalado con un marcador distinto es `conflict`.
+- `RestoreState` explica por qué está deshabilitada la acción: Steam abierto,
+  sesión activa, conflicto, sin backup o nada que restaurar.
+
+La UI consume `Situation`, no vuelve a inferir el estado a partir de cadenas de
+`localconfig.vdf`.
+
+## Persistencia
+
+```text
+$XDG_DATA_HOME/better-rpt/
+├── bin/better-rpt-helper
+├── backups/localconfig-*.vdf|json      # Kind=session|dispatcher
+├── sessions/
+│   ├── plan-<token>.json
+│   ├── state-<token>.json
+│   ├── launch-intent.json
+│   └── last-launch.json
+└── setup.json
+```
+
+- Todos los archivos son privados (`0600`), las escrituras atómicas y los
+  directorios `0700`.
+- `plan`/`state` conservan la recuperación de sesiones y el bloqueo.
+- `launch-intent.json` es la autorización de un solo uso que consume el
+  dispatcher; caduca con el mismo TTL que el plan.
+- `setup.json` registra el backup y el valor original para restaurar el
+  dispatcher.
+- Los backups legacy no se borran al migrar; se clasifican por `Kind`.
+
+## Migración y recuperación
+
+Al arrancar:
+
+1. Se leen `setup.json`, `last-launch.json`, la intención y los estados.
+2. Se inspecciona el `LaunchOptions` actual y se clasifica el marcador.
+3. Un marcador legacy con backup y estado coherente se ofrece como restauración
+   pendiente; sin estado pasa a huérfano.
+4. Un estado activo con helper muerto se terminaliza (`helper_dead`) y se
+   actualiza la última sesión.
+5. Los planes caducados y las intenciones caducadas se limpian sin tocar la
+   configuración de Steam.
+6. Los estados antiguos no se convierten en «pendientes» solo por tener un
+   `LaunchOptions` no estándar.
 
 ## Concurrencia
 
-- `context.Context` en detección, preparación, lanzamiento y espera.
+- `context.Context` en detección, lanzamiento, espera y restauración.
 - Trabajo de disco/procesos en goroutines; actualizaciones de UI con `fyne.Do`.
-- La sesión tiene una única transición válida a la vez; no se permite un segundo lanzamiento mientras haya una sesión activa.
-- Cancelar una preparación debe dejar el backup y el archivo original intactos.
+- Una sola sesión activa; el helper toma un bloqueo en el store.
+- Cancelar antes de armar la intención no escribe nada; cancelar después limpia
+  la intención y deja el estado/última sesión en un estado recuperable.
 
-## Errores y estados
+## Fyne
 
-Estados de dominio definidos en `docs/compatibility.md`: `ready`, `unknown`, `incompatible`, `missing`, `error`, `active`. Los errores de entorno (Steam cerrado, permisos, SpaceWar ausente, Proton ausente, escritura fallida) se modelan por separado del estado de compatibilidad; los textos ES/EN viven en `docs/ux.md` y `docs/compatibility.md`.
+Fyne v2.8 sigue siendo la opción por defecto: CGO, sin WebKitGTK, Wayland y X11.
+La accesibilidad de Fyne en Linux es limitada. Si un requisito bloqueante no se
+puede cumplir, se documentará y se propondrá Wails v2 con aprobación previa.
 
 ## Pruebas
 
-- Unitarias: VDF de texto, `appinfo.vdf` v41, detección de bibliotecas, construcción de comandos, backup/restore, i18n.
-- Integración: árboles de Steam simulados (ticket 06) con biblioteca principal/secundaria, nativo/Proton, SpaceWar presente/ausente y configuraciones ajenas.
-- Empaquetado: instalador del helper estable, AppImage con runtime fijado y launch option con rutas que contienen espacios.
-- Humo manual: instalar el `.deb`/AppImage, abrir la app, preparar una sesión y verificar el overlay/invitación.
+- Unitarias: VDF, appinfo, bibliotecas, construcción de comandos, setup,
+  backup/restore, máquina de estados, intención, última sesión e i18n.
+- Integración: árboles de Steam simulados, dispatcher con intención/fallback,
+  no-shutdown, conflicto de configuración y regresión A→B.
+- Humo manual: instalar el `.deb`/AppImage, abrir la app, pegar/instalar el
+  dispatcher, verificar el popup, lanzar, invitar y restaurar.
+- La prueba real con Steam y el popup se registra en `GATES.md`; si no se puede
+  verificar, la opción automática queda deshabilitada con motivo y la guía sigue
+  siendo el flujo principal.
 
 ## Fuera de la arquitectura del MVP
 
-Windows/macOS, Steam Deck/Game Mode, Flatpak/Snap, invitaciones propias y selección de otro donante. El mecanismo no es oficial y puede romperse con actualizaciones de Steam.
+Windows/macOS, Steam Deck/Game Mode, Flatpak/Snap, invitaciones propias y
+selección de otro donante. El mecanismo no es oficial y puede romperse con
+actualizaciones de Steam.

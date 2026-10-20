@@ -46,14 +46,6 @@ func run() int {
 		flags.Usage()
 		return 2
 	}
-	if *target == 0 || *target > math.MaxUint32 || uint32(*target) == domain.SpaceWarAppID {
-		fmt.Fprintf(os.Stderr, "better-rpt-helper: invalid target %d\n", *target)
-		return 2
-	}
-	if !domain.ValidSessionToken(*token) {
-		fmt.Fprintln(os.Stderr, "better-rpt-helper: invalid session token")
-		return 2
-	}
 	paths, err := config.ResolvePaths()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "better-rpt-helper: resolve paths:", err)
@@ -64,18 +56,49 @@ func run() int {
 		fmt.Fprintln(os.Stderr, "better-rpt-helper: prepare sessions:", err)
 		return 2
 	}
-	helper, err := session.NewHelper(session.HelperOptions{
-		Store:       &store,
-		Token:       *token,
-		TargetAppID: uint32(*target),
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	fallback := flags.Args()
+	legacy := *target != 0 || *token != ""
+	if legacy {
+		if *target == 0 || *target > math.MaxUint32 || uint32(*target) == domain.SpaceWarAppID {
+			fmt.Fprintf(os.Stderr, "better-rpt-helper: invalid target %d\n", *target)
+			return 2
+		}
+		if !domain.ValidSessionToken(*token) {
+			fmt.Fprintln(os.Stderr, "better-rpt-helper: invalid session token")
+			return 2
+		}
+		helper, err := session.NewHelper(session.HelperOptions{
+			Store:       &store,
+			Token:       *token,
+			TargetAppID: uint32(*target),
+		})
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "better-rpt-helper:", err)
+			return 2
+		}
+		if _, err := helper.Run(ctx); err != nil {
+			fmt.Fprintln(os.Stderr, "better-rpt-helper:", err)
+			return 2
+		}
+		return 0
+	}
+	if len(fallback) == 0 {
+		fmt.Fprintln(os.Stderr, "better-rpt-helper: expected --target/--session or -- <game command>")
+		flags.Usage()
+		return 2
+	}
+	dispatcher, err := session.NewDispatcher(session.DispatcherOptions{
+		HelperOptions: session.HelperOptions{Store: &store},
+		Fallback:      fallback,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "better-rpt-helper:", err)
 		return 2
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-	if _, err := helper.Run(ctx); err != nil {
+	if _, err := dispatcher.Run(ctx); err != nil {
 		fmt.Fprintln(os.Stderr, "better-rpt-helper:", err)
 		return 2
 	}

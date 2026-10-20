@@ -7,12 +7,51 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- Guía paso a paso en español e inglés con el comando exacto, el popup de Steam,
+  imágenes (capturas reales o placeholders documentados) y copia al portapapeles.
+- Dispatcher persistente de SpaceWar (`'<helper>' --donor -- %command%`) que
+  permite el lanzamiento automático sin cerrar ni reiniciar Steam; sin intención
+  ejecuta `%command%` para que SpaceWar siga funcionando.
+- Instalación automática del dispatcher solo con Steam cerrado, con backup,
+  verificación, rollback y restauración.
+- Registro durable de la última app lanzada (`last-launch.json`) con App ID,
+  token, parámetros, fechas y resultado; acciones **Jugar de nuevo**,
+  **Restaurar** y **Ver guía**.
+- Máquina de estados explícita y testeable: inactivo, preparado, activo,
+  terminado, restauración pendiente, restaurado, configuración huérfana y
+  conflicto.
+- Detección separada de configuraciones huérfanas y conflictos, sin presentarlas
+  como la última sesión.
+- Migración/reconciliación de estados legacy sin falsos positivos.
+- ADR `docs/adr/0001-guide-first-launch.md` y `docs/guide-images.md`.
+
+### Changed
+
+- El flujo por defecto ya no cierra Steam: la guía es el camino principal y el
+  lanzamiento directo es opcional.
+- «Pendiente» ya no se infiere de un `LaunchOptions` no predeterminado; exige
+  marcador legacy, backup y estado/token coherentes.
+- La biblioteca permanece visible y navegable; se elimina la acción **Volver a
+  la biblioteca** y el diálogo de cierre de Steam.
+- La restauración con Steam abierto muestra la guía y nunca cierra Steam.
+- README, arquitectura, UX, compatibilidad, distribución, glosario, gates y
+  changelog reconciliados con el flujo nuevo.
+
 ### Fixed
 
 - El juego objetivo usa su propio `SteamAppId` para que SteamAPI/DRM lo
   reconozca, mientras `SteamGameId` y el overlay siguen asociados al donante;
   la sesión de Remote Play Together permanece en SpaceWar y los invitados ya no
   ven al host ocupado.
+- Lanzar el juego A y después el B ya no muestra una restauración pendiente de A
+  como si fuera la última sesión.
+
+### Removed
+
+- Cierre y reapertura automática de Steam durante la preparación.
+- Diálogo «Cerrar Steam para preparar» y textos asociados.
 
 ## [0.1.0] - 2026-10-19
 

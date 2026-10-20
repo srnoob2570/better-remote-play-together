@@ -96,8 +96,10 @@ probaron en Ubuntu 22.04. La app se abre desde el menú de aplicaciones o con
 
 - Configuración: `$XDG_CONFIG_HOME/better-rpt/config.json` o `~/.config/better-rpt/config.json` (idioma, preferencias).
 - Helper estable: `$XDG_DATA_HOME/better-rpt/bin/better-rpt-helper` o `~/.local/share/better-rpt/bin/better-rpt-helper` (dir 0700, archivo 0755).
-- Backups: `$XDG_DATA_HOME/better-rpt/backups/` o `~/.local/share/better-rpt/backups/` (dir 0700, archivos 0600, retención 10).
-- Runtime: `$XDG_RUNTIME_DIR/better-rpt/` para el plan, el estado y el bloqueo de sesión; no es dato persistente.
+- Backups: `$XDG_DATA_HOME/better-rpt/backups/` o `~/.local/share/better-rpt/backups/` (dir 0700, archivos 0600, retención 10; `Kind=session` o `dispatcher`).
+- Setup del dispatcher: `$XDG_DATA_HOME/better-rpt/setup.json` (0600), con el backup y el valor original de SpaceWar.
+- Sesiones: `$XDG_DATA_HOME/better-rpt/sessions/` con plan/estado, `launch-intent.json` y `last-launch.json` (0600).
+- Runtime: `$XDG_RUNTIME_DIR/better-rpt/` para el bloqueo de sesión; no es dato persistente.
 - El paquete no crea ni modifica estos directorios; los crea la app al ejecutarse como usuario.
 
 ## Instalación, upgrade y desinstalación
@@ -106,7 +108,7 @@ probaron en Ubuntu 22.04. La app se abre desde el menú de aplicaciones o con
 - **Desinstalación**: `sudo apt remove better-rpt` elimina solo archivos del sistema. No hay `postrm` que toque archivos del usuario.
 - **Aviso**: un `prerm` no interactivo comprueba si `better-rpt` está en ejecución y escribe un aviso por stderr. No bloquea la desinstalación ni modifica nada.
 - **Datos**: configuración y backups permanecen tras `remove` y `purge`. El README explica el borrado manual.
-- **Sesión activa o backup pendiente**: el usuario debe abrir Better RPT y pulsar **Restaurar SpaceWar** antes de desinstalar. Si ya desinstaló, puede reinstalar la misma versión, restaurar y volver a desinstalar. No se edita `localconfig.vdf` desde el paquete.
+- **Sesión activa, setup instalado o backup pendiente**: el usuario debe abrir Better RPT y pulsar **Restaurar** antes de desinstalar. Con Steam abierto, la app muestra la guía para quitar el comando; no cierra Steam. Si ya desinstaló, puede reinstalar la misma versión, restaurar y volver a desinstalar. No se edita `localconfig.vdf` desde el paquete.
 
 Texto del aviso:
 

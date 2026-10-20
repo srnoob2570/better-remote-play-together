@@ -18,6 +18,8 @@ var (
 	ErrLocalConfigChanged = errors.New("Steam launch option changed outside Better RPT")
 	// ErrLocalConfigVerify means the post-write semantic verification failed.
 	ErrLocalConfigVerify = errors.New("Steam localconfig.vdf verification failed")
+	// ErrLocalConfigInvalid means the localconfig could not be parsed safely.
+	ErrLocalConfigInvalid = errors.New("Steam localconfig.vdf is invalid")
 	// ErrBackup means a backup could not be created or read.
 	ErrBackup = errors.New("Steam localconfig backup failed")
 	// ErrBackupCorrupt means a backup's metadata or content hash is invalid.
@@ -32,4 +34,11 @@ var (
 	ErrAlreadyPrepared = errors.New("Steam launch option is already prepared")
 	// ErrSessionActive means restoration was attempted while a session is live.
 	ErrSessionActive = errors.New("a Better RPT session is active")
+	// ErrSetupMissing means no persistent dispatcher setup is recorded.
+	ErrSetupMissing = errors.New("Better RPT dispatcher setup is missing")
+	// ErrSetupConflict means the current Steam configuration no longer matches
+	// the setup record, so Better RPT must not overwrite it.
+	ErrSetupConflict = errors.New("Better RPT dispatcher setup conflicts with Steam")
+	// ErrSetupInvalid means the setup record is malformed.
+	ErrSetupInvalid = errors.New("Better RPT dispatcher setup is invalid")
 )

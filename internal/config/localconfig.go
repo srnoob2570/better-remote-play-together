@@ -77,21 +77,48 @@ type Stale struct {
 	Active       bool
 }
 
-// Prepare backs up and writes the SpaceWar launch option for one session. It
-// refuses to write unless the caller confirms Steam is closed.
+// Prepare backs up and writes the SpaceWar launch option for one legacy
+// per-session transaction. New installations use InstallSetup instead.
 func Prepare(options PrepareOptions) (Prepared, error) {
-	if options.SteamRunning == nil {
-		return Prepared{}, ErrSteamGuardMissing
-	}
-	if options.SteamRoot == "" {
-		return Prepared{}, fmt.Errorf("%w: empty Steam root", ErrLocalConfigMissing)
-	}
 	if options.HelperPath == "" {
 		options.HelperPath = options.Paths.HelperPath()
 	}
 	newValue, err := BuildLaunchOption(options.HelperPath, options.TargetAppID, options.SessionToken)
 	if err != nil {
 		return Prepared{}, err
+	}
+	return prepareLaunchOption(prepareRequest{
+		Paths:        options.Paths,
+		SteamRoot:    options.SteamRoot,
+		TargetAppID:  options.TargetAppID,
+		SessionToken: options.SessionToken,
+		NewValue:     newValue,
+		Kind:         BackupSession,
+		Now:          options.Now,
+		SteamRunning: options.SteamRunning,
+	})
+}
+
+type prepareRequest struct {
+	Paths        Paths
+	SteamRoot    string
+	TargetAppID  uint32
+	SessionToken string
+	NewValue     string
+	Kind         BackupKind
+	Now          time.Time
+	SteamRunning RunningFunc
+}
+
+func prepareLaunchOption(options prepareRequest) (Prepared, error) {
+	if options.SteamRunning == nil {
+		return Prepared{}, ErrSteamGuardMissing
+	}
+	if options.SteamRoot == "" {
+		return Prepared{}, fmt.Errorf("%w: empty Steam root", ErrLocalConfigMissing)
+	}
+	if options.NewValue == "" {
+		return Prepared{}, fmt.Errorf("%w: empty launch option", ErrLocalConfigMissing)
 	}
 	running, err := options.SteamRunning()
 	if err != nil {
@@ -110,15 +137,49 @@ func Prepare(options PrepareOptions) (Prepared, error) {
 	if err != nil {
 		return Prepared{}, err
 	}
-	edit, err := EditLaunchOption(data, newValue)
+	edit, err := EditLaunchOption(data, options.NewValue)
 	if err != nil {
 		return Prepared{}, err
 	}
-	if edit.OriginalRaw != "" && edit.OriginalValue == newValue {
+	if edit.OriginalRaw != "" && edit.OriginalValue == options.NewValue {
 		return Prepared{}, ErrAlreadyPrepared
 	}
 
+	originalRaw := edit.OriginalRaw
+	originalValue := edit.OriginalValue
+	createdAppBlock := edit.CreatedAppBlock
+	createdLaunchOptions := edit.CreatedLaunchOptions
+	if options.Kind == BackupSession {
+		previous, hasPrevious, err := findStaleBackup(options.Paths, account, localConfig, edit.OriginalValue)
+		if err != nil {
+			return Prepared{}, err
+		}
+		if hasPrevious {
+			if previous.Meta.OriginalRawTokenBase64 == "" && previous.Meta.OriginalValue != "" {
+				return Prepared{}, fmt.Errorf("%w: previous backup has no original launch option token", ErrBackupCorrupt)
+			}
+			raw, err := base64.StdEncoding.DecodeString(previous.Meta.OriginalRawTokenBase64)
+			if err != nil {
+				return Prepared{}, fmt.Errorf("%w: decode previous original token: %v", ErrBackupCorrupt, err)
+			}
+			originalRaw = string(raw)
+			originalValue = previous.Meta.OriginalValue
+			createdAppBlock = previous.Meta.CreatedAppBlock
+			createdLaunchOptions = previous.Meta.CreatedLaunchOptions
+		} else if IsSessionMarker(edit.OriginalValue) {
+			return Prepared{}, fmt.Errorf("%w: current SpaceWar launch option is from Better RPT but has no backup", ErrBackupMissing)
+		}
+	} else {
+		if IsSessionMarker(edit.OriginalValue) {
+			return Prepared{}, fmt.Errorf("%w: restore the previous Better RPT session first", ErrSetupConflict)
+		}
+		if IsDispatcherMarker(edit.OriginalValue) && edit.OriginalValue != options.NewValue {
+			return Prepared{}, fmt.Errorf("%w: a different dispatcher is already installed", ErrSetupConflict)
+		}
+	}
+
 	meta := BackupMeta{
+		Kind:                   options.Kind,
 		Source:                 localConfig,
 		SteamID64:              account.SteamID64,
 		AccountID:              account.AccountID,
@@ -127,11 +188,11 @@ func Prepare(options PrepareOptions) (Prepared, error) {
 		TargetAppID:            options.TargetAppID,
 		SessionToken:           options.SessionToken,
 		OriginalMode:           uint32(mode.Perm()),
-		OriginalRawTokenBase64: base64.StdEncoding.EncodeToString([]byte(edit.OriginalRaw)),
-		OriginalValue:          edit.OriginalValue,
-		NewValue:               newValue,
-		CreatedAppBlock:        edit.CreatedAppBlock,
-		CreatedLaunchOptions:   edit.CreatedLaunchOptions,
+		OriginalRawTokenBase64: base64.StdEncoding.EncodeToString([]byte(originalRaw)),
+		OriginalValue:          originalValue,
+		NewValue:               options.NewValue,
+		CreatedAppBlock:        createdAppBlock,
+		CreatedLaunchOptions:   createdLaunchOptions,
 		CreatedAt:              options.Now,
 	}
 	backup, err := CreateBackup(options.Paths, localConfig, data, meta)
@@ -159,7 +220,7 @@ func Prepare(options PrepareOptions) (Prepared, error) {
 		return Prepared{}, fmt.Errorf("%w: %v; original restored; backup=%s",
 			ErrLocalConfigUnsafe, err, backup.Path)
 	}
-	if err := verifyPrepared(localConfig, data, newValue); err != nil {
+	if err := verifyPrepared(localConfig, data, options.NewValue); err != nil {
 		rollbackErr := writeLocalConfig(localConfig, data, mode)
 		if rollbackErr != nil {
 			return Prepared{}, fmt.Errorf("%w: %v; backup=%s; rollback failed: %v",
@@ -173,11 +234,11 @@ func Prepare(options PrepareOptions) (Prepared, error) {
 		Account:              account,
 		LocalConfig:          localConfig,
 		Backup:               backup,
-		OriginalRaw:          edit.OriginalRaw,
-		OriginalValue:        edit.OriginalValue,
-		NewValue:             newValue,
-		CreatedAppBlock:      edit.CreatedAppBlock,
-		CreatedLaunchOptions: edit.CreatedLaunchOptions,
+		OriginalRaw:          originalRaw,
+		OriginalValue:        originalValue,
+		NewValue:             options.NewValue,
+		CreatedAppBlock:      createdAppBlock,
+		CreatedLaunchOptions: createdLaunchOptions,
 	}
 	if err := PruneBackups(options.Paths, backupRetention, backup.Path); err != nil {
 		prepared.PruneError = err
@@ -311,23 +372,11 @@ func DetectStale(paths Paths, steamRoot string, activeSession bool) (*Stale, err
 	if !option.Exists {
 		return nil, nil
 	}
-	backups, err := ListBackups(paths)
+	backup, ok, err := findStaleBackup(paths, account, localConfig, option.Value)
 	if err != nil {
 		return nil, err
 	}
-	for _, backup := range backups {
-		if backup.Meta.NewValue != option.Value {
-			continue
-		}
-		if backup.Meta.Source != "" && filepath.Clean(backup.Meta.Source) != filepath.Clean(localConfig) {
-			continue
-		}
-		if backup.Meta.AccountID != 0 && backup.Meta.AccountID != account.AccountID {
-			continue
-		}
-		if backup.Meta.SteamID64 != "" && backup.Meta.SteamID64 != account.SteamID64 {
-			continue
-		}
+	if ok {
 		return &Stale{
 			Account:      account,
 			LocalConfig:  localConfig,
@@ -347,6 +396,40 @@ func DetectStale(paths Paths, steamRoot string, activeSession bool) (*Stale, err
 		}, nil
 	}
 	return nil, nil
+}
+
+// findStaleBackup returns the backup whose written marker owns the current
+// launch-option value. It only matches backups for the selected account.
+func findStaleBackup(paths Paths, account SteamAccount, localConfig, value string) (Backup, bool, error) {
+	if value == "" {
+		return Backup{}, false, nil
+	}
+	if IsDispatcherMarker(value) {
+		return Backup{}, false, nil
+	}
+	backups, err := ListBackups(paths)
+	if err != nil {
+		return Backup{}, false, err
+	}
+	for _, backup := range backups {
+		if backup.Meta.Kind == BackupDispatcher {
+			continue
+		}
+		if backup.Meta.NewValue != value {
+			continue
+		}
+		if backup.Meta.Source != "" && filepath.Clean(backup.Meta.Source) != filepath.Clean(localConfig) {
+			continue
+		}
+		if backup.Meta.AccountID != 0 && backup.Meta.AccountID != account.AccountID {
+			continue
+		}
+		if backup.Meta.SteamID64 != "" && backup.Meta.SteamID64 != account.SteamID64 {
+			continue
+		}
+		return backup, true, nil
+	}
+	return Backup{}, false, nil
 }
 
 // IsSessionMarker reports whether a launch-option value has the shape Better

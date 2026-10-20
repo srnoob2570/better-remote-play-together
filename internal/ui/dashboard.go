@@ -23,6 +23,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	bapp "github.com/srnoob2570/better-rpt/internal/app"
+	"github.com/srnoob2570/better-rpt/internal/config"
 	"github.com/srnoob2570/better-rpt/internal/domain"
 	"github.com/srnoob2570/better-rpt/internal/i18n"
 	"github.com/srnoob2570/better-rpt/internal/session"
@@ -58,7 +59,6 @@ type dashboard struct {
 	prepStarted     time.Time
 	prepCancel      context.CancelFunc
 	cancelRequested bool
-	prepCloseSteam  bool
 	prepPhase       domain.Phase
 
 	activeToken string
@@ -69,10 +69,11 @@ type dashboard struct {
 
 	pendingRestore string
 	pendingGame    domain.Game
-	endedState     session.State
-	showEnded      bool
-	stale          bool
 	restoring      bool
+	restoringSetup bool
+	setup          config.SetupSnapshot
+	situation      session.Situation
+	last           *session.LastLaunch
 
 	search        *widget.Entry
 	clearSearch   *actionButton
@@ -148,7 +149,7 @@ func (d *dashboard) buildContent() fyne.CanvasObject {
 	d.sidebarScroll = content
 
 	d.sessionTabs = newSessionTabGroup(
-		[]string{d.svc.T("session.section"), d.svc.T("details.title")},
+		[]string{d.svc.T("session.section"), d.svc.T("details.title"), d.svc.T("session.tabGuide")},
 		d.sessionTab,
 		func(index int) {
 			if index == d.sessionTab {
@@ -591,53 +592,64 @@ func (d *dashboard) recoverSession() {
 				return
 			}
 			if recovery == nil {
+				d.refreshSituation()
 				return
 			}
-			if len(recovery.ExpiredPlans) > 0 {
-				d.notice = fmt.Sprintf("%s (%d)", d.svc.T("error.session"), len(recovery.ExpiredPlans))
-			}
-			if recovery.State != nil && recovery.HelperAlive && recovery.State.Token != "" {
-				state := *recovery.State
-				d.activeToken = state.Token
-				d.activeState = state
-				d.activeGame = d.gameForID(state.TargetAppID)
-				d.activeStart = state.StartedAt
-				if d.activeStart.IsZero() {
-					d.activeStart = time.Now()
-				}
-				d.startPoll(d.activeToken)
-			} else if recovery.State != nil && recovery.State.Token != "" {
-				state := *recovery.State
-				d.pendingRestore = state.Token
-				d.pendingGame = d.gameForID(state.TargetAppID)
-				d.endedState = state
-				d.showEnded = true
-			}
-			if recovery.Stale != nil {
-				token := recovery.Stale.Backup.Meta.SessionToken
-				if token == "" {
-					token = recovery.State.Token
-				}
-				d.pendingRestore = token
-				d.pendingGame = d.gameForID(recovery.State.TargetAppID)
-				d.stale = true
-				d.showStaleDialog()
-			}
+			d.applyRecovery(recovery)
 			d.rebuildSidebar()
 		})
 	}()
 }
 
-func (d *dashboard) showStaleDialog() {
-	if d.pendingRestore == "" {
-		dialog.ShowInformation(d.svc.T("stale.title"), d.svc.T("error.noBackup"), d.window)
+func (d *dashboard) applyRecovery(recovery *session.Recovery) {
+	d.situation = recovery.Situation
+	d.last = recovery.Last
+	d.setup = recovery.Setup
+	if recovery.State != nil && recovery.HelperAlive {
+		state := *recovery.State
+		d.activeToken = state.Token
+		d.activeState = state
+		d.activeGame = d.gameForID(state.TargetAppID)
+		d.activeStart = state.StartedAt
+		if d.activeStart.IsZero() {
+			d.activeStart = time.Now()
+		}
+		d.startPoll(d.activeToken)
 		return
 	}
-	dialog.ShowConfirm(d.svc.T("stale.title"), d.svc.T("stale.body"), func(ok bool) {
-		if ok {
-			d.restoreSession(d.pendingRestore)
-		}
-	}, d.window)
+	if recovery.Situation.Kind == session.SituationRestorePending ||
+		recovery.Situation.Kind == session.SituationOrphan ||
+		recovery.Situation.Kind == session.SituationConflict {
+		d.pendingRestore = recovery.Situation.Token
+		d.pendingGame = d.gameForID(recovery.Situation.TargetAppID)
+	} else {
+		d.pendingRestore = ""
+		d.pendingGame = domain.Game{}
+	}
+}
+
+// refreshSituation re-reads classification and last-launch state after an
+// action, without re-running recovery side effects.
+func (d *dashboard) refreshSituation() {
+	situation, err := d.svc.SessionSituation()
+	if err != nil {
+		d.setError(err, func() { d.refreshSituation() })
+		return
+	}
+	setup, _ := d.svc.SetupSnapshot()
+	d.situation = situation
+	d.last = situation.Last
+	d.setup = setup
+	if situation.Kind == session.SituationRestorePending ||
+		situation.Kind == session.SituationOrphan ||
+		situation.Kind == session.SituationConflict {
+		d.pendingRestore = situation.Token
+		d.pendingGame = d.gameForID(situation.TargetAppID)
+	} else {
+		d.pendingRestore = ""
+		d.pendingGame = domain.Game{}
+	}
+	d.rebuildSidebar()
 }
 
 func (d *dashboard) gameForID(appID uint32) domain.Game {
@@ -660,6 +672,11 @@ func (d *dashboard) rebuildSidebar() {
 		d.finishSidebar()
 		return
 	}
+	if d.sessionTab == 2 {
+		d.sidebarGuide()
+		d.finishSidebar()
+		return
+	}
 
 	switch {
 	case d.lastError != nil:
@@ -668,8 +685,8 @@ func (d *dashboard) rebuildSidebar() {
 		d.sidebarPreparing()
 	case d.activeToken != "":
 		d.sidebarActive()
-	case d.pendingRestore != "" && (d.showEnded || d.stale):
-		d.sidebarEnded()
+	case d.last != nil:
+		d.sidebarLast()
 	default:
 		d.sidebarSelection()
 	}
@@ -695,6 +712,7 @@ func (d *dashboard) sidebarError() {
 	if d.retry != nil {
 		d.add(tall(primaryButton(d.svc.T("action.retry"), d.retry), 48))
 	}
+	d.addPendingRestore()
 }
 
 func (d *dashboard) sidebarPreparing() {
@@ -777,45 +795,289 @@ func (d *dashboard) sidebarActive() {
 	d.add(captionWrapLabel(d.svc.T("session.actionHint")), tall(active, 48))
 }
 
-func (d *dashboard) sidebarEnded() {
-	if d.stale && !d.showEnded {
-		d.add(newCallout(d.svc.T("stale.title"), d.svc.T("stale.body"), toneWarning).obj)
-	} else {
-		var extra []fyne.CanvasObject
-		if d.pendingGame.Name != "" || d.pendingGame.AppID != 0 {
-			extra = append(extra, bodyLabel(d.gameName(d.pendingGame)))
-		}
-		if !d.endedState.StartedAt.IsZero() {
-			end := d.endedState.EndedAt
-			if end.IsZero() {
-				end = time.Now()
-			}
-			extra = append(extra, monoLabel(d.svc.T("ended.duration")+": "+formatDuration(end.Sub(d.endedState.StartedAt))))
-		}
-		if d.endedState.Phase == domain.PhaseError && d.endedState.Error != "" {
-			problem := captionWrapLabel(d.svc.T("error.title") + ": " + d.endedState.Error)
-			problem.Importance = widget.WarningImportance
-			extra = append(extra, problem)
-		}
-		d.add(newCallout(d.svc.T("ended.title"), "", toneInfo, extra...).obj)
+// addPendingRestore offers the pending restore without blocking a new
+// preparation. A new session supersedes the stale transaction and keeps the
+// original launch-option value.
+func (d *dashboard) addPendingRestore() {
+	d.addPendingCallout()
+}
+
+func (d *dashboard) sidebarLast() {
+	if d.last == nil {
+		d.sidebarSelection()
+		return
 	}
+	game, found := findGame(d.catalog.Games, d.last.AppID)
+	if !found {
+		game = d.gameForID(d.last.AppID)
+	}
+	d.add(headingLabel(d.svc.T("last.title")))
+	d.add(d.gameCover(game))
+	d.add(d.gameInfo(game))
+
+	extra := make([]fyne.CanvasObject, 0, 5)
+	extra = append(extra, captionLabel(d.svc.T(lastSourceKey(d.last.Source))))
+	extra = append(extra, statusLabel(d.svc.T(lastOutcomeKey(d.last.Outcome)), outcomeTone(d.last.Outcome)))
+	if !d.last.StartedAt.IsZero() {
+		extra = append(extra, monoLabel(d.svc.T("last.started")+": "+d.last.StartedAt.Local().Format("2006-01-02 15:04")))
+	}
+	if !d.last.EndedAt.IsZero() && !d.last.StartedAt.IsZero() {
+		extra = append(extra, monoLabel(d.svc.T("last.duration")+": "+formatDuration(d.last.EndedAt.Sub(d.last.StartedAt))))
+	}
+	if d.last.Error != "" {
+		problem := captionWrapLabel(d.svc.T("error.title") + ": " + d.last.Error)
+		problem.Importance = widget.WarningImportance
+		extra = append(extra, problem)
+	}
+
+	installable := found && game.Status != domain.StatusIncompatible &&
+		game.Status != domain.StatusMissing && game.Status != domain.StatusError &&
+		game.Status != domain.StatusActive
+	if d.situation.Setup == session.SetupInstalled && installable {
+		d.add(tall(primaryButton(d.svc.T("action.playAgain"), d.replaySession), 48))
+	} else {
+		reason := d.svc.T("last.setupMissing")
+		if !installable {
+			reason = d.svc.T(statusLabelKey(game.Status))
+		}
+		disabled := primaryButton(d.svc.T("action.playAgain"), nil)
+		disabled.Disable()
+		d.add(captionWrapLabel(reason), tall(disabled, 48))
+	}
+	d.addRestoreAction()
+	viewGuide := newActionButton(d.svc.T("action.viewGuide"), d.openGuide)
+	viewGuide.Importance = widget.LowImportance
+	d.add(tall(viewGuide, 40))
+	d.add(captionWrapLabel(d.svc.T("last.hint")))
+	d.add(newCallout(d.svc.T(situationLabelKey(d.situation.Kind)), "", situationTone(d.situation.Kind), extra...).obj)
+	d.addPendingCallout()
 	d.sidebarNotice()
 
-	d.add(
-		captionWrapLabel(d.svc.T("ended.restoreHint")),
-		tall(primaryButton(d.svc.T("action.restore"), func() {
-			d.confirmRestore(d.pendingRestore)
-		}), 48),
-	)
-	if d.showEnded {
-		back := newActionButton(d.svc.T("action.back"), func() {
-			d.showEnded = false
-			d.stale = false
+	if game, ok := d.selectedGame(); ok && game.AppID != d.last.AppID {
+		d.add(widget.NewSeparator())
+		d.sidebarSelection()
+	}
+}
+
+func outcomeTone(outcome session.LaunchOutcome) tone {
+	switch outcome {
+	case session.LaunchOK:
+		return toneSuccess
+	case session.LaunchPending, session.LaunchTimeout:
+		return toneWarning
+	case session.LaunchError:
+		return toneError
+	default:
+		return toneNeutral
+	}
+}
+
+func (d *dashboard) addRestoreAction() {
+	label := d.svc.T("action.restore")
+	if d.situation.Restore != session.RestoreAvailable {
+		button := newActionButton(label, nil)
+		button.Disable()
+		d.add(captionWrapLabel(d.svc.T(restoreReasonKey(d.situation.Restore))), tall(button, 48))
+		return
+	}
+	d.add(tall(primaryButton(label, d.confirmRestoreCurrent), 48))
+}
+
+func (d *dashboard) addPendingCallout() {
+	switch d.situation.Kind {
+	case session.SituationRestorePending, session.SituationOrphan, session.SituationConflict:
+	default:
+		return
+	}
+	title := d.svc.T("pending.title")
+	body := d.svc.T("pending.body")
+	if d.situation.Kind == session.SituationOrphan || d.situation.Kind == session.SituationConflict {
+		title = d.svc.T("pending.orphanTitle")
+		body = d.svc.T("pending.orphanBody")
+	} else if d.pendingGame.AppID != 0 {
+		body = fmt.Sprintf(d.svc.T("pending.body"), d.gameName(d.pendingGame))
+	}
+	extra := []fyne.CanvasObject{}
+	if d.situation.Restore == session.RestoreNoBackup {
+		extra = append(extra, captionWrapLabel(d.svc.T("pending.noBackup")))
+	}
+	d.add(newCallout(title, body, toneWarning, extra...).obj)
+	if d.situation.Restore == session.RestoreAvailable {
+		d.add(tall(newActionButton(d.svc.T("pending.restore"), d.confirmRestoreCurrent), 48))
+	} else {
+		d.add(captionWrapLabel(d.svc.T(restoreReasonKey(d.situation.Restore))))
+	}
+	guide := newActionButton(d.svc.T("pending.guide"), d.openGuide)
+	guide.Importance = widget.LowImportance
+	d.add(tall(guide, 40))
+}
+
+func (d *dashboard) sidebarGuide() {
+	d.add(headingLabel(d.svc.T("guide.title")))
+	d.add(bodyLabel(d.svc.T("guide.intro")))
+
+	statusBody := d.svc.T("guide.setupMissing")
+	switch d.situation.Setup {
+	case session.SetupGuide:
+		statusBody = d.svc.T("guide.setupGuide")
+	case session.SetupInstalled:
+		statusBody = d.svc.T("guide.setupInstalled")
+	case session.SetupRestored:
+		statusBody = d.svc.T("guide.setupRestored")
+	case session.SetupConflict:
+		statusBody = d.svc.T("guide.setupConflict")
+	}
+	d.add(newCallout(d.svc.T("setup.title")+": "+d.svc.T(setupLabelKey(d.situation.Setup)), statusBody, situationTone(d.situation.Kind)).obj)
+
+	d.add(sectionLabel(d.svc.T("guide.command")))
+	command, err := d.svc.DispatcherCommand()
+	if err != nil {
+		d.add(captionWrapLabel(err.Error()))
+	} else {
+		d.add(monoWrapLabel(command))
+		copyButton := newActionButton(d.svc.T("action.copyCommand"), func() {
+			d.window.Clipboard().SetContent(command)
+			d.notice = d.svc.T("guide.copyDone")
 			d.rebuildSidebar()
 		})
-		back.Importance = widget.LowImportance
-		d.add(tall(back, 40))
+		copyButton.Importance = widget.LowImportance
+		d.add(tall(copyButton, 40))
 	}
+	d.add(captionWrapLabel(d.svc.T("guide.commandHint")))
+
+	record := newActionButton(d.svc.T("action.prepareGuide"), d.recordGuideSetup)
+	record.Importance = widget.LowImportance
+	d.add(tall(record, 40))
+	refresh := newActionButton(d.svc.T("action.refreshSetup"), d.refreshSituation)
+	refresh.Importance = widget.LowImportance
+	d.add(tall(refresh, 40))
+
+	if d.situation.SteamRunning {
+		d.add(captionWrapLabel(d.svc.T("guide.steamOpen")))
+		install := newActionButton(d.svc.T("action.installAuto"), nil)
+		install.Disable()
+		d.add(captionWrapLabel(d.svc.T("guide.autoUnavailable")), tall(install, 40))
+	} else {
+		d.add(captionWrapLabel(d.svc.T("guide.steamClosed")))
+		d.add(tall(primaryButton(d.svc.T("action.installAuto"), d.installSetup), 48))
+	}
+
+	d.add(widget.NewSeparator())
+	steps := []struct{ title, body string }{
+		{"guide.step1.title", "guide.step1.body"},
+		{"guide.step2.title", "guide.step2.body"},
+		{"guide.step3.title", "guide.step3.body"},
+		{"guide.step4.title", "guide.step4.body"},
+		{"guide.step5.title", "guide.step5.body"},
+		{"guide.step6.title", "guide.step6.body"},
+	}
+	rows := make([]fyne.CanvasObject, 0, len(steps))
+	for index, step := range steps {
+		rows = append(rows, numberedRow(index+1, bodyLabel(d.svc.T(step.title)+". "+d.svc.T(step.body)), toneInfo))
+	}
+	d.add(vbox(12, rows...))
+
+	if d.setup.Setup != nil && d.setup.Setup.Backup.Path != "" {
+		d.add(sectionLabel(d.svc.T("guide.originalValue")))
+		original := d.setup.Setup.Backup.Meta.OriginalValue
+		if original == "" {
+			d.add(captionWrapLabel(d.svc.T("guide.originalEmpty")))
+		} else {
+			d.add(pathLabel(original))
+		}
+		d.add(captionWrapLabel(d.svc.T("guide.restoreHint")))
+	}
+
+	d.add(sectionLabel(d.svc.T("guide.images")))
+	d.add(guideFigure(d.svc.T("guide.image.launchOptions"), guideImageLaunchOptions, d.svc.T("guide.image.placeholder")))
+	d.add(guideFigure(d.svc.T("guide.image.command"), guideImageCommand, d.svc.T("guide.image.placeholder")))
+	d.add(guideFigure(d.svc.T("guide.image.popup"), guideImagePopup, d.svc.T("guide.image.placeholder")))
+	d.add(guideFigure(d.svc.T("guide.image.invite"), guideImageInvite, d.svc.T("guide.image.placeholder")))
+	d.sidebarNotice()
+}
+
+func (d *dashboard) openGuide() {
+	d.sessionTab = 2
+	if d.sessionTabs != nil {
+		d.sessionTabs.selectTab(2)
+	}
+	d.rebuildSidebar()
+}
+
+func (d *dashboard) replaySession() {
+	if d.preparing || d.activeToken != "" {
+		return
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	d.preparing = true
+	d.prepStarted = time.Now()
+	d.prepCancel = cancel
+	d.prepPhase = domain.PhasePreparing
+	d.cancelRequested = false
+	d.lastError = nil
+	d.rebuildSidebar()
+	go func() {
+		active, err := d.svc.ReplaySession(ctx)
+		fyne.Do(func() {
+			d.preparing = false
+			d.prepCancel = nil
+			d.cancelRequested = false
+			if err != nil {
+				if errors.Is(err, config.ErrSetupMissing) {
+					d.sessionTab = 2
+					d.notice = d.svc.T("error.setupRequired")
+					d.rebuildSidebar()
+					return
+				}
+				d.setError(err, d.replaySession)
+				return
+			}
+			d.activeToken = active.Token
+			d.activeGame = active.Game
+			d.activeState = active.State
+			d.activeStart = active.State.StartedAt
+			if d.activeStart.IsZero() {
+				d.activeStart = time.Now()
+			}
+			d.pendingRestore = ""
+			d.lastError = nil
+			d.rebuildSidebar()
+			d.startPoll(active.Token)
+		})
+	}()
+}
+
+func (d *dashboard) recordGuideSetup() {
+	go func() {
+		_, err := d.svc.RecordGuideSetup(context.Background())
+		fyne.Do(func() {
+			if err != nil {
+				d.setError(err, d.recordGuideSetup)
+				return
+			}
+			d.notice = d.svc.T("guide.recordDone")
+			d.refreshSituation()
+		})
+	}()
+}
+
+func (d *dashboard) installSetup() {
+	go func() {
+		_, err := d.svc.InstallSetup(context.Background())
+		fyne.Do(func() {
+			if err != nil {
+				if errors.Is(err, domain.ErrSteamRunning) {
+					d.notice = d.svc.T("guide.autoUnavailable")
+					d.refreshSituation()
+					return
+				}
+				d.setError(err, d.installSetup)
+				return
+			}
+			d.notice = d.svc.T("guide.installDone")
+			d.refreshSituation()
+		})
+	}()
 }
 
 func (d *dashboard) sidebarSelection() {
@@ -827,13 +1089,6 @@ func (d *dashboard) sidebarSelection() {
 		d.add(hint)
 		d.sidebarNotice()
 		switch {
-		case d.pendingRestore != "":
-			d.add(
-				captionWrapLabel(d.svc.T("ended.restoreHint")),
-				tall(primaryButton(d.svc.T("action.restore"), func() {
-					d.confirmRestore(d.pendingRestore)
-				}), 48),
-			)
 		case !d.donorFound:
 			d.add(
 				captionWrapLabel(d.svc.T("selection.donorHint")),
@@ -849,6 +1104,7 @@ func (d *dashboard) sidebarSelection() {
 			button.Disable()
 			d.add(tall(button, 48))
 		}
+		d.addPendingCallout()
 		return
 	}
 
@@ -869,19 +1125,18 @@ func (d *dashboard) sidebarSelection() {
 		button := primaryButton(d.svc.T(statusLabelKey(game.Status)), nil)
 		button.Disable()
 		d.add(tall(button, 48))
-	case d.pendingRestore != "":
+	case d.situation.Setup == session.SetupInstalled:
 		d.add(
-			captionWrapLabel(d.svc.T("ended.restoreHint")),
-			tall(primaryButton(d.svc.T("action.restore"), func() {
-				d.confirmRestore(d.pendingRestore)
-			}), 48),
+			captionWrapLabel(d.svc.T("selection.actionHint")),
+			tall(primaryButton(d.svc.T("action.play"), d.prepareSelected), 48),
 		)
 	default:
 		d.add(
-			captionWrapLabel(d.svc.T("selection.actionHint")),
-			tall(primaryButton(d.svc.T("action.prepare"), d.prepareSelected), 48),
+			captionWrapLabel(d.svc.T("selection.guideHint")),
+			tall(primaryButton(d.svc.T("action.viewGuide"), d.openGuide), 48),
 		)
 	}
+	d.addPendingCallout()
 
 	if len(d.warnings) > 0 {
 		content := vbox(8)
@@ -1084,14 +1339,14 @@ func (d *dashboard) prepareSelected() {
 				return
 			}
 			d.warned[game.AppID] = true
-			d.startSession(false)
+			d.startSession()
 		}, d.window)
 		return
 	}
-	d.startSession(false)
+	d.startSession()
 }
 
-func (d *dashboard) startSession(closeSteam bool) {
+func (d *dashboard) startSession() {
 	if d.preparing || d.activeToken != "" {
 		return
 	}
@@ -1103,7 +1358,6 @@ func (d *dashboard) startSession(closeSteam bool) {
 	d.preparing = true
 	d.prepStarted = time.Now()
 	d.prepCancel = cancel
-	d.prepCloseSteam = closeSteam
 	d.prepPhase = domain.PhasePreparing
 	d.cancelRequested = false
 	d.lastError = nil
@@ -1113,7 +1367,6 @@ func (d *dashboard) startSession(closeSteam bool) {
 	go func() {
 		active, err := d.svc.StartSession(ctx, session.StartOptions{
 			TargetAppID: game.AppID,
-			CloseSteam:  closeSteam,
 			OnState: func(state session.State) {
 				fyne.Do(func() {
 					if !d.preparing {
@@ -1129,15 +1382,22 @@ func (d *dashboard) startSession(closeSteam bool) {
 			d.prepCancel = nil
 			d.cancelRequested = false
 			if err != nil {
-				if errors.Is(err, domain.ErrSteamRunning) && !closeSteam {
-					d.confirmCloseSteam(game.AppID)
-					return
-				}
-				if errors.Is(err, context.Canceled) {
+				switch {
+				case errors.Is(err, config.ErrSetupMissing):
+					d.sessionTab = 2
+					d.notice = d.svc.T("error.setupRequired")
 					d.rebuildSidebar()
 					return
+				case errors.Is(err, config.ErrSetupConflict):
+					d.sessionTab = 2
+					d.notice = d.svc.T("error.setupConflict")
+					d.rebuildSidebar()
+					return
+				case errors.Is(err, context.Canceled):
+					d.refreshSituation()
+					return
 				}
-				d.setError(err, func() { d.startSession(closeSteam) })
+				d.setError(err, d.startSession)
 				return
 			}
 			d.activeToken = active.Token
@@ -1149,24 +1409,11 @@ func (d *dashboard) startSession(closeSteam bool) {
 			}
 			d.pendingRestore = ""
 			d.pendingGame = domain.Game{}
-			d.endedState = session.State{}
-			d.showEnded = false
-			d.stale = false
 			d.lastError = nil
 			d.rebuildSidebar()
 			d.startPoll(active.Token)
 		})
 	}()
-}
-
-func (d *dashboard) confirmCloseSteam(appID uint32) {
-	dialog.ShowConfirm(d.svc.T("dialog.closeSteam.title"), d.svc.T("dialog.closeSteam.body"), func(ok bool) {
-		if !ok {
-			d.rebuildSidebar()
-			return
-		}
-		d.startSession(true)
-	}, d.window)
 }
 
 func (d *dashboard) cancelPreparation() {
@@ -1198,7 +1445,7 @@ func (d *dashboard) startPoll(token string) {
 						return
 					}
 					if err != nil {
-						d.finishSession(token, session.State{})
+						d.finishSession()
 						return
 					}
 					d.activeState = state
@@ -1206,7 +1453,7 @@ func (d *dashboard) startPoll(token string) {
 						d.activeStart = state.StartedAt
 					}
 					if state.Terminal() {
-						d.finishSession(token, state)
+						d.finishSession()
 						return
 					}
 					d.updateElapsed()
@@ -1216,22 +1463,70 @@ func (d *dashboard) startPoll(token string) {
 	}()
 }
 
-func (d *dashboard) finishSession(token string, state session.State) {
+func (d *dashboard) finishSession() {
 	if d.pollCancel != nil {
 		d.pollCancel()
 		d.pollCancel = nil
 	}
-	game := d.activeGame
-	if state.TargetAppID != 0 {
-		game = d.gameForID(state.TargetAppID)
-	}
 	d.activeToken = ""
-	d.pendingRestore = token
-	d.pendingGame = game
-	d.endedState = state
-	d.showEnded = true
-	d.stale = false
+	d.refreshSituation()
+}
+
+func (d *dashboard) confirmRestoreCurrent() {
+	if d.situation.Restore != session.RestoreAvailable || d.restoring || d.restoringSetup {
+		return
+	}
+	if d.situation.Setup == session.SetupInstalled && d.setup.Setup != nil {
+		d.confirmRestoreSetup()
+		return
+	}
+	if d.pendingRestore != "" {
+		d.confirmRestore(d.pendingRestore)
+		return
+	}
+	d.confirmRestoreSetup()
+}
+
+func (d *dashboard) confirmRestoreSetup() {
+	dialog.ShowConfirm(d.svc.T("dialog.restore.title"), d.svc.T("dialog.restore.body"), func(ok bool) {
+		if ok {
+			d.restoreSetup()
+		}
+	}, d.window)
+}
+
+func (d *dashboard) restoreSetup() {
+	if d.restoringSetup {
+		return
+	}
+	d.restoringSetup = true
+	d.lastError = nil
 	d.rebuildSidebar()
+	go func() {
+		_, err := d.svc.RestoreSetup(context.Background())
+		fyne.Do(func() {
+			d.restoringSetup = false
+			if err != nil {
+				if errors.Is(err, domain.ErrSteamRunning) {
+					d.sessionTab = 2
+					d.notice = d.svc.T(restoreReasonKey(session.RestoreSteamRunning))
+					d.refreshSituation()
+					return
+				}
+				if errors.Is(err, config.ErrLocalConfigChanged) {
+					d.sessionTab = 2
+					d.notice = d.svc.T(restoreReasonKey(session.RestoreConflict))
+					d.refreshSituation()
+					return
+				}
+				d.setError(err, d.restoreSetup)
+				return
+			}
+			d.lastError = nil
+			d.refreshSituation()
+			dialog.ShowInformation(d.svc.T("restore.done.title"), d.svc.T("restore.done.body"), d.window)
+		})
+	}()
 }
 
 func (d *dashboard) confirmRestore(token string) {
@@ -1257,16 +1552,25 @@ func (d *dashboard) restoreSession(token string) {
 		fyne.Do(func() {
 			d.restoring = false
 			if err != nil {
+				if errors.Is(err, domain.ErrSteamRunning) {
+					d.sessionTab = 2
+					d.notice = d.svc.T(restoreReasonKey(session.RestoreSteamRunning))
+					d.refreshSituation()
+					return
+				}
+				if errors.Is(err, config.ErrLocalConfigChanged) {
+					d.sessionTab = 2
+					d.notice = d.svc.T(restoreReasonKey(session.RestoreConflict))
+					d.refreshSituation()
+					return
+				}
 				d.setError(err, func() { d.restoreSession(token) })
 				return
 			}
 			d.pendingRestore = ""
 			d.pendingGame = domain.Game{}
-			d.endedState = session.State{}
-			d.showEnded = false
-			d.stale = false
 			d.lastError = nil
-			d.rebuildSidebar()
+			d.refreshSituation()
 			dialog.ShowInformation(d.svc.T("restore.done.title"), d.svc.T("restore.done.body"), d.window)
 		})
 	}()

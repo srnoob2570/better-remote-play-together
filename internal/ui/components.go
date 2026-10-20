@@ -110,10 +110,24 @@ func (l fieldLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 	if len(objects) < 2 {
 		return
 	}
-	objects[0].Move(fyne.NewPos(0, 0))
+	baseline := float32(0)
+	for _, object := range objects[:2] {
+		if label, ok := object.(*widget.Label); ok {
+			baseline = fyne.Max(baseline, labelTextBaseline(label))
+		}
+	}
+	objects[0].Move(fyne.NewPos(0, fieldTextY(objects[0], baseline)))
 	objects[0].Resize(fyne.NewSize(l.labelWidth, size.Height))
-	objects[1].Move(fyne.NewPos(l.labelWidth, 0))
+	objects[1].Move(fyne.NewPos(l.labelWidth, fieldTextY(objects[1], baseline)))
 	objects[1].Resize(fyne.NewSize(fyne.Max(0, size.Width-l.labelWidth), size.Height))
+}
+
+func fieldTextY(object fyne.CanvasObject, baseline float32) float32 {
+	label, ok := object.(*widget.Label)
+	if !ok {
+		return 0
+	}
+	return baseline - labelTextBaseline(label)
 }
 
 func (l fieldLayout) MinSize(objects []fyne.CanvasObject) fyne.Size {
@@ -207,6 +221,24 @@ func captionLabel(text string) *widget.Label {
 	return label
 }
 
+// labelTextBaseline is the distance from a label's top to the baseline of its
+// first line. Fyne labels draw their text from the top of the widget, so two
+// labels with different type sizes cannot be aligned by centering their boxes.
+func labelTextBaseline(label *widget.Label) float32 {
+	th := label.Theme()
+	sizeName := label.SizeName
+	if sizeName == "" {
+		sizeName = theme.SizeNameText
+	}
+	_, baseline := fyne.CurrentApp().Driver().RenderedTextSize(
+		label.Text,
+		th.Size(sizeName),
+		label.TextStyle,
+		nil,
+	)
+	return th.Size(theme.SizeNameInnerPadding) + baseline
+}
+
 // captionWrapLabel is the prose variant of captionLabel. Keep captionLabel
 // single-line so it reports its full width inside horizontal layouts.
 func captionWrapLabel(text string) *widget.Label {
@@ -220,6 +252,14 @@ func monoLabel(text string) *widget.Label {
 	label.SizeName = theme.SizeNameCaptionText
 	label.TextStyle = fyne.TextStyle{Monospace: true}
 	label.Importance = widget.LowImportance
+	return label
+}
+
+// monoWrapLabel is monoLabel for long commands that must remain readable in a
+// narrow sidebar; it breaks instead of forcing horizontal clipping.
+func monoWrapLabel(text string) *widget.Label {
+	label := monoLabel(text)
+	label.Wrapping = fyne.TextWrapBreak
 	return label
 }
 
@@ -441,7 +481,7 @@ func (l gameRowLayout) Layout(_ []fyne.CanvasObject, size fyne.Size) {
 	row.separator.Move(fyne.NewPos(libraryGutter, size.Height-1))
 
 	columns := libraryColumnsFor(size.Width)
-	iconY := (size.Height - libraryArtSize) / 2
+	iconY := (highlightHeight - libraryArtSize) / 2
 	row.icon.Resize(fyne.NewSize(libraryArtSize, libraryArtSize))
 	row.icon.Move(fyne.NewPos(columns.nameX, iconY))
 	row.iconFallback.Resize(fyne.NewSize(libraryArtSize, libraryArtSize))
@@ -449,9 +489,9 @@ func (l gameRowLayout) Layout(_ []fyne.CanvasObject, size fyne.Size) {
 
 	nameX := columns.nameX + libraryArtSize + libraryArtGap
 	nameWidth := fyne.Max(0, columns.nameWidth-libraryArtSize-libraryArtGap)
-	placeLibraryCell(row.name, nameX, nameWidth, size.Height)
-	placeLibraryCell(row.kind, columns.kindX, libraryKindWidth, size.Height)
-	placeLibraryCell(row.status, columns.statusX, libraryStatusWidth, size.Height)
+	placeLibraryCell(row.name, nameX, nameWidth, highlightHeight)
+	placeLibraryCell(row.kind, columns.kindX, libraryKindWidth, highlightHeight)
+	placeLibraryCell(row.status, columns.statusX, libraryStatusWidth, highlightHeight)
 }
 
 func (gameRowLayout) MinSize(_ []fyne.CanvasObject) fyne.Size {
@@ -701,7 +741,46 @@ func (l sessionHeaderLayout) Layout(objects []fyne.CanvasObject, size fyne.Size)
 	x := tabs.Width + l.gap
 	width := fyne.Max(0, size.Width-x)
 	hint.Resize(fyne.NewSize(width, size.Height))
-	hint.Move(fyne.NewPos(x, 0))
+	hintY := float32(0)
+	if label, ok := hint.(*widget.Label); ok {
+		if center, ok := firstTabTextCenter(objects[0]); ok {
+			hintY = objects[0].Position().Y + center - labelFirstLineCenter(label)
+		}
+	}
+	hint.Move(fyne.NewPos(x, hintY))
+}
+
+// labelFirstLineCenter is the distance from a label's top to the center of its
+// first text line. The note is a wrapped label, so centering its first line
+// keeps the hint visually level with the single-line tabs above it.
+func labelFirstLineCenter(label *widget.Label) float32 {
+	th := label.Theme()
+	sizeName := label.SizeName
+	if sizeName == "" {
+		sizeName = theme.SizeNameText
+	}
+	textSize, _ := fyne.CurrentApp().Driver().RenderedTextSize(
+		label.Text,
+		th.Size(sizeName),
+		label.TextStyle,
+		nil,
+	)
+	return th.Size(theme.SizeNameInnerPadding) + textSize.Height/2
+}
+
+// firstTabTextCenter returns the vertical center of the first tab label
+// relative to the tab group. Tabs are canvas.Text objects, so their line box
+// is already the visible text box.
+func firstTabTextCenter(object fyne.CanvasObject) (float32, bool) {
+	group, ok := object.(*fyne.Container)
+	if !ok || len(group.Objects) == 0 {
+		return 0, false
+	}
+	tab, ok := group.Objects[0].(*filterTab)
+	if !ok {
+		return 0, false
+	}
+	return tab.Position().Y + tab.label.Position().Y + tab.label.MinSize().Height/2, true
 }
 
 func (l sessionHeaderLayout) MinSize(objects []fyne.CanvasObject) fyne.Size {
@@ -1031,4 +1110,23 @@ func primaryButton(label string, action func()) *actionButton {
 	button := newActionButton(label, action)
 	button.Importance = widget.HighImportance
 	return button
+}
+
+// guideFigure renders one guide image with a title and an explanatory caption.
+// The embedded images are documented placeholders until real Steam captures
+// replace them.
+func guideFigure(title string, resource fyne.Resource, caption string) fyne.CanvasObject {
+	titleLabel := sectionLabel(title)
+	var visual fyne.CanvasObject
+	if resource != nil {
+		image := canvas.NewImageFromResource(resource)
+		image.FillMode = canvas.ImageFillContain
+		image.SetMinSize(fyne.NewSize(0, 150))
+		visual = tall(image, 150)
+	} else {
+		background := canvas.NewRectangle(colorSurfaceRaised)
+		background.CornerRadius = 6
+		visual = tall(container.NewStack(background, container.NewCenter(captionWrapLabel(caption))), 150)
+	}
+	return vbox(6, titleLabel, visual, captionWrapLabel(caption))
 }

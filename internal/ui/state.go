@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/srnoob2570/better-rpt/internal/domain"
+	"github.com/srnoob2570/better-rpt/internal/session"
 )
 
 type filterKey string
@@ -33,11 +34,103 @@ const (
 var prepSteps = []string{
 	"prep.verify",
 	"prep.installHelper",
-	"prep.closeSteam",
-	"prep.backup",
-	"prep.launchOption",
+	"prep.armIntent",
 	"prep.startDonor",
 	"prep.waitHelper",
+}
+
+// restoreReasonKey returns the visible explanation for a disabled restore
+// action. It is empty when restore is available.
+func restoreReasonKey(state session.RestoreState) string {
+	switch state {
+	case session.RestoreAvailable:
+		return ""
+	case session.RestoreSteamRunning:
+		return "restore.reason.steamRunning"
+	case session.RestoreSessionActive:
+		return "restore.reason.sessionActive"
+	case session.RestoreConflict:
+		return "restore.reason.conflict"
+	case session.RestoreNoBackup:
+		return "restore.reason.noBackup"
+	default:
+		return "restore.reason.notNeeded"
+	}
+}
+
+func situationLabelKey(kind session.SituationKind) string {
+	switch kind {
+	case session.SituationPrepared:
+		return "situation.prepared"
+	case session.SituationActive:
+		return "situation.active"
+	case session.SituationFinished:
+		return "situation.finished"
+	case session.SituationRestorePending:
+		return "situation.restorePending"
+	case session.SituationRestored:
+		return "situation.restored"
+	case session.SituationOrphan:
+		return "situation.orphan"
+	case session.SituationConflict:
+		return "situation.conflict"
+	default:
+		return "situation.idle"
+	}
+}
+
+func situationTone(kind session.SituationKind) tone {
+	switch kind {
+	case session.SituationActive, session.SituationPrepared:
+		return toneInfo
+	case session.SituationRestorePending, session.SituationOrphan:
+		return toneWarning
+	case session.SituationConflict:
+		return toneError
+	case session.SituationFinished, session.SituationRestored:
+		return toneSuccess
+	default:
+		return toneNeutral
+	}
+}
+
+func setupLabelKey(state session.SetupState) string {
+	switch state {
+	case session.SetupGuide:
+		return "setup.guide"
+	case session.SetupInstalled:
+		return "setup.installed"
+	case session.SetupRestored:
+		return "setup.restored"
+	case session.SetupConflict:
+		return "setup.conflict"
+	default:
+		return "setup.missing"
+	}
+}
+
+func lastOutcomeKey(outcome session.LaunchOutcome) string {
+	switch outcome {
+	case session.LaunchOK:
+		return "last.outcome.ok"
+	case session.LaunchError:
+		return "last.outcome.error"
+	case session.LaunchTimeout:
+		return "last.outcome.timeout"
+	case session.LaunchCanceled:
+		return "last.outcome.canceled"
+	case session.LaunchUnknown:
+		return "last.outcome.unknown"
+	default:
+		return "last.outcome.pending"
+	}
+}
+
+func lastSourceKey(source session.LaunchSource) string {
+	if source == session.SourceSteam {
+		return "last.source.steam"
+	}
+	return "last.source.betterRpt"
 }
 
 // visibleGames returns the sorted library subset matching a text query and one
@@ -181,9 +274,9 @@ func twoDigits(value int) string {
 func prepStepForPhase(phase domain.Phase) int {
 	switch phase {
 	case domain.PhaseDonorStarting:
-		return 5
+		return 3
 	case domain.PhaseTargetStarting:
-		return 6
+		return 4
 	case domain.PhaseActive, domain.PhaseEnded, domain.PhaseError:
 		return len(prepSteps)
 	default:

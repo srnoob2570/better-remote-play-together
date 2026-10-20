@@ -1,0 +1,30 @@
+"UserLocalConfigStore"
+{
+	"Software"
+	{
+		"Valve"
+		{
+			"Steam"
+			{
+				"apps"
+				{
+					"480"
+					{
+						"LaunchOptions"		""
+						"LastPlayed"		"1700000300"
+					}
+					"900001"
+					{
+						"LaunchOptions"		""
+						"LastPlayed"		"1700000100"
+					}
+					"900002"
+					{
+						"LaunchOptions"		""
+						"LastPlayed"		"1700000200"
+					}
+				}
+			}
+		}
+	}
+}

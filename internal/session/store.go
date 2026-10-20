@@ -49,6 +49,16 @@ func (s Store) StatePath(token string) string {
 	return filepath.Join(s.Dir, "state-"+token+".json")
 }
 
+// IntentPath returns the single armed launch-intent path.
+func (s Store) IntentPath() string {
+	return filepath.Join(s.Dir, "launch-intent.json")
+}
+
+// LastLaunchPath returns the durable last-launch path.
+func (s Store) LastLaunchPath() string {
+	return filepath.Join(s.Dir, "last-launch.json")
+}
+
 // LockPath returns the global session lock path.
 func (s Store) LockPath() string {
 	return filepath.Join(s.Dir, "session.lock")
@@ -241,6 +251,91 @@ func (s Store) RemoveState(token string) error {
 		return fmt.Errorf("%w: remove state: %v", ErrStore, err)
 	}
 	return nil
+}
+
+// WriteIntent validates and atomically stores the app-owned launch intent.
+func (s Store) WriteIntent(intent Intent) error {
+	if err := intent.Validate(time.Now()); err != nil {
+		return err
+	}
+	if err := s.Ensure(); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(intent, "", "  ")
+	if err != nil {
+		return fmt.Errorf("%w: encode intent: %v", ErrStore, err)
+	}
+	data = append(data, '\n')
+	if err := fsutil.AtomicWriteFile(s.IntentPath(), data, 0o600); err != nil {
+		return fmt.Errorf("%w: write intent: %v", ErrStore, err)
+	}
+	return nil
+}
+
+// ReadIntent reads and validates the launch intent, including its expiry.
+func (s Store) ReadIntent(now time.Time) (*Intent, error) {
+	data, err := readPrivateFile(s.IntentPath())
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, ErrIntentMissing
+		}
+		return nil, err
+	}
+	var intent Intent
+	if err := json.Unmarshal(data, &intent); err != nil {
+		return nil, fmt.Errorf("%w: decode intent: %v", ErrIntentInvalid, err)
+	}
+	if err := intent.Validate(now); err != nil {
+		return nil, err
+	}
+	return &intent, nil
+}
+
+// ClearIntent removes the launch intent. A missing intent is not an error.
+func (s Store) ClearIntent() error {
+	if err := os.Remove(s.IntentPath()); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("%w: remove intent: %v", ErrStore, err)
+	}
+	return nil
+}
+
+// WriteLastLaunch validates and atomically stores the last launch record.
+func (s Store) WriteLastLaunch(last LastLaunch) error {
+	if err := last.Validate(); err != nil {
+		return err
+	}
+	if err := s.Ensure(); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(last, "", "  ")
+	if err != nil {
+		return fmt.Errorf("%w: encode last launch: %v", ErrStore, err)
+	}
+	data = append(data, '\n')
+	if err := fsutil.AtomicWriteFile(s.LastLaunchPath(), data, 0o600); err != nil {
+		return fmt.Errorf("%w: write last launch: %v", ErrStore, err)
+	}
+	return nil
+}
+
+// ReadLastLaunch reads the durable last launch. A missing record is reported as
+// ErrLastLaunchMissing so callers can show an empty state.
+func (s Store) ReadLastLaunch() (*LastLaunch, error) {
+	data, err := readPrivateFile(s.LastLaunchPath())
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, ErrLastLaunchMissing
+		}
+		return nil, err
+	}
+	var last LastLaunch
+	if err := json.Unmarshal(data, &last); err != nil {
+		return nil, fmt.Errorf("%w: decode last launch: %v", ErrLastLaunchInvalid, err)
+	}
+	if err := last.Validate(); err != nil {
+		return nil, err
+	}
+	return &last, nil
 }
 
 func readPrivateFile(path string) ([]byte, error) {

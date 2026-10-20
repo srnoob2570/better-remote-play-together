@@ -16,16 +16,36 @@ type fakeSessionRunner struct {
 	startActive  session.Active
 	startErr     error
 
+	replayActive session.Active
+	replayErr    error
+
 	restoreToken string
 	restoreErr   error
 
 	recovery   *session.Recovery
 	recoverErr error
+
+	situation    session.Situation
+	situationErr error
+
+	setupSnapshot config.SetupSnapshot
+	setupErr      error
+
+	installSetup    config.Setup
+	installErr      error
+	guideSetup      config.Setup
+	guideErr        error
+	restoreSetup    config.Restored
+	restoreSetupErr error
 }
 
 func (f *fakeSessionRunner) Start(_ context.Context, options session.StartOptions) (session.Active, error) {
 	f.startOptions = options
 	return f.startActive, f.startErr
+}
+
+func (f *fakeSessionRunner) Replay(context.Context) (session.Active, error) {
+	return f.replayActive, f.replayErr
 }
 
 func (f *fakeSessionRunner) Restore(_ context.Context, token string) error {
@@ -37,6 +57,26 @@ func (f *fakeSessionRunner) Recover(_ context.Context) (*session.Recovery, error
 	return f.recovery, f.recoverErr
 }
 
+func (f *fakeSessionRunner) Situation() (session.Situation, error) {
+	return f.situation, f.situationErr
+}
+
+func (f *fakeSessionRunner) SetupSnapshot() (config.SetupSnapshot, error) {
+	return f.setupSnapshot, f.setupErr
+}
+
+func (f *fakeSessionRunner) InstallSetup(context.Context) (config.Setup, error) {
+	return f.installSetup, f.installErr
+}
+
+func (f *fakeSessionRunner) RecordGuideSetup(context.Context) (config.Setup, error) {
+	return f.guideSetup, f.guideErr
+}
+
+func (f *fakeSessionRunner) RestoreSetup(context.Context) (config.Restored, error) {
+	return f.restoreSetup, f.restoreSetupErr
+}
+
 func TestSessionMethodsDelegate(t *testing.T) {
 	fake := &fakeSessionRunner{
 		startActive: session.Active{Token: "started"},
@@ -44,11 +84,11 @@ func TestSessionMethodsDelegate(t *testing.T) {
 	}
 	service := &Service{sessions: fake}
 
-	active, err := service.StartSession(nil, session.StartOptions{TargetAppID: 900001, CloseSteam: true})
+	active, err := service.StartSession(nil, session.StartOptions{TargetAppID: 900001})
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
-	if active.Token != "started" || fake.startOptions.TargetAppID != 900001 || !fake.startOptions.CloseSteam {
+	if active.Token != "started" || fake.startOptions.TargetAppID != 900001 {
 		t.Fatalf("start active=%+v options=%+v", active, fake.startOptions)
 	}
 
