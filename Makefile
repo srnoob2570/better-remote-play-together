@@ -19,7 +19,7 @@ helper:
 		-ldflags "-s -w -X main.version=$(VERSION)" \
 		-o $(HELPER) ./cmd/better-rpt-helper
 
-deb:
+deb: build
 	VERSION="$(VERSION)" ./scripts/build-deb.sh
 
 test:

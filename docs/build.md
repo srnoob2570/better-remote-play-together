@@ -1,11 +1,11 @@
 # Compilación y empaquetado
 
-Receta verificada para el ticket 18. El `.deb` final se construye en un
-contenedor **Ubuntu 22.04** (amd64), con Fyne v2.8.2, Go 1.27.2 y nfpm v2.48.0.
-El binario resultante usa como máximo `GLIBC_2.34`; el paquete declara
-`libc6 >= 2.35` como mínimo soportado. Se probó una instalación limpia del
-`.deb` en Ubuntu 22.04, el arranque GUI como usuario no root, el rechazo de root
-y `dpkg-shlibdeps`. El AppImage se construye sobre la misma base Ubuntu 22.04; su
+Receta verificada para el ticket 12. El `.deb` final se construye en un
+contenedor **Ubuntu 22.04** (amd64), con Wails v3.0.0-beta.33/GTK3/WebKit2GTK
+4.1, Go 1.27.2 y nfpm v2.48.0. El paquete declara `libc6 >= 2.35` como mínimo
+soportado. Se probó una instalación limpia del `.deb` en Ubuntu 22.04, el
+arranque GUI como usuario no root en X11 y Wayland, el rechazo de root y
+`dpkg-shlibdeps`. El AppImage se construye sobre la misma base Ubuntu 22.04; su
 receta está en `docs/appimage.md`.
 
 ## Dependencias de compilación (Debian/Ubuntu)
@@ -26,9 +26,9 @@ sudo apt-get install \
 - Wails v3 se instala con el tag `gtk3`; el CLI por defecto busca GTK4:
   `go install -tags gtk3 github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.33`.
 - El frontend requiere Node 20.19+ (probado con Node 24) y `npm ci`.
-- La sección de empaquetado de este documento todavía describe el binario Fyne;
-  el ticket 12 la actualiza para Wails/GTK3. Mientras tanto, `make build`
-  produce el binario Wails local y `make helper` no cambia.
+- `make deb` depende de `make build`: primero genera los bindings y
+  `cmd/better-rpt/dist`, y después compila dentro de Ubuntu 22.04. `make helper`
+  no cambia.
 
 ## Desarrollo local
 
@@ -108,6 +108,7 @@ docker run --rm -v "$PWD:/src" -w /src ubuntu:22.04 bash -c '
   apt-get update
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates curl build-essential pkgconf \
+    libgtk-3-dev libwebkit2gtk-4.1-dev \
     libgl1-mesa-dev libwayland-dev libxkbcommon-dev \
     libx11-dev libxext-dev libxrender-dev libxfixes-dev \
     libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
@@ -116,7 +117,7 @@ docker run --rm -v "$PWD:/src" -w /src ubuntu:22.04 bash -c '
   export PATH=/usr/local/go/bin:$PATH
   export GOTOOLCHAIN=local
   go version
-  CGO_ENABLED=1 go build -trimpath -buildvcs=false \
+  CGO_ENABLED=1 go build -tags "gtk3 production" -trimpath -buildvcs=false \
     -ldflags "-s -w -X main.version=0.1.2" \
     -o dist/better-rpt ./cmd/better-rpt
   CGO_ENABLED=0 go build -trimpath -buildvcs=false \
@@ -125,18 +126,18 @@ docker run --rm -v "$PWD:/src" -w /src ubuntu:22.04 bash -c '
 '
 ```
 
-El binario Fyne quedó en 25,6 MB y el helper estático en 3,4 MB. Verificar la
-versión de glibc con `objdump -T dist/better-rpt | grep GLIBC` (máximo
-`GLIBC_2.34`) y `dpkg-shlibdeps`; no asumirla por la versión del contenedor.
-La compilación en Ubuntu 22.04 se completó; no fue necesario usar Ubuntu 24.04 como
-alternativa.
+El binario Wails quedó en 11,5 MB y el helper estático en 3,4 MB. El binario
+embebe `cmd/better-rpt/dist`; `make build` genera ese directorio antes de `make
+deb`. Verificar la versión de glibc con `objdump -T dist/better-rpt | grep GLIBC`
+y `dpkg-shlibdeps`; no asumirla por la versión del contenedor. La compilación en
+Ubuntu 22.04 se completó; no fue necesario usar Ubuntu 24.04 como alternativa.
 
 ## Compilar
 
 ```bash
 mkdir -p dist
 CGO_ENABLED=1 GOTOOLCHAIN=go1.27.2 \
-  go build -trimpath -buildvcs=false \
+  go build -tags "gtk3 production" -trimpath -buildvcs=false \
   -ldflags "-s -w -X main.version=${VERSION}" \
   -o dist/better-rpt ./cmd/better-rpt
 
@@ -146,11 +147,13 @@ CGO_ENABLED=0 GOTOOLCHAIN=go1.27.2 \
   -o dist/better-rpt-helper ./cmd/better-rpt-helper
 ```
 
-El helper no tiene interfaz gráfica, es estático y no usa Fyne; la app lo copia a
-`$XDG_DATA_HOME/better-rpt/bin/better-rpt-helper`. La versión final es
-`0.1.2`. `-trimpath` y `-buildvcs=false` son necesarios para la
-reproducibilidad; `-s -w` reduce el binario. El binario Fyne final mide
-25,6 MB y el helper estático 3,4 MB; `--version` reporta `0.1.2` en ambos.
+El binario de la app necesita `cmd/better-rpt/dist` (frontend y assets); usa
+`make build` para generarlo, o copia el resultado de `cd frontend && npm run
+build` en ese directorio. El helper no tiene interfaz gráfica, es estático y no enlaza GTK ni WebKit; la
+app lo copia a `$XDG_DATA_HOME/better-rpt/bin/better-rpt-helper`.
+La versión final es `0.1.2`. `-trimpath` y `-buildvcs=false` son necesarios para
+la reproducibilidad; `-s -w` reduce el binario. El binario Wails final mide
+11,5 MB y el helper estático 3,4 MB; `--version` reporta `0.1.2` en ambos.
 
 ## nfpm
 
@@ -167,9 +170,9 @@ variable `VERSION`; nfpm expande
 `${VERSION}` del entorno al leer la configuración. `make deb` ya define esa
 variable.
 
-Configuración validada (adaptar maintainer, homepage, versión y rutas a la
-estructura del repositorio; la prueba usó rutas planas y aquí se muestran
-`dist/` y `packaging/`):
+Fragmento representativo; la fuente autoritativa es `packaging/nfpm.yaml`. El
+archivo real incluye los nueve iconos hicolor de 16 a 512 px y el resto de
+metadatos:
 
 ```yaml
 name: better-rpt
@@ -188,6 +191,8 @@ scripts:
   preremove: ./packaging/prerm.sh
 depends:
   - libc6 (>= 2.35)
+  - libgtk-3-0t64 | libgtk-3-0
+  - libwebkit2gtk-4.1-0
   - libgl1
   - libegl1
   - libwayland-client0 (>= 1.20.0)
@@ -248,12 +253,12 @@ Icon=better-rpt
 Terminal=false
 Categories=Game;
 Keywords=Steam;Remote Play;RPT;
-StartupWMClass=Better RPT
+StartupWMClass=Better-rpt
 ```
 
-`desktop-file-validate` pasa sin avisos. El `WM_CLASS` observado con Fyne
-`app.New()` fue `"Better RPT", "Better RPT"`; si la app final usa
-`app.NewWithID`, hay que volver a comprobarlo y ajustar `StartupWMClass`.
+`desktop-file-validate` pasa sin avisos. El `WM_CLASS` observado con
+Wails/GTK3 es `"better-rpt", "Better-rpt"`, que coincide con
+`StartupWMClass=Better-rpt`.
 
 ## Caché de compilación
 
@@ -274,74 +279,51 @@ docker volume rm better-rpt-deb-go-build better-rpt-deb-go-mod
 /usr/bin/better-rpt
 /usr/lib/better-rpt/better-rpt-helper
 /usr/share/applications/better-rpt.desktop
-/usr/share/icons/hicolor/256x256/apps/better-rpt.png
+/usr/share/icons/hicolor/{16x16,24x24,32x32,48x48,64x64,128x128,256x256,512x512}/apps/better-rpt.png
 /usr/share/doc/better-rpt/README.md
 /usr/share/doc/better-rpt/LICENSE
 /usr/share/doc/better-rpt/copyright
 ```
 
 No se instala configuración de usuario ni servicios. `Installed-Size` es
-29.746 KB; el `.deb` final mide 13,9 MB (14.556.414 bytes). El icono es PNG
-256×256 de 8 bits.
+15.248 KB; el `.deb` final mide 6,3 MB (6.601.888 bytes). Se instalan los nueve
+iconos hicolor de 16 a 512 px.
 
 ## Dependencias de runtime
 
-`ldd` solo muestra las bibliotecas enlazadas directamente:
+El binario Wails/GTK3 enlaza GTK3 y WebKit2GTK 4.1. `packaging/nfpm.yaml`
+declara, además de `libc6 (>= 2.35)`:
 
-- `libc6`, `libgl1`, `libwayland-client0`, `libx11-6`.
+- `libgtk-3-0t64 | libgtk-3-0` y `libwebkit2gtk-4.1-0` (obligatorias).
+- `libgl1`, `libegl1`, Wayland (`libwayland-client0`, `libwayland-cursor0`,
+  `libwayland-egl1`, `libxkbcommon0`) y X11 (`libx11-6`, `libx11-xcb1`,
+  `libxcursor1`, `libxi6`, `libxinerama1`, `libxrandr2`, `libxxf86vm1`).
+- `libdecor-0-0` y `libdecor-0-plugin-1-gtk` quedan en `Recommends`; sin ellos
+  GTK puede usar decoraciones de servidor o X11.
 
-GLFW carga por `dlopen` otras bibliotecas que `dpkg-shlibdeps` no ve:
-
-- Wayland: `libwayland-cursor0`, `libwayland-egl1`, `libxkbcommon0`.
-- EGL: `libegl1` (y `libegl-mesa0` como dependencia).
-- X11: `libx11-xcb1`, `libxcursor1`, `libxi6`, `libxinerama1`, `libxrandr2`,
-  `libxxf86vm1`.
-- Decoraciones Wayland opcionales: `libdecor-0-0` y
-  `libdecor-0-plugin-1-gtk` (este último arrastra GTK3, no WebKitGTK).
-
-`dpkg-shlibdeps -O` sobre el binario final en Ubuntu 22.04 devolvió:
-
-```text
-shlibs:Depends=libc6 (>= 2.34), libgl1, libwayland-client0 (>= 1.20.0)
-```
-
-El binario necesita como máximo `GLIBC_2.34`; el paquete declara `libc6 (>= 2.35)`
-como mínimo soportado. La lista de `Depends` añade manualmente las
-bibliotecas de `dlopen`.
-`libdecor` queda en `Recommends`: en un compositor con decoraciones de servidor
-no se necesita; sin él, GLFW puede quedar sin decoraciones o usar X11 como
-alternativa. Si se quiere minimizar el paquete, el plugin puede pasar a `Suggests`.
+`dpkg-deb -I dist/better-rpt_0.1.2-1_amd64.deb` confirma esas dependencias y
+recomendaciones. La instalación limpia en Ubuntu 22.04 resolvió GTK3 y
+WebKit2GTK 4.1 desde los repositorios.
 
 ## Wayland y X11
 
-Probado con el binario extraído del `.deb`:
+Probado con el `.deb` instalado en Ubuntu 22.04:
 
-- **X11**: Xvfb, arranca y permanece vivo; `WM_CLASS` correcto.
-- **Wayland puro**: con `DISPLAY` sin definir y `WAYLAND_DISPLAY` presente,
-  Fyne elige Wayland y carga `libwayland-cursor`, `libwayland-egl`,
-  `libxkbcommon`, EGL y `libdecor`.
-- **Sesión mixta**: con `WAYLAND_DISPLAY` y `DISPLAY` definidos, Fyne 2.8.2
-  consulta `zxdg_decoration_manager_v1`; si el compositor no ofrece
-  decoraciones de servidor, fuerza X11 como alternativa. Se puede forzar Wayland
-  con `FYNE_PLATFORM=wayland` y X11 con `FYNE_PLATFORM=x11`.
-- Recomendación: dejar la autodetección; documentar `FYNE_PLATFORM` para
-  la resolución de problemas. No fijarlo en el `.desktop`, porque rompería el otro backend.
+- **X11**: Xvfb, la ventana `Better RPT` aparece y el proceso permanece vivo;
+  arranque medido en 432 ms.
+- **Wayland puro**: Weston headless (`--backend=headless-backend.so`) con
+  `GDK_BACKEND=wayland`, `WAYLAND_DISPLAY` y sin `DISPLAY`; la app queda
+  `GUI_RUNNING`, carga los assets y registra `WebKit2GTK 4.1`. Los avisos de
+  asiento/portal son del compositor headless sin escritorio.
+- **Recomendación**: dejar que GTK/Wails detecte el backend; no fijar
+  `GDK_BACKEND` en el `.desktop`. El AppRun solo comprueba las bibliotecas.
 
 ## Accesibilidad en Linux
 
-Fyne 2.8.2 implementa accesibilidad para macOS, Windows, iOS y Android. En Linux,
-`internal/driver/glfw/accessibility_notdarwin.go` no hace nada; la etiqueta de
-compilación `accessibility` compila pero **no añade soporte de lector de pantalla
-en Linux**.
-
-Por tanto:
-
-- No se publica una compilación `accessibility` separada: no añadiría nada.
-- Sí se mantienen navegación por teclado, nombres accesibles, chips con texto y
-  contraste.
-- Si el lector de pantalla pasa a ser requisito bloqueante, Fyne 2.8 no lo cubre
-  en Linux; habría que evaluar Wails/GTK u otro toolkit, que añadiría WebKitGTK.
-  No bloquea el MVP.
+La UI React se renderiza en WebKitGTK y conserva navegación por teclado,
+nombres accesibles, foco visible y contraste. La auditoría de paridad y las
+pruebas de accesibilidad se cierran en el ticket 13. No se publica una variante
+`accessibility` separada.
 
 ## Compatibilidad de glibc
 

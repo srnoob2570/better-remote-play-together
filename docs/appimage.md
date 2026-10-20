@@ -1,6 +1,6 @@
 # AppImage
 
-Decisión del ticket 10. El AppImage es el artefacto secundario para distribuciones sin `.deb`; el `.deb` sigue siendo el principal.
+Decisión del ticket 16. El AppImage es el artefacto secundario para distribuciones sin `.deb`; el `.deb` sigue siendo el principal.
 
 ## Decisión principal: helper estable
 
@@ -13,7 +13,7 @@ $XDG_DATA_HOME/better-rpt/bin/better-rpt-helper
 # alternativa: ~/.local/share/better-rpt/bin/better-rpt-helper
 ```
 
-Es un binario sin interfaz gráfica `better-rpt-helper`, sin Fyne ni CGO, compartido por `.deb` y AppImage. La app lo instala o actualiza al arrancar:
+Es un binario sin interfaz gráfica `better-rpt-helper`, estático y sin CGO, compartido por `.deb` y AppImage. La app lo instala o actualiza al arrancar:
 
 - **AppImage:** origen `$APPDIR/usr/lib/better-rpt/better-rpt-helper`.
 - **`.deb`:** origen `/usr/lib/better-rpt/better-rpt-helper`.
@@ -41,19 +41,28 @@ BetterRPT.AppDir/
     └── lib/better-rpt/better-rpt-helper
 ```
 
-`AppRun` resuelve su propio directorio y ejecuta `usr/bin/better-rpt`. El `.desktop` usa `Exec=better-rpt`, `Icon=better-rpt` y `StartupWMClass=Better RPT`.
+`AppRun` resuelve su propio directorio, comprueba GTK3/WebKit2GTK 4.1 y ejecuta `usr/bin/better-rpt`. El `.desktop` usa `Exec=better-rpt`, `Icon=better-rpt` y `StartupWMClass=Better-rpt`.
 
 ## Compilación
 
-El binario Fyne final se construye en Ubuntu 22.04 (glibc 2.35), igual que el `.deb`:
+El binario Wails/GTK3 final se construye en Ubuntu 22.04 (glibc 2.35), igual que el `.deb`. `make build VERSION=0.1.2` genera el frontend, los bindings y `cmd/better-rpt/dist`, y compila con los tags de Wails:
 
 ```bash
-CGO_ENABLED=1 GOTOOLCHAIN=go1.27.2 go build -trimpath -buildvcs=false \
+make build VERSION=0.1.2
+```
+
+La compilación manual equivalente, una vez existen los assets web, es:
+
+```bash
+CGO_ENABLED=1 GOTOOLCHAIN=go1.27.2 go build -tags "gtk3 production" \
+  -trimpath -buildvcs=false \
   -ldflags '-s -w -X main.version=0.1.2' -o dist/better-rpt ./cmd/better-rpt
 
 CGO_ENABLED=0 GOTOOLCHAIN=go1.27.2 go build -trimpath -buildvcs=false \
   -ldflags '-s -w -X main.version=0.1.2' -o dist/better-rpt-helper ./cmd/better-rpt-helper
 ```
+
+`cmd/better-rpt/dist` debe existir antes de compilar el binario Wails; `make build` lo deja listo. El helper no usa GTK ni WebKit.
 
 AppDir y AppImage con las herramientas fijadas:
 
@@ -71,8 +80,8 @@ chmod 0755 dist/BetterRPT.AppDir/AppRun \
   dist/BetterRPT.AppDir/usr/lib/better-rpt/better-rpt-helper
 
 ARCH=x86_64 SOURCE_DATE_EPOCH=1700000000 APPIMAGE_EXTRACT_AND_RUN=1 \
-  /tmp/opencode/appimage-poc/appimagetool --no-appstream \
-  --runtime-file /tmp/opencode/appimage-poc/runtime-x86_64 \
+  "$HOME/.cache/better-rpt/release-tools/appimagetool" --no-appstream \
+  --runtime-file "$HOME/.cache/better-rpt/release-tools/runtime-x86_64" \
   dist/BetterRPT.AppDir dist/BetterRPT-0.1.2-x86_64.AppImage
 ```
 
@@ -81,14 +90,14 @@ Herramientas verificadas:
 - `appimagetool` continuous, git `854e19e`, build 313 (2026-10-04), SHA-256 `95cbe7cce9717fce90c484e34052ee7c7f1d7635b33c12525b4776826a7d29b6`.
 - Runtime type2 commit `fedfad5`, SHA-256 `617aa77314d57c8b8e4fae9c3f0b35af7b30d5529cb69e98f64f92510ed98a46`, 944.632 bytes.
 - Para reproducibilidad, guardar ambos binarios en el repositorio de compilación o en caché con esos hashes; no depender de `continuous` ni de la descarga en cada compilación.
-- Dos compilaciones con el mismo AppDir y `SOURCE_DATE_EPOCH=1700000000` dieron el mismo SHA-256: `594792a204333b4d7f6315a11150b08588d71e798485cd6da1caa927435c723a` (13,7 MB).
+- La compilación de referencia con el mismo AppDir y `SOURCE_DATE_EPOCH=1700000000` produjo `23b9eb8d558e8b9ab87ea0eb9a051b091f01da0ad5ba87f5bafe8ca9b39a79e3` (6,6 MB). El script de release repite la compilación para comprobar reproducibilidad antes de publicar.
 
 ## Runtime
 
 - El runtime type2 verificado es `static-pie`; no contiene `libfuse.so.2`. Usa `fusermount`/`fusermount3` del sistema y es compatible con FUSE 3.
 - Si FUSE no está disponible: ejecutar con `--appimage-extract-and-run` o `APPIMAGE_EXTRACT_AND_RUN=1`. Esa extracción temporal **no** se usa para el launch option.
-- El AppImage no incluye glibc, GL, Wayland ni X11: se usan las bibliotecas del sistema. Requisitos mínimos: glibc ≥ 2.35, `libwayland-client`, `libwayland-cursor`, `libwayland-egl`, `libxkbcommon`, Mesa/GL y las bibliotecas X11 que use la sesión. Un contenedor mínimo sin ellas falla al cargar `libwayland-client.so.0`.
-- Probado con el artefacto final: `--version` directo con FUSE, con `APPIMAGE_EXTRACT_AND_RUN=1` y con `--appimage-extract-and-run`; GUI bajo Xvfb con datos simulados; extracción con `--appimage-extract` verificada. También se comprobó `--version` en Fedora 44 y Arch tras instalar las bibliotecas gráficas.
+- El AppImage no incluye glibc, GTK3, WebKit2GTK 4.1, GL, Wayland ni X11: se usan las bibliotecas del sistema. Requisitos mínimos: glibc ≥ 2.35, `libgtk-3-0`/`libgtk-3-0t64`, `libwebkit2gtk-4.1-0`, `libwayland-client`, `libwayland-cursor`, `libwayland-egl`, `libxkbcommon`, Mesa/GL y las bibliotecas X11 que use la sesión. `AppRun` comprueba GTK/WebKit y muestra qué falta.
+- Probado con el artefacto final: `--version` directo con FUSE, con `APPIMAGE_EXTRACT_AND_RUN=1` y con `--appimage-extract-and-run`; GUI bajo Xvfb con el catálogo real de Steam (5 juegos), cierre limpio con `WM_DELETE_WINDOW` y extracción con `--appimage-extract` verificada. También se comprobó `--version` en Fedora 44 y Arch tras instalar las bibliotecas gráficas.
 - Linux Mint/Pop!_OS y otras familias con glibc ≥ 2.35 no se probaron una a una; no se declara una garantía por versión.
 - **No hay pruebas de GUI de extremo a extremo en Fedora/Arch** ni una sesión real de Steam/SpaceWar: el entorno de prueba no tenía esa combinación. No se declara soporte de GUI en esas distribuciones.
 
@@ -96,7 +105,7 @@ Herramientas verificadas:
 
 | Sistema | AppImage | Notas |
 |---|---|---|
-| Ubuntu 22.04 | Sí, validado | FUSE, extracción, GUI y helper |
+| Ubuntu 22.04 | Sí, validado | FUSE, extracción, X11, Wayland (Weston headless), GUI, cierre y helper |
 | Ubuntu 24.04+ / Debian 12+ | Esperado | misma base glibc; sin prueba de extremo a extremo por versión |
 | Fedora 44 | Parcial | solo `--version` con libs de sistema |
 | Arch | Parcial | solo `--version` con libs de sistema |

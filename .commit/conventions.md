@@ -38,3 +38,7 @@
   hay que actualizar ambos lados.
 - En Vitest/jsdom, Radix Tabs cambia de pestaña con `fireEvent.mouseDown`; un
   `click` simple no dispara el cambio.
+- `make deb` depende de `make build` (Wails, frontend y assets), compila en
+  Ubuntu 22.04 con `-tags "gtk3 production"` y requiere Docker/nfpm. El AppImage
+  se construye con `scripts/release.sh`; `AppRun` valida GTK3/WebKit2GTK 4.1 en
+  el host.

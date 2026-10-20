@@ -1,4 +1,27 @@
 #!/bin/sh
-# AppRun resolves the mounted AppImage directory and starts the GUI launcher.
+# AppRun resolves the mounted AppImage directory and checks the host runtime
+# before starting the GUI. The AppImage does not bundle GTK3 or WebKit2GTK.
+set -eu
+
 HERE=$(dirname "$(readlink -f "$0")")
-exec "$HERE/usr/bin/better-rpt" "$@"
+BINARY="$HERE/usr/bin/better-rpt"
+
+missing=""
+if command -v ldd >/dev/null 2>&1; then
+	missing=$(ldd "$BINARY" 2>/dev/null | awk '/not found/{print $1}' | sort -u | tr '\n' ' ')
+fi
+if [ -z "$missing" ] && command -v ldconfig >/dev/null 2>&1; then
+	for library in libgtk-3.so.0 libwebkit2gtk-4.1.so.0; do
+		if ! ldconfig -p 2>/dev/null | grep -q "$library"; then
+			missing="$missing $library"
+		fi
+	done
+fi
+if [ -n "$missing" ]; then
+	echo "Better RPT: missing runtime libraries:$missing" >&2
+	echo "Install GTK3 and WebKit2GTK 4.1; on Ubuntu 22.04:" >&2
+	echo "  sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0" >&2
+	exit 1
+fi
+
+exec "$BINARY" "$@"

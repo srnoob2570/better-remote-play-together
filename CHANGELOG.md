@@ -18,6 +18,9 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - El panel de sesión permite preparar, cancelar, seguir y restaurar sesiones,
   muestra los detalles y la guía de lanzamiento, y cubre la última sesión,
   avisos y diálogos en ES/EN.
+- El `.deb` y el AppImage se construyen sobre Wails v3 con GTK3/WebKit2GTK 4.1,
+  incluyen el helper estable y comprueban las bibliotecas del sistema antes de
+  arrancar.
 
 ## [0.1.2] - 2026-10-20 (57d6fc6)
 

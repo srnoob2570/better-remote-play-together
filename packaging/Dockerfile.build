@@ -8,6 +8,8 @@ RUN apt-get update \
         curl \
         build-essential \
         pkgconf \
+        libgtk-3-dev \
+        libwebkit2gtk-4.1-dev \
         libgl1-mesa-dev \
         libwayland-dev \
         libxkbcommon-dev \

@@ -28,11 +28,14 @@ automático es opcional y no cierra Steam.
   `GLIBC_2.34` y el paquete declara 2.35 como mínimo soportado.
 - Steam nativo (no Flatpak ni Snap).
 - SpaceWar (480) instalado en la misma cuenta de Steam. Es gratuito.
-- Sesión gráfica X11 o Wayland y las bibliotecas OpenGL del sistema.
-- El AppImage no empaqueta Wayland, GL ni X11: el sistema debe tener
-  `libwayland-client`, `libwayland-cursor`, `libwayland-egl`, `libxkbcommon`,
-  Mesa/GL y las bibliotecas X11 que use la sesión. Los contenedores mínimos sin
-  estas bibliotecas no pueden ejecutarlo.
+- Sesión gráfica X11 o Wayland, GTK 3 y WebKit2GTK 4.1
+  (`libgtk-3-0`/`libgtk-3-0t64` y `libwebkit2gtk-4.1-0` en Ubuntu 22.04), además
+  de las bibliotecas OpenGL del sistema.
+- El AppImage no empaqueta GTK3, WebKit2GTK 4.1, Wayland, GL ni X11: el sistema
+  debe tener `libgtk-3-0`, `libwebkit2gtk-4.1-0`, `libwayland-client`,
+  `libwayland-cursor`, `libwayland-egl`, `libxkbcommon`, Mesa/GL y las
+  bibliotecas X11 que use la sesión. Los contenedores mínimos sin estas
+  bibliotecas no pueden ejecutarlo; `AppRun` lo comprueba y muestra qué falta.
 - Para ejecutar el AppImage con FUSE: `fuse3`/`fusermount3`. Si no está
   disponible, se puede usar `--appimage-extract-and-run`.
 - No necesitas root para usar la aplicación. Better RPT se niega a arrancar
@@ -60,7 +63,7 @@ El paquete instala:
 /usr/bin/better-rpt
 /usr/lib/better-rpt/better-rpt-helper
 /usr/share/applications/better-rpt.desktop
-/usr/share/icons/hicolor/256x256/apps/better-rpt.png
+/usr/share/icons/hicolor/{16x16,24x24,32x32,48x48,64x64,128x128,256x256,512x512}/apps/better-rpt.png
 /usr/share/doc/better-rpt/
 ```
 
@@ -180,9 +183,9 @@ toca opciones de lanzamiento de otras aplicaciones.
   En Fedora 44 y Arch solo se verificó `--version` con las bibliotecas gráficas
   instaladas; no hay pruebas de GUI de extremo a extremo ni soporte declarado
   en esas distribuciones.
-- **Accesibilidad:** hay navegación por teclado, atajos y chips con texto.
-  Fyne 2.8 no implementa lector de pantalla en Linux, y no es un requisito
-  bloqueante del MVP.
+- **Accesibilidad:** navegación por teclado, atajos, foco visible y contraste.
+  La UI React se renderiza en WebKitGTK; la auditoría de accesibilidad se
+  cierra en el ticket 13.
 - **Una sesión a la vez:** no se pueden preparar dos donantes ni lanzar dos
   targets concurrentes.
 
@@ -257,8 +260,8 @@ parámetros.
 ### El AppImage no arranca
 
 Instala `fuse3` o ejecuta con `--appimage-extract-and-run`. En Wayland, si hay
-problemas de decoración o GL, prueba `FYNE_PLATFORM=x11` (o `wayland` si tu
-sesión lo soporta). La autodetección es el comportamiento recomendado.
+problemas de decoración o GL, deja que GTK/Wails detecte el backend; no hace
+falta fijar `GDK_BACKEND`.
 
 ### El juego arranca pero no aparece Remote Play Together
 
@@ -404,12 +407,14 @@ better-rpt
 ## Compilación reproducible
 
 La receta completa está en [`docs/build.md`](docs/build.md) y
-[`docs/appimage.md`](docs/appimage.md). Los artefactos de esta versión se
-construyeron en un contenedor Ubuntu 22.04 con Go 1.27.2, Fyne 2.8.2, CGO,
-`-trimpath`, `-buildvcs=false`, `-ldflags '-s -w'`, nfpm 2.48.0 y
+[`docs/appimage.md`](docs/appimage.md). Los artefactos se construyen en un
+contenedor Ubuntu 22.04 con Go 1.27.2, Wails v3.0.0-beta.33/GTK3/WebKit2GTK 4.1,
+CGO, `-trimpath`, `-buildvcs=false`, `-ldflags '-s -w'`, nfpm 2.48.0 y
 `SOURCE_DATE_EPOCH=1700000000`. El AppImage usa el runtime type2 fijado y
-`appimagetool` con hash publicado. La instalación limpia del `.deb` y el arranque
-GUI se probaron en Ubuntu 22.04; el AppImage se probó con FUSE y con extracción.
+`appimagetool` con hash publicado. La instalación limpia del `.deb`, el arranque
+GUI en X11 y Wayland y el AppImage con FUSE, extracción y cierre limpio se
+probaron en Ubuntu 22.04. Tamaños de referencia: binario 11,5 MB, `.deb` 6,3 MB
+y AppImage 6,6 MB.
 
 Pruebas automatizadas:
 
@@ -424,17 +429,19 @@ Steam ni juegos reales.
 
 ## Estado de verificación de esta versión
 
-- 294 pruebas en 16 paquetes; `go vet` y `go test -race` pasan sin errores.
-- Binario y helper construidos en Ubuntu 22.04; símbolo máximo `GLIBC_2.34`.
-  `dpkg-shlibdeps` pidió `libc6 (>= 2.34)`; el paquete declara `2.35` como
-  mínimo soportado.
-- `.deb` instalado desde cero en Ubuntu 22.04, con `dpkg-shlibdeps`, arranque
-  GUI como usuario no root y rechazo de root comprobados.
-- AppImage arrancado directamente con FUSE y con `--appimage-extract-and-run`;
-  GUI bajo Xvfb y helper estable probados. Fedora 44 y Arch solo se probaron con
-  `--version` y bibliotecas gráficas del sistema.
-- Dos compilaciones consecutivas del AppImage y del `.deb` dieron el mismo
-  SHA-256 en cada formato. Consulta `dist/SHA256SUMS`.
+- 407 pruebas en 19 paquetes; `go vet` pasa sin errores.
+- Binario y helper construidos en Ubuntu 22.04 con `-tags "gtk3 production"`;
+  el `.deb` declara `libc6 (>= 2.35)`, GTK3 y WebKit2GTK 4.1.
+- `.deb` instalado desde cero en Ubuntu 22.04; `better-rpt --version` y arranque
+  GUI como usuario no root comprobados en X11 (432 ms hasta la ventana). Wayland
+  se comprobó con Weston headless en el mismo contenedor.
+- AppImage arrancado con FUSE y con `--appimage-extract-and-run`; GUI X11 y
+  cierre limpio con `WM_DELETE_WINDOW` comprobados (883 ms hasta la ventana).
+- Medición orientativa en reposo, X11: 157.480 KB del proceso principal y
+  276.340 KB sumando los procesos de WebKit. No hay límite duro de RAM.
+- Una compilación de cada formato; los SHA-256 están en `dist/SHA256SUMS` cuando
+  se ejecuta el release completo. La verificación de reproducibilidad del
+  pipeline queda en `scripts/release.sh`.
 - **No se ha completado una sesión de extremo a extremo con Steam real y
   SpaceWar + un target nativo/Proton en este entorno.** No se afirma que esa
   combinación funcione; es la verificación pendiente antes de una publicación

@@ -15,6 +15,8 @@ vendor: Better RPT
 license: MIT
 depends:
   - libc6 (>= 2.35)
+  - libgtk-3-0t64 | libgtk-3-0
+  - libwebkit2gtk-4.1-0
   - libgl1
   - libegl1
   - libwayland-client0 (>= 1.20.0)

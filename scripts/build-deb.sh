@@ -14,6 +14,11 @@ if ! command -v docker >/dev/null 2>&1; then
 	exit 1
 fi
 
+if [ ! -f cmd/better-rpt/dist/index.html ]; then
+	echo "error: missing cmd/better-rpt/dist/index.html; run 'make build VERSION=$version' first" >&2
+	exit 1
+fi
+
 docker build --build-arg GO_VERSION=1.27.2 -t "$image" \
 	-f packaging/Dockerfile.build packaging
 
@@ -39,7 +44,7 @@ docker run --name "$container" \
 	-v "$root:/src:ro" -w /src "$image" \
 	sh -c 'set -e
 		mkdir -p /tmp/dist
-		CGO_ENABLED=1 go build -trimpath -buildvcs=false \
+		CGO_ENABLED=1 go build -tags "gtk3 production" -trimpath -buildvcs=false \
 			-ldflags "-s -w -X main.version=$VERSION" \
 			-o /tmp/dist/better-rpt ./cmd/better-rpt
 		CGO_ENABLED=0 go build -trimpath -buildvcs=false \
