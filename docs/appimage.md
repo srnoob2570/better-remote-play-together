@@ -90,7 +90,7 @@ Herramientas verificadas:
 - `appimagetool` continuous, git `854e19e`, build 313 (2026-10-04), SHA-256 `95cbe7cce9717fce90c484e34052ee7c7f1d7635b33c12525b4776826a7d29b6`.
 - Runtime type2 commit `fedfad5`, SHA-256 `617aa77314d57c8b8e4fae9c3f0b35af7b30d5529cb69e98f64f92510ed98a46`, 944.632 bytes.
 - Para reproducibilidad, guardar ambos binarios en el repositorio de compilación o en caché con esos hashes; no depender de `continuous` ni de la descarga en cada compilación.
-- La compilación de referencia con el mismo AppDir y `SOURCE_DATE_EPOCH=1700000000` produjo `714f4bb837b2c196ac5d2b1f2629c9029cad2c27e75afc83056f138c6b6a31b6` (6,6 MB). El script de release repite la compilación para comprobar reproducibilidad antes de publicar.
+- La compilación de referencia con el mismo AppDir y `SOURCE_DATE_EPOCH=1700000000` produjo `8591dc468f089fe4e438c16762e82659dbb7c0cb49ea276712a0280f429f88ff` (7,7 MB). El script de release repite la compilación para comprobar reproducibilidad antes de publicar.
 
 ## Runtime
 

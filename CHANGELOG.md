@@ -7,6 +7,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-20 (370a955)
+
 ### Added
 
 - La aplicación se inicia ahora sobre Wails v3 y React, conservando la ventana
@@ -63,6 +65,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 - Se retiró la interfaz anterior y sus dependencias; la aplicación usa
   exclusivamente Wails v3, React y WebKitGTK.
+
+**Full changelog:** [v0.1.2...v0.2.0][0.2.0]
 
 ## [0.1.2] - 2026-10-20 (57d6fc6)
 
@@ -172,7 +176,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Cierre y reapertura automática de Steam durante la preparación.
 - Diálogo «Cerrar Steam para preparar» y textos asociados.
 
-[Unreleased]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/srnoob2570/better-remote-play-together/releases/tag/v0.1.0

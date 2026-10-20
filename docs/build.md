@@ -286,7 +286,7 @@ docker volume rm better-rpt-deb-go-build better-rpt-deb-go-mod
 ```
 
 No se instala configuración de usuario ni servicios. `Installed-Size` es
-15.248 KB; el `.deb` final mide 6,3 MB (6.602.126 bytes). Se instalan los nueve
+16.751 KB; el `.deb` final mide 7,4 MB (7.788.780 bytes). Se instalan los nueve
 iconos hicolor de 16 a 512 px.
 
 ## Dependencias de runtime
