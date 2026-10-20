@@ -363,7 +363,13 @@ describe("library UI", () => {
 
   it("shows the guide command and setup state", async () => {
     mocked.RecoverSession.mockResolvedValue(
-      recovery({ setup: { status: "guide", hasBackup: true } }),
+      recovery({
+        setup: {
+          status: "guide",
+          hasBackup: true,
+          originalValue: "gamemoderun %command%",
+        },
+      }),
     );
     render(<App />);
     await screen.findAllByText("HELLDIVERS™ 2");
@@ -372,6 +378,12 @@ describe("library UI", () => {
     expect(await screen.findByText("Comando para SpaceWar")).toBeInTheDocument();
     expect(screen.getByText("better-rpt-helper --donor -- %command%")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Copiar comando" })).toBeInTheDocument();
+
+    const manualRestore = screen.getByRole("button", { name: "Restauración manual" });
+    expect(manualRestore).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(manualRestore);
+    expect(manualRestore).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("gamemoderun %command%")).toBeInTheDocument();
   });
 
   it("renders a stale configuration notice with a restore action", async () => {

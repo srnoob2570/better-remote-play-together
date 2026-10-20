@@ -40,6 +40,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Fixed
 
+- La sección **Restauración manual** de la guía usa un desplegable accesible
+  con los componentes e iconos del resto de la interfaz.
 - El resumen de la última sesión muestra “Resultado: Terminada” en lugar de
   repetir “Terminada Terminada”, y el panel de preparación cabe completo en
   ventanas de 1024×600.

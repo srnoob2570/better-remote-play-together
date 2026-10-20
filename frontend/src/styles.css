@@ -1297,10 +1297,36 @@ button {
   font-size: var(--size-small);
 }
 
-.guide-restore summary {
-  cursor: pointer;
+.guide-restore-trigger {
+  width: 100%;
+  height: auto;
+  min-height: 24px;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--color-cream);
+  font-size: var(--size-small);
   font-weight: 600;
+}
+
+.guide-restore-trigger[data-state="open"] {
+  background: transparent;
+  color: var(--color-cream);
+}
+
+.guide-restore-trigger:hover {
+  background: transparent;
+  color: var(--color-amber);
+}
+
+.guide-restore-chevron {
+  transition: transform 150ms ease;
+}
+
+.guide-restore-trigger[data-state="open"] .guide-restore-chevron {
+  transform: rotate(90deg);
 }
 
 .guide-restore-body {
@@ -1308,6 +1334,12 @@ button {
   flex-direction: column;
   gap: 8px;
   padding-top: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-restore-chevron {
+    transition: none;
+  }
 }
 
 @media (max-height: 700px) {

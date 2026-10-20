@@ -9,6 +9,11 @@ import {
   DialogTitle as UIDialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { toast } from "@/components/ui/toast";
 import {
   Tabs as UITabs,
@@ -16,6 +21,7 @@ import {
   TabsList as UITabsList,
   TabsTrigger as UITabsTrigger,
 } from "@/components/ui/tabs";
+import { ChevronRightIcon } from "lucide-react";
 
 import { artUrl } from "../art";
 import { bridge } from "../bridge/wails";
@@ -869,16 +875,21 @@ function GuidePanel({ lang, session }: { lang: Language; session: SessionControl
       </ol>
 
       {setup?.hasBackup && (
-        <details className="guide-restore">
-          <summary>{t("guide.manualRestore")}</summary>
-          <div className="guide-restore-body">
+        <Collapsible className="guide-restore">
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="guide-restore-trigger">
+              <ChevronRightIcon aria-hidden="true" className="guide-restore-chevron" />
+              {t("guide.manualRestore")}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="guide-restore-body">
             <h3 className="section-title">{t("guide.originalValue")}</h3>
             <pre className="guide-command">
               {setup.originalValue || t("guide.originalEmpty")}
             </pre>
             <p className="hint">{t("guide.restoreHint")}</p>
-          </div>
-        </details>
+          </CollapsibleContent>
+        </Collapsible>
       )}
     </div>
   );
