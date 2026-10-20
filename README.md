@@ -253,6 +253,14 @@ Abre el overlay con `Shift+Tab` y comprueba que Steam esté en línea. Si el jue
 usa un launcher externo, anti-cheat o un modo que abandona el contexto del
 donante, no hay una solución universal en este MVP.
 
+### El overlay de Steam va lento o se congela
+
+Cierra la ventana principal de Steam —no salgas de Steam— antes de jugar. El
+cliente deja de renderizar la biblioteca y la tienda, y el overlay suele
+responder mejor. Es una mitigación de una regresión conocida de Steam; si
+persiste, prueba la beta o abre el overlay solo para invitar y ciérralo. Esto no
+corrige la pérdida de paquetes de la red local.
+
 ## Desinstalación
 
 ```bash

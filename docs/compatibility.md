@@ -58,6 +58,7 @@ Política:
 - Si el flag no existe, no se puede concluir que el overlay esté desactivado: mostrar checklist.
 - Nunca bloquear el lanzamiento solo por overlay.
 - La guía de sesión incluye: «Ajustes de Steam > En el juego > Activar el overlay» y el atajo configurado (`InGameOverlayShortcutKey`; por defecto Shift+Tab).
+- Mitigación local: cerrar la ventana principal de Steam (sin salir de Steam) antes de jugar reduce la contención del cliente CEF. No sustituye la corrección de Valve ni arregla la pérdida de paquetes de la red local.
 
 ## Target que sale inmediatamente
 
