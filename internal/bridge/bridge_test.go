@@ -48,6 +48,7 @@ type fakeApp struct {
 	hasCatalog bool
 
 	refreshFn      func(context.Context) (steam.Catalog, error)
+	ensureHelperFn func() error
 	startFn        func(context.Context, session.StartOptions) (session.Active, error)
 	replayFn       func(context.Context) (session.Active, error)
 	restoreFn      func(context.Context, string) error
@@ -73,6 +74,13 @@ func (f *fakeApp) RefreshCatalog(ctx context.Context) (steam.Catalog, error) {
 		return f.refreshFn(ctx)
 	}
 	return f.catalog, nil
+}
+
+func (f *fakeApp) EnsureHelper() error {
+	if f.ensureHelperFn != nil {
+		return f.ensureHelperFn()
+	}
+	return nil
 }
 
 func (f *fakeApp) StartSession(ctx context.Context, options session.StartOptions) (session.Active, error) {
@@ -558,6 +566,14 @@ func TestSituationAndSetup(t *testing.T) {
 	}
 	if setup.Status != "guide" || setup.CurrentValue != "current" || setup.HasBackup {
 		t.Fatalf("setup = %+v", setup)
+	}
+}
+
+func TestEnsureHelperDelegates(t *testing.T) {
+	want := errors.New("helper source missing")
+	app := &fakeApp{ensureHelperFn: func() error { return want }}
+	if err := New(app, "dev", nil).EnsureHelper(); !errors.Is(err, want) {
+		t.Fatalf("ensure helper error = %v", err)
 	}
 }
 

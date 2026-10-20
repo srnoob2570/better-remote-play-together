@@ -45,6 +45,8 @@ export interface SessionController {
   installSetup: () => Promise<void>;
   recordGuide: () => Promise<void>;
   refreshSetup: () => Promise<void>;
+  ensureHelper: () => Promise<void>;
+  recover: () => Promise<void>;
   openSpaceWarInstall: () => Promise<void>;
 }
 
@@ -270,6 +272,38 @@ export function useSession(): SessionController {
     }
   }, []);
 
+  const ensureHelper = useCallback(async () => {
+    setBusy(true);
+    setProblem(null);
+    try {
+      await bridge.EnsureHelper();
+      setNotice({ key: "wizard.helper.done", tone: "mint" });
+      await refreshContext();
+    } catch (reason: unknown) {
+      setProblem(toBridgeError(reason).problem);
+    } finally {
+      setBusy(false);
+    }
+  }, [refreshContext]);
+
+  const recover = useCallback(async () => {
+    setBusy(true);
+    setProblem(null);
+    try {
+      const recovery = await bridge.RecoverSession();
+      setState(recovery.state);
+      setSituation(recovery.situation);
+      setSetup(recovery.setup);
+      setLast(recovery.last ?? recovery.situation?.last);
+      setNotice({ key: "wizard.repair.recovered", tone: "mint" });
+      await refreshContext();
+    } catch (reason: unknown) {
+      setProblem(toBridgeError(reason).problem);
+    } finally {
+      setBusy(false);
+    }
+  }, [refreshContext]);
+
   const openSpaceWarInstall = useCallback(async () => {
     setProblem(null);
     try {
@@ -301,6 +335,8 @@ export function useSession(): SessionController {
       installSetup,
       recordGuide,
       refreshSetup,
+      ensureHelper,
+      recover,
       openSpaceWarInstall,
     }),
     [
@@ -308,6 +344,7 @@ export function useSession(): SessionController {
       cancel,
       confirmDialog,
       dialog,
+      ensureHelper,
       installSetup,
       last,
       notice,
@@ -316,6 +353,7 @@ export function useSession(): SessionController {
       problem,
       ready,
       recordGuide,
+      recover,
       refreshContext,
       refreshSetup,
       replay,

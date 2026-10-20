@@ -36,6 +36,7 @@ type App interface {
 	Language() i18n.Language
 	Catalog() (steam.Catalog, bool)
 	RefreshCatalog(ctx context.Context) (steam.Catalog, error)
+	EnsureHelper() error
 	SetLanguage(lang string) error
 	StartSession(ctx context.Context, options session.StartOptions) (session.Active, error)
 	ReplaySession(ctx context.Context) (session.Active, error)
@@ -185,6 +186,12 @@ func (b *Bridge) Situation() (Situation, error) {
 		return Situation{}, err
 	}
 	return mapSituation(situation), nil
+}
+
+// EnsureHelper installs or refreshes the stable helper. It is safe to call
+// repeatedly and leaves an in-use helper alone during an active session.
+func (b *Bridge) EnsureHelper() error {
+	return b.app.EnsureHelper()
 }
 
 // SetupSnapshot reads the dispatcher setup and the current SpaceWar option.

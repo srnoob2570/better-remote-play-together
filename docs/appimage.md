@@ -13,7 +13,7 @@ $XDG_DATA_HOME/better-rpt/bin/better-rpt-helper
 # alternativa: ~/.local/share/better-rpt/bin/better-rpt-helper
 ```
 
-Es un binario sin interfaz gráfica `better-rpt-helper`, estático y sin CGO, compartido por `.deb` y AppImage. La app lo instala o actualiza al arrancar:
+Es un binario sin interfaz gráfica `better-rpt-helper`, estático y sin CGO, compartido por `.deb` y AppImage. La app lo instala o actualiza al arrancar la GUI, antes de usar el dispatcher, y el wizard de configuración inicial permite reintentar si la copia falla:
 
 - **AppImage:** origen `$APPDIR/usr/lib/better-rpt/better-rpt-helper`.
 - **`.deb`:** origen `/usr/lib/better-rpt/better-rpt-helper`.

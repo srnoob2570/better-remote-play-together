@@ -30,6 +30,37 @@ test("diagnostics has no WCAG A/AA violations", async ({ page }) => {
   expect(results.violations).toEqual([]);
 });
 
+test("setup wizard has no WCAG A/AA violations", async ({ page }) => {
+  await page.goto("/e2e.html?e2e=setup-missing&lang=es");
+  await expect(
+    page.getByRole("dialog", { name: "Configuración inicial" }),
+  ).toBeVisible();
+
+  const results = await new AxeBuilder({ page }).withTags(wcag).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test("repair wizard has no WCAG A/AA violations", async ({ page }) => {
+  await page.goto("/e2e.html?e2e=library&lang=es");
+  await expect(page.getByRole("heading", { name: "Biblioteca" })).toBeVisible();
+  await page.getByRole("button", { name: "Diagnóstico" }).click();
+  await page.getByRole("button", { name: "Diagnóstico y reparación" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Diagnóstico y reparación" }),
+  ).toBeVisible();
+
+  const results = await new AxeBuilder({ page }).withTags(wcag).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test("session problem toast has no WCAG A/AA violations", async ({ page }) => {
+  await page.goto("/e2e.html?e2e=session-error&lang=es");
+  await expect(page.getByText("No se pudo completar la operación").last()).toBeVisible();
+
+  const results = await new AxeBuilder({ page }).withTags(wcag).analyze();
+  expect(results.violations).toEqual([]);
+});
+
 test("keyboard shortcuts and dialog focus stay inside the dialog", async ({ page }) => {
   await page.goto("/e2e.html?e2e=library&lang=es");
   await expect(page.getByRole("heading", { name: "Biblioteca" })).toBeVisible();

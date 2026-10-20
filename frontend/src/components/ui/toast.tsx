@@ -77,7 +77,7 @@ function ToastContent({ className, ...props }: ToastPrimitive.Content.Props) {
     <ToastPrimitive.Content
       data-slot="toast-content"
       className={cn(
-        "flex h-full items-start gap-3 overflow-hidden p-3 transition-opacity duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] data-behind:opacity-0 data-expanded:opacity-100",
+        "flex h-full items-center gap-3 overflow-hidden p-3 transition-opacity duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] data-behind:opacity-0 data-expanded:opacity-100",
         className,
       )}
       {...props}
@@ -117,7 +117,7 @@ function ToastAction({
     <ToastPrimitive.Action
       data-slot="toast-action"
       render={render}
-      className={cn("mt-1 shrink-0", className)}
+      className={cn("shrink-0", className)}
       {...props}
     />
   );
@@ -191,7 +191,7 @@ function ToastList({ closeLabel }: { closeLabel: string }) {
           <ToastTitle />
           <ToastDescription />
         </div>
-        {toastItem.actionProps && <ToastAction />}
+        {toastItem.actionProps && <ToastAction {...toastItem.actionProps} />}
         <ToastClose closeLabel={closeLabel} />
       </ToastContent>
     </Toast>
@@ -200,15 +200,16 @@ function ToastList({ closeLabel }: { closeLabel: string }) {
 
 function Toaster({
   closeLabel,
+  viewportLabel,
   children,
   toastManager = toast,
   ...props
-}: ToastPrimitive.Provider.Props & { closeLabel: string }) {
+}: ToastPrimitive.Provider.Props & { closeLabel: string; viewportLabel: string }) {
   return (
     <ToastProvider toastManager={toastManager} {...props}>
       {children}
       <ToastPortal>
-        <ToastViewport>
+        <ToastViewport aria-label={viewportLabel}>
           <ToastList closeLabel={closeLabel} />
         </ToastViewport>
       </ToastPortal>

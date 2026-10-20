@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -148,5 +150,35 @@ func TestSessionStateReadsStore(t *testing.T) {
 	}
 	if got.Phase != domain.PhaseActive || got.TargetPID != 200 {
 		t.Fatalf("state = %+v", got)
+	}
+}
+
+func TestEnsureHelperInstallsAndRefreshes(t *testing.T) {
+	root := t.TempDir()
+	appDir := filepath.Join(root, "appdir")
+	source := filepath.Join(appDir, "usr", "lib", "better-rpt", "better-rpt-helper")
+	if err := os.MkdirAll(filepath.Dir(source), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(source, []byte("helper-binary"), 0o755); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	t.Setenv("APPDIR", appDir)
+
+	paths := config.Paths{DataDir: filepath.Join(root, "data")}
+	service := &Service{paths: paths}
+	if err := service.EnsureHelper(); err != nil {
+		t.Fatalf("ensure helper: %v", err)
+	}
+	installed := paths.HelperPath()
+	info, err := os.Stat(installed)
+	if err != nil {
+		t.Fatalf("stat helper: %v", err)
+	}
+	if info.Mode().Perm() != 0o755 {
+		t.Fatalf("helper mode = %o", info.Mode().Perm())
+	}
+	if err := service.EnsureHelper(); err != nil {
+		t.Fatalf("ensure helper again: %v", err)
 	}
 }

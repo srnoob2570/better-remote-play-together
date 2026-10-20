@@ -32,6 +32,16 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   Steam para las opciones de lanzamiento y el comando pegado.
 - `make uninstall` elimina los archivos que instala `sudo make install` y el
   README separa esa vía de la desinstalación del `.deb`.
+- La aplicación instala o actualiza el helper estable al arrancar la GUI. Un
+  wizard de configuración inicial guía por Steam, SpaceWar, helper, comando del
+  dispatcher, dependencias del AppImage y verificación, sin crear un flag de
+  primera vez y sin borrar setup, backups ni última sesión.
+- **Diagnóstico y reparación** abre un flujo de solo lectura con el ID de cada
+  problema y una acción segura para helper, dispatcher, Steam/SpaceWar,
+  dependencias, backups o sesiones. Reutiliza la restauración y la guía
+  existentes, no cierra Steam ni usa root.
+- El comando del dispatcher no se puede copiar hasta guardar el valor original
+  cuando falta el setup o está restaurado, tanto en la guía como en el wizard.
 
 ### Changed
 

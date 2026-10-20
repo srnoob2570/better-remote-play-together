@@ -182,6 +182,11 @@ func (e *evaluator) checkHelper(ctx context.Context) Status {
 		return StatusWarn
 	}
 	e.helperEvidence = append(e.helperEvidence, "path="+info.Path)
+	if info.ExpectedSource != "" {
+		e.helperEvidence = append(e.helperEvidence, "source="+info.ExpectedSource)
+	} else if info.SourceError == "" {
+		e.helperEvidence = append(e.helperEvidence, "source=missing")
+	}
 	if !info.Exists {
 		e.helperEvidence = append(e.helperEvidence, "exists=false")
 		e.helperNext = "diag.app.helper.missingNext"

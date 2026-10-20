@@ -298,9 +298,10 @@
       "message": "El helper necesita atención.",
       "evidence": [
         "path=$HOME/.local/share/better-rpt/bin/better-rpt-helper",
+        "source=missing",
         "exists=false"
       ],
-      "nextStep": "Abre Better RPT una vez para instalar el helper.",
+      "nextStep": "La app instala el helper al arrancar. Si falta, abre Diagnóstico y reparación para reintentarlo.",
       "docs": [
         "docs/known-issues.md",
         "docs/appimage.md"

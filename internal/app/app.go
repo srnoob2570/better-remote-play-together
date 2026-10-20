@@ -9,7 +9,9 @@ import (
 
 	"github.com/srnoob2570/better-rpt/internal/config"
 	"github.com/srnoob2570/better-rpt/internal/domain"
+	"github.com/srnoob2570/better-rpt/internal/helper"
 	"github.com/srnoob2570/better-rpt/internal/i18n"
+	"github.com/srnoob2570/better-rpt/internal/session"
 	"github.com/srnoob2570/better-rpt/internal/steam"
 )
 
@@ -92,6 +94,20 @@ func (s *Service) Close() error {
 // Paths returns the immutable user paths.
 func (s *Service) Paths() config.Paths {
 	return s.paths
+}
+
+// EnsureHelper installs or refreshes the packaged helper at the stable XDG
+// path. It never uses root, never closes Steam, and leaves an in-use helper
+// alone while a session is active.
+func (s *Service) EnsureHelper() error {
+	active := false
+	if state, err := session.NewStore(s.paths.DataDir).ActiveState(); err == nil && state != nil {
+		active = true
+	}
+	if _, err := helper.NewInstaller(s.paths).Install(active); err != nil {
+		return fmt.Errorf("ensure helper: %w", err)
+	}
+	return nil
 }
 
 // Config returns a copy of the current configuration.

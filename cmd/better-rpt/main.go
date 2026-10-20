@@ -78,6 +78,10 @@ func run() int {
 		}
 	}()
 
+	if err := svc.EnsureHelper(); err != nil {
+		logger.Warn("ensure helper", "error", err)
+	}
+
 	if err := runGUI(svc, logger); err != nil {
 		logger.Error("gui failed", "error", err)
 		return 1

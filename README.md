@@ -103,9 +103,11 @@ fuera de Ubuntu 22.04 en esta versión.
    **Marcar como privado**. Así su actividad no sustituye a la de SpaceWar en
    tu perfil.
 5. Pulsa **Jugar**.
-   - Si es la primera vez, se abre la pestaña **Guía**. Pega el comando en
+   - Si es la primera vez, se abre **Configuración inicial**. Instala SpaceWar,
+     comprueba el helper, guarda el valor original y pega el comando en
      Steam → SpaceWar → Propiedades → Opciones de lanzamiento. Steam lo aplica
-     sin que Better RPT cierre ni reinicie nada.
+     sin que Better RPT cierre ni reinicie nada. La guía completa sigue
+     disponible en la pestaña **Guía**.
    - Si prefieres la instalación automática, ciérrala tú mismo y pulsa
      **Instalar automáticamente**. Better RPT nunca cierra Steam por ti.
    - Si el juego usa Proton, aparece un aviso de compatibilidad desconocida la
@@ -127,6 +129,11 @@ El botón de restaurar solo actúa si el valor actual sigue siendo el que escrib
 Better RPT. Si Steam u otro programa cambió la opción de lanzamiento, no se
 sobrescribe y se muestra el conflicto con el detalle técnico. Con Steam abierto,
 **Restaurar** muestra la guía para quitar el comando; no cierra Steam.
+
+**Diagnóstico y reparación** abre un flujo aparte, primero de solo lectura, con
+la acción segura para cada problema: helper, comando, Steam/SpaceWar,
+dependencias del AppImage, backups o sesiones. Nunca borra setup, backups ni
+última sesión sin confirmación.
 
 > Las imágenes de la guía deben ser capturas reales de Steam. Si alguna no está
 > disponible en el entorno de compilación, se usa una ilustración claramente

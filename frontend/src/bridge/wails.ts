@@ -40,6 +40,9 @@ export const bridge: Bridge = {
   async RefreshCatalog(): Promise<Catalog> {
     return toCatalog(await generated.RefreshCatalog());
   },
+  EnsureHelper(): Promise<void> {
+    return generated.EnsureHelper();
+  },
   async StartSession(input: StartSessionInput): Promise<Active> {
     return (await generated.StartSession(input)) as unknown as Active;
   },

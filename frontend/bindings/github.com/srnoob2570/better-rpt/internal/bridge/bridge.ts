@@ -30,6 +30,14 @@ export function DispatcherCommand(): $CancellablePromise<string> {
 }
 
 /**
+ * EnsureHelper installs or refreshes the stable helper. It is safe to call
+ * repeatedly and leaves an in-use helper alone during an active session.
+ */
+export function EnsureHelper(): $CancellablePromise<void> {
+    return $Call.ByID(1626599784);
+}
+
+/**
  * InstallSetup installs the persistent dispatcher; Steam must be closed.
  */
 export function InstallSetup(): $CancellablePromise<$models.Setup> {

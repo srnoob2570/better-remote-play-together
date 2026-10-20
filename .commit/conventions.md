@@ -44,6 +44,16 @@
   hay que actualizar ambos lados.
 - En Vitest/jsdom, Radix Tabs cambia de pestaña con `fireEvent.mouseDown`; un
   `click` simple no dispara el cambio.
+- El wizard de setup se deriva de `setup.json`, `SetupSnapshot`, `Situation` y
+  el informe de diagnóstico; no se añade un flag de primera vez ni un archivo
+  de estado del wizard. `installed` y `restored` no lo abren automáticamente.
+- El comando del dispatcher se construye solo en
+  `config.BuildDispatcherLaunchOption`. La pestaña Guía y los wizards comparten
+  `frontend/src/components/DispatcherSetup.tsx`; no duplicar el comando ni el
+  orden de guardar el original antes de copiar.
+- `Service.EnsureHelper` se ejecuta al arrancar la GUI y copia el helper
+  empaquetado a la ruta XDG estable. La instalación y la restauración del
+  dispatcher siguen exigiendo Steam cerrado; ningún wizard lo cierra.
 - `make deb` depende de `make build` (Wails, frontend y assets), compila en
   Ubuntu 22.04 con `-tags "gtk3 production"` y requiere Docker/nfpm. El AppImage
   se construye con `scripts/release.sh`; `AppRun` valida GTK3/WebKit2GTK 4.1 en

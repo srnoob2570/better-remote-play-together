@@ -25,6 +25,9 @@ import { DiagnosticsPane } from "./components/DiagnosticsPane";
 import { SetupIndicator } from "./components/SetupIndicator";
 import { problemText } from "./session/problem";
 import { useSession } from "./session/useSession";
+import { RepairWizard } from "./wizards/RepairWizard";
+import { SetupWizard } from "./wizards/SetupWizard";
+import { setupAutoOpen } from "./wizards/readiness";
 
 type Filter = "all" | "ready" | "unknown" | "incompatible";
 type LibraryMode = "loading" | "ready" | "empty" | "no-results" | "error";
@@ -62,7 +65,12 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(0);
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<View>("library");
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [repairOpen, setRepairOpen] = useState(false);
+  const [repairCheckId, setRepairCheckId] = useState<string | undefined>();
+  const [guideRequest, setGuideRequest] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
+  const autoSetup = useRef(false);
   const session = useSession();
   const t = (key: MessageKey, ...args: Array<string | number>) =>
     translate(lang, key, ...args);
@@ -84,12 +92,8 @@ export default function App() {
       description: session.problem.detail
         ? `${message}\n\n${session.problem.detail}`
         : message,
-      actionProps: {
-        children: translate(lang, "action.retry"),
-        onClick: () => void session.refreshContext(),
-      },
     });
-  }, [lang, session.problem, session.refreshContext]);
+  }, [lang, session.problem]);
 
   useEffect(() => {
     const error = session.state?.phase === "error" ? session.state.error : undefined;
@@ -153,6 +157,16 @@ export default function App() {
       return catalog.games.find((game) => game.appId !== 480)?.appId ?? 0;
     });
   }, [catalog]);
+
+  useEffect(() => {
+    if (autoSetup.current || !session.ready || !catalog || status !== "ready") {
+      return;
+    }
+    if (setupAutoOpen(session.setup?.status)) {
+      autoSetup.current = true;
+      setSetupOpen(true);
+    }
+  }, [catalog, session.ready, session.setup?.status, status]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -265,6 +279,24 @@ export default function App() {
     setFilter("all");
   }
 
+  function openSetup() {
+    setRepairOpen(false);
+    setSetupOpen(true);
+  }
+
+  function openRepair(checkId?: string) {
+    setSetupOpen(false);
+    setRepairCheckId(checkId);
+    setRepairOpen(true);
+  }
+
+  function openGuide() {
+    setSetupOpen(false);
+    setRepairOpen(false);
+    setView("library");
+    setGuideRequest((value) => value + 1);
+  }
+
   return (
     <div className="app-window">
       <header className="app-header">
@@ -276,7 +308,12 @@ export default function App() {
           </div>
         </div>
         <div className="header-right">
-          <SetupIndicator lang={lang} status={session.setup?.status} />
+          <SetupIndicator
+            lang={lang}
+            status={session.setup?.status}
+            ready={session.ready}
+            onOpen={openSetup}
+          />
           <Button
             variant="ghost"
             className="diagnostics-button"
@@ -306,7 +343,11 @@ export default function App() {
 
       <main className={view === "diagnostics" ? "app-main diagnostics-main" : "app-main"}>
         {view === "diagnostics" ? (
-          <DiagnosticsPane lang={lang} onBack={() => setView("library")} />
+          <DiagnosticsPane
+            lang={lang}
+            onBack={() => setView("library")}
+            onRepair={openRepair}
+          />
         ) : (
           <>
             <LibraryPane
@@ -333,11 +374,34 @@ export default function App() {
               donorInstalled={donorInstalled}
               session={session}
               onSelectLast={setSelectedId}
+              guideRequest={guideRequest}
+              onOpenSetup={openSetup}
+              onOpenRepair={openRepair}
             />
           </>
         )}
       </main>
-      <Toaster closeLabel={t("common.close")} />
+      <SetupWizard
+        open={setupOpen}
+        lang={lang}
+        session={session}
+        onClose={() => setSetupOpen(false)}
+        onOpenGuide={openGuide}
+        onOpenRepair={() => openRepair()}
+      />
+      <RepairWizard
+        open={repairOpen}
+        lang={lang}
+        session={session}
+        initialCheckId={repairCheckId}
+        onClose={() => setRepairOpen(false)}
+        onOpenGuide={openGuide}
+        onOpenSetup={openSetup}
+      />
+      <Toaster
+        closeLabel={t("common.close")}
+        viewportLabel={t("common.notifications")}
+      />
     </div>
   );
 }

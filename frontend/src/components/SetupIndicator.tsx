@@ -12,19 +12,28 @@ const SETUP_KEY: Record<SetupStatus, MessageKey> = {
 export function SetupIndicator({
   lang,
   status,
+  ready,
+  onOpen,
 }: {
   lang: Language;
   status?: SetupStatus;
+  ready: boolean;
+  onOpen: () => void;
 }) {
-  if (!status) return null;
-
+  if (!ready) return null;
+  const effective = status ?? "missing";
   return (
-    <span className="setup-indicator" data-tone={setupTone(status)}>
+    <button
+      type="button"
+      className="setup-indicator"
+      data-tone={setupTone(effective)}
+      onClick={onOpen}
+    >
       <span className="setup-indicator-label">{translate(lang, "setup.title")}</span>
       <span className="setup-indicator-value">
-        {translate(lang, SETUP_KEY[status])}
+        {translate(lang, SETUP_KEY[effective])}
       </span>
-    </span>
+    </button>
   );
 }
 

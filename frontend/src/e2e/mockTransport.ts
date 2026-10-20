@@ -29,7 +29,8 @@ type Scenario =
   | "incompatible"
   | "details"
   | "dialog-unknown"
-  | "session-error";
+  | "session-error"
+  | "setup-missing";
 
 const NOW = new Date("2026-10-20T12:00:00Z");
 
@@ -205,7 +206,9 @@ function scenarioData(name: Scenario, lang: "es" | "en") {
       break;
     case "empty":
       snapshotCatalog = catalog({ games: [] });
-      recoveryValue = recovery({ situation: baseSituation({ setup: "missing" }), setup: { status: "missing", hasBackup: false } });
+      break;
+    case "setup-missing":
+      recoveryValue = recovery({ setup: undefined, situation: undefined });
       setup = { status: "missing", hasBackup: false };
       situation = baseSituation({ setup: "missing" });
       break;
@@ -332,6 +335,8 @@ export function installMockTransport(scenarioName: string, language: "es" | "en"
           return data.snapshot();
         case 1442126872:
           return data.refresh();
+        case 1626599784:
+          return;
         case 1417353986:
           return start(args[0] as { targetAppId: number });
         case 2503687275:
@@ -439,4 +444,5 @@ const SCENARIOS: Record<Scenario, true> = {
   details: true,
   "dialog-unknown": true,
   "session-error": true,
+  "setup-missing": true,
 };

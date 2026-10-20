@@ -15,7 +15,8 @@ acciones y textos del MVP. El flujo de cerrar Steam ya no existe.
   biblioteca y verde profundo para la sesión.
 - No hay barra de menús. **Diagnóstico** es la única pantalla secundaria y se
   abre desde la cabecera; la guía vive en una pestaña del panel lateral. Los
-  errores se muestran en el panel, en diálogos o en notificaciones toast.
+  wizards de configuración y reparación son diálogos, no pantallas. Los errores
+  se muestran en el panel, en diálogos o en notificaciones toast.
 
 ## Diagnóstico
 
@@ -34,6 +35,58 @@ acciones y textos del MVP. El flujo de cerrar Steam ya no existe.
 - No adquiere el lock de instancia, no modifica Steam y no lanza juegos. El
   detalle de las 31 comprobaciones y del JSON está en
   [`docs/diagnostics.md`](diagnostics.md).
+- **Diagnóstico y reparación** abre un segundo wizard, siempre a demanda. La
+  cabecera y cada tarjeta con problema ofrecen **Revisar**. El wizard empieza en
+  solo lectura y no ejecuta nada hasta que el usuario elige una acción.
+
+## Configuración inicial y reparación
+
+Son dos flujos separados. Comparten el comando exacto del dispatcher, el
+diagnóstico y los componentes de estado, pero no el ciclo de vida ni la entrada.
+
+### Wizard de configuración inicial
+
+- Se abre una sola vez al arrancar si la integración no está verificada:
+  `setup.json` ausente, `guide` o `conflict`. El arranque asegura el helper; si
+  esa copia falla, el problema aparece en diagnóstico y reparación. No se abre
+  si el setup está `installed` o si el usuario lo restauró explícitamente.
+- No crea un flag de primera vez; la verdad es `setup.json` más el diagnóstico.
+  Cerrar el wizard no borra setup, backups ni última sesión. Al reabrir, el
+  primer paso pendiente se calcula de nuevo.
+- La cabecera **Integración de SpaceWar** es un botón que permite reabrirlo
+  aunque ya esté verificado.
+- Pasos: resumen, Steam/SpaceWar, helper, comando del dispatcher, dependencias
+  del AppImage y verificación final.
+- Cada paso muestra **Hecho**, **Pendiente** o **Bloqueado** con el motivo. Si
+  un paso queda pendiente o bloqueado, la app sigue usable y el paso se puede
+  retomar.
+- El botón **Copiar comando** del wizard permanece deshabilitado hasta guardar
+  el valor original. La guía conserva el mismo orden.
+- El paso de dependencias solo aplica al AppImage. No ejecuta `sudo` ni
+  `pkexec`; muestra el comando y el fallback `APPIMAGE_EXTRACT_AND_RUN=1`.
+  Si faltan GTK3 o WebKit2GTK, el AppImage no llega a la GUI y el canal es
+  `AppRun`/`--diagnose`.
+- Excluye el popup de Steam, elegir juego y lanzar: son pasos por sesión.
+
+### Wizard de reparación
+
+- Se abre desde **Diagnóstico** o desde el error de una sesión. Nunca se abre
+  solo.
+- Primero muestra una lista de problemas con su ID de diagnóstico, evidencia y
+  acción propuesta. No escribe configuración, no restaura y no reinstala hasta
+  que el usuario pulsa una acción.
+- Mapeo:
+  - `app.helper`: instalar o actualizar el helper; se bloquea con sesión activa.
+  - `steam.dispatcher`: comando exacto y guía; un conflicto nunca se sobrescribe.
+  - `steam.install` / `steam.spacewar`: abrir Steam o la instalación; si Steam
+    falta, solo guía.
+  - `appimage.fuse` / `deps.elf`: comando copiable; nunca root.
+  - `session.state` con restauración pendiente u huérfana: inspeccionar y
+    restaurar con la confirmación existente. Sin backup coherente, solo explica.
+  - Sesión activa o helper muerto: explicar el estado y ofrecer cancelar,
+    recuperar o esperar; nunca mata procesos.
+- Reutiliza `RestoreSetup`, `RestoreSession`, `RecoverSession`, `CancelSession`,
+  `EnsureHelper` y `DispatcherCommand`. No hay transacciones paralelas.
 
 ## Biblioteca
 
@@ -115,7 +168,8 @@ nuevo** se deshabilita con el motivo visible. La biblioteca sigue navegable.
 ## Acción principal al seleccionar un juego
 
 - **Jugar**: solo si el setup está instalado y el juego es lanzable.
-- **Ver guía**: si falta el setup. La guía explica cómo instalarlo.
+- **Configurar**: si falta el setup. Abre el wizard de configuración inicial,
+  que incluye el comando y el acceso a la guía completa.
 - **No compatible / No instalado / Sesión activa**: deshabilitado con motivo.
 - Si hay una restauración pendiente de otro juego, se muestra un aviso aparte,
   sin bloquear la selección actual.
@@ -143,13 +197,17 @@ La guía es el flujo principal y debe poder consultarse con Steam abierto:
   ```
 
 - Botón **Copiar comando**: al copiar muestra un toast **Copiado** (o un toast
-  de error si falla), sin cambiar el texto del botón ni mover el scroll.
+  de error si falla), sin cambiar el texto del botón ni mover el scroll. Si
+  falta el setup o está restaurado, permanece deshabilitado hasta guardar el
+  valor original; el wizard aplica la misma regla.
 - Aviso de Steam y acciones de instalación solo si el setup no está instalado
   ni en conflicto: con Steam cerrado se ofrece **Instalar automáticamente**;
   con Steam abierto está deshabilitado y se muestra un único aviso para pegar
   el comando manualmente.
 - **Guardar valor original** solo se muestra si falta el setup o está
   restaurado; registra el backup del valor actual sin escribir Steam.
+- La guía y el wizard comparten el mismo bloque de comando y estado; no hay dos
+  constructores del comando ni dos botones con lógica distinta.
 - Pasos:
   1. Steam → Biblioteca → SpaceWar → Propiedades.
   2. Opciones de lanzamiento.
@@ -249,7 +307,8 @@ confirmar acciones y mostrar errores sin bloquear la biblioteca ni el panel:
 
 - avisos de sesión (éxito o advertencia), incluidos el comando copiado, la guía
   preparada, el estado actualizado y la instalación completada;
-- error de sesión, con acción **Reintentar** cuando corresponde;
+- error de sesión; las acciones de reintento, restauración o instalación
+  permanecen en el panel correspondiente;
 - error al cargar o actualizar el catálogo, al cambiar de idioma o al abrir
   Steam;
 - éxito o error al copiar o guardar el informe de diagnóstico, al cargarlo o
@@ -267,6 +326,9 @@ acciones de reintento o restauración.
 - Navegación completa por teclado: Tab por cabecera → Diagnóstico → búsqueda →
   filtro → biblioteca → pestañas → panel; Enter selecciona/activa; Ctrl+F
   enfoca la búsqueda; F5 refresca; Esc cierra diálogos y devuelve el foco.
+- Los dos wizards atrapan el foco, muestran un foco visible, se cierran con Esc
+  y no ejecutan acciones al cerrarse. Los estados se anuncian con `aria-live`
+  cuando cambian.
 - En Diagnóstico, el orden de tabulación recorre volver, actualizar, copiar,
   guardar y las acciones de cada comprobación; los enlaces de documentación son
   alcanzables por teclado.

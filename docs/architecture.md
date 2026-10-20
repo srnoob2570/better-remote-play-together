@@ -149,6 +149,28 @@ configuración anterior/huérfana.
 - Si el valor actual cambió fuera de Better RPT, no se sobrescribe; se muestra
   el conflicto y la ruta del backup.
 
+### 6. Wizards de setup y reparación
+
+La UI deriva ambos wizards de las mismas fuentes: `setup.json` mediante
+`SetupSnapshot`, `Situation` para el ciclo de sesión y el informe de
+`internal/diagnostics`. No hay un flag de primera vez ni un archivo de estado
+del wizard.
+
+- **Setup inicial:** se abre al arrancar solo si la integración no está
+  verificada. Los pasos se calculan de nuevo cada vez; cerrar no borra setup,
+  backups ni última sesión. Reutiliza `RecordGuideSetup`, `InstallSetup`,
+  `EnsureHelper` y `DispatcherCommand`.
+- **Reparación:** siempre a demanda desde Diagnóstico o el error de sesión.
+  Primero es de solo lectura y solo ejecuta una acción tras una elección
+  explícita. Reutiliza `EnsureHelper`, `RestoreSetup`, `RestoreSession`,
+  `RecoverSession` y `CancelSession`; no crea transacciones paralelas.
+- Los checks conservan sus IDs estables; la UI combina `session.state` con
+  `Situation` para las acciones de recuperación y restauración, sin volver a
+  inferir el ciclo de vida desde cadenas de `localconfig.vdf`.
+- La instalación del dispatcher y la restauración siguen exigiendo Steam
+  cerrado. Ningún wizard cierra Steam, escribe `localconfig.vdf` con Steam
+  abierto ni usa root.
+
 ## Máquina de estados
 
 `session.Classify(Evidence)` es una función pura y testeable. Recibe evidencia ya
@@ -208,6 +230,9 @@ $XDG_DATA_HOME/better-rpt/
 
 Al arrancar:
 
+0. `Service.EnsureHelper` copia el helper empaquetado a la ruta XDG estable. Es
+   idempotente, no usa root, no cierra Steam y conserva el helper de una sesión
+   activa. Un fallo se registra y queda visible en el diagnóstico.
 1. Se leen `setup.json`, `last-launch.json`, la intención y los estados.
 2. Se inspecciona el `LaunchOptions` actual y se clasifica el marcador.
 3. Un marcador legacy con backup y estado coherente se ofrece como restauración

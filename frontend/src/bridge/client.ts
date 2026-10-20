@@ -20,6 +20,7 @@ import type {
 export interface Bridge {
   Snapshot(): Promise<Snapshot>;
   RefreshCatalog(): Promise<Catalog>;
+  EnsureHelper(): Promise<void>;
   StartSession(input: StartSessionInput): Promise<Active>;
   ReplaySession(): Promise<Active>;
   CancelSession(): Promise<boolean>;

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { toBridgeError } from "../bridge/client";
 import { bridge } from "../bridge/wails";
+import { copyText } from "../clipboard";
 import type {
   DiagnosticCheck,
   DiagnosticReport,
@@ -25,7 +26,15 @@ const STATUS_RANK: Record<DiagnosticStatus, number> = {
 type Mode = "loading" | "ready" | "error";
 type Translator = (key: MessageKey, ...args: Array<string | number>) => string;
 
-export function DiagnosticsPane({ lang, onBack }: { lang: Language; onBack: () => void }) {
+export function DiagnosticsPane({
+  lang,
+  onBack,
+  onRepair,
+}: {
+  lang: Language;
+  onBack: () => void;
+  onRepair: (checkId?: string) => void;
+}) {
   const [mode, setMode] = useState<Mode>("loading");
   const [result, setResult] = useState<DiagnosticsResult | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
@@ -137,6 +146,14 @@ export function DiagnosticsPane({ lang, onBack }: { lang: Language; onBack: () =
           <Button
             variant="ghost"
             className="refresh-button"
+            onClick={() => onRepair()}
+            disabled={mode === "loading"}
+          >
+            {t("wizard.repair.open")}
+          </Button>
+          <Button
+            variant="ghost"
+            className="refresh-button"
             onClick={() => void refresh()}
             disabled={mode === "loading"}
           >
@@ -224,6 +241,7 @@ export function DiagnosticsPane({ lang, onBack }: { lang: Language; onBack: () =
                         check={check}
                         t={t}
                         onOpenDoc={(doc) => void openDoc(doc)}
+                        onRepair={() => onRepair(check.id)}
                       />
                     ))}
                   </div>
@@ -261,10 +279,12 @@ function DiagnosticCard({
   check,
   t,
   onOpenDoc,
+  onRepair,
 }: {
   check: DiagnosticCheck;
   t: Translator;
   onOpenDoc: (doc: string) => void;
+  onRepair: () => void;
 }) {
   return (
     <article className="diagnostic-card" data-status={check.status}>
@@ -292,6 +312,13 @@ function DiagnosticCard({
         </p>
       )}
       <DocsLine docs={check.docs} t={t} onOpenDoc={onOpenDoc} />
+      <Button
+        variant="ghost"
+        className="diagnostic-repair"
+        onClick={onRepair}
+      >
+        {t("wizard.repair.review")}
+      </Button>
     </article>
   );
 }
@@ -375,21 +402,4 @@ function statusLabel(
     case "skip":
       return t("diag.status.skip");
   }
-}
-
-async function copyText(text: string): Promise<void> {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-  const area = document.createElement("textarea");
-  area.value = text;
-  area.setAttribute("readonly", "");
-  area.style.position = "fixed";
-  area.style.opacity = "0";
-  document.body.appendChild(area);
-  area.select();
-  const copied = document.execCommand("copy");
-  document.body.removeChild(area);
-  if (!copied) throw new Error("copy failed");
 }

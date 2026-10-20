@@ -14,7 +14,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { toast } from "@/components/ui/toast";
 import {
   Tabs as UITabs,
   TabsContent as UITabsContent,
@@ -24,7 +23,6 @@ import {
 import { ChevronRightIcon } from "lucide-react";
 
 import { artUrl } from "../art";
-import { bridge } from "../bridge/wails";
 import type {
   Game,
   LastOutcome,
@@ -33,6 +31,7 @@ import type {
   SessionState,
   SetupStatus,
 } from "../bridge/types";
+import { GUIDE_STEPS } from "../guide";
 import { translate, type Language, type MessageKey } from "../i18n";
 import {
   isPreparing,
@@ -40,6 +39,7 @@ import {
   type SessionController,
 } from "../session/useSession";
 import { problemText } from "../session/problem";
+import { DispatcherSetup } from "./DispatcherSetup";
 
 type Tab = "session" | "details" | "guide";
 
@@ -65,48 +65,6 @@ const PREP_STEPS: MessageKey[] = [
   "prep.waitHelper",
 ];
 
-const GUIDE_STEPS: Array<{
-  title: MessageKey;
-  body: MessageKey;
-  image?: string;
-  alt?: MessageKey;
-}> = [
-  {
-    title: "guide.step1.title",
-    body: "guide.step1.body",
-    image: "/guide/library-properties.png",
-    alt: "guide.image.library",
-  },
-  {
-    title: "guide.step2.title",
-    body: "guide.step2.body",
-    image: "/guide/launch-options.png",
-    alt: "guide.image.launchOptions",
-  },
-  {
-    title: "guide.step3.title",
-    body: "guide.step3.body",
-    image: "/guide/command.png",
-    alt: "guide.image.command",
-  },
-  {
-    title: "guide.step4.title",
-    body: "guide.step4.body",
-  },
-  {
-    title: "guide.step5.title",
-    body: "guide.step5.body",
-    image: "/guide/popup.png",
-    alt: "guide.image.popup",
-  },
-  {
-    title: "guide.step6.title",
-    body: "guide.step6.body",
-    image: "/guide/invite.png",
-    alt: "guide.image.invite",
-  },
-];
-
 export function SessionPanel({
   lang,
   games,
@@ -114,6 +72,9 @@ export function SessionPanel({
   donorInstalled,
   session,
   onSelectLast,
+  guideRequest = 0,
+  onOpenSetup,
+  onOpenRepair,
 }: {
   lang: Language;
   games: Game[];
@@ -121,8 +82,14 @@ export function SessionPanel({
   donorInstalled: boolean;
   session: SessionController;
   onSelectLast: (appId: number) => void;
+  guideRequest?: number;
+  onOpenSetup: () => void;
+  onOpenRepair: (checkId?: string) => void;
 }) {
   const [tab, setTab] = useState<Tab>("session");
+  useEffect(() => {
+    if (guideRequest > 0) setTab("guide");
+  }, [guideRequest]);
   const t = (key: MessageKey, ...args: Array<string | number>) =>
     translate(lang, key, ...args);
   const state = session.state;
@@ -186,6 +153,7 @@ export function SessionPanel({
                 state={state}
                 session={session}
                 onOpenGuide={() => setTab("guide")}
+                onOpenRepair={onOpenRepair}
               />
             )}
 
@@ -198,7 +166,7 @@ export function SessionPanel({
                 session={session}
                 last={session.last}
                 lastGame={lastGame}
-                onOpenGuide={() => setTab("guide")}
+                onOpenSetup={onOpenSetup}
                 onSelectLast={onSelectLast}
               />
             )}
@@ -328,7 +296,7 @@ function SelectionPanel({
   session,
   last,
   lastGame,
-  onOpenGuide,
+  onOpenSetup,
   onSelectLast,
 }: {
   lang: Language;
@@ -338,7 +306,7 @@ function SelectionPanel({
   session: SessionController;
   last?: LastSession;
   lastGame?: Game;
-  onOpenGuide: () => void;
+  onOpenSetup: () => void;
   onSelectLast: (appId: number) => void;
 }) {
   const t = (key: MessageKey, ...args: Array<string | number>) =>
@@ -374,7 +342,7 @@ function SelectionPanel({
       )}
       <p className="hint">{t("selection.privacy")}</p>
 
-      <div className="session-actions">
+      <div className="session-actions selection-actions">
         {!donorInstalled ? (
           <Button
             className="primary-button"
@@ -396,8 +364,8 @@ function SelectionPanel({
             {t("action.play")}
           </Button>
         ) : (
-          <Button className="primary-button" onClick={onOpenGuide}>
-            {t("action.viewGuide")}
+          <Button className="primary-button" onClick={onOpenSetup}>
+            {t("action.configure")}
           </Button>
         )}
       </div>
@@ -629,12 +597,14 @@ function EndedPanel({
   state,
   session,
   onOpenGuide,
+  onOpenRepair,
 }: {
   lang: Language;
   game?: Game;
   state: SessionState;
   session: SessionController;
   onOpenGuide: () => void;
+  onOpenRepair: (checkId?: string) => void;
 }) {
   const t = (key: MessageKey, ...args: Array<string | number>) =>
     translate(lang, key, ...args);
@@ -708,6 +678,15 @@ function EndedPanel({
             {t("action.retry")}
           </Button>
         )}
+        {error && (
+          <Button
+            variant="outline"
+            className="secondary-button"
+            onClick={() => onOpenRepair("session.state")}
+          >
+            {t("wizard.repair.open")}
+          </Button>
+        )}
         <Button variant="outline" className="secondary-button" onClick={onOpenGuide}>
           {t("action.viewGuide")}
         </Button>
@@ -762,35 +741,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 function GuidePanel({ lang, session }: { lang: Language; session: SessionController }) {
   const t = (key: MessageKey, ...args: Array<string | number>) =>
     translate(lang, key, ...args);
-  const [command, setCommand] = useState("");
   const setup = session.setup;
-  const status = setup?.status ?? "missing";
-  const steamRunning = session.situation?.steamRunning ?? false;
-  const canPrepare = status === "missing" || status === "restored";
-
-  useEffect(() => {
-    let alive = true;
-    bridge
-      .DispatcherCommand()
-      .then((value) => {
-        if (alive) setCommand(value);
-      })
-      .catch(() => {
-        if (alive) setCommand("");
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  async function copyCommand() {
-    try {
-      await navigator.clipboard.writeText(command);
-      toast.add({ type: "success", title: t("action.copied") });
-    } catch {
-      toast.add({ type: "error", title: t("guide.copyError") });
-    }
-  }
 
   return (
     <div className="session-body">
@@ -799,59 +750,7 @@ function GuidePanel({ lang, session }: { lang: Language; session: SessionControl
         <p className="hint">{t("guide.intro")}</p>
       </div>
 
-      <p className="hint">{t(setupMessageKey(status))}</p>
-
-      <div className="guide-command-block">
-        <div className="guide-command-head">
-          <h3 className="section-title">{t("guide.command")}</h3>
-          <Button
-            variant="ghost"
-            className="refresh-button"
-            onClick={() => void session.refreshSetup()}
-            disabled={session.busy}
-          >
-            {t("action.refreshSetup")}
-          </Button>
-        </div>
-        <pre className="guide-command">{command || "…"}</pre>
-        <p className="hint">{t("guide.commandHint")}</p>
-        <Button
-          variant="outline"
-          className="secondary-button"
-          onClick={() => void copyCommand()}
-          disabled={!command}
-        >
-          {t("action.copyCommand")}
-        </Button>
-      </div>
-
-      {status !== "installed" && status !== "conflict" && (
-        <p className={steamRunning ? "hint-amber" : "hint"}>
-          {steamRunning ? t("guide.steamOpen") : t("guide.steamClosed")}
-        </p>
-      )}
-      {status !== "installed" && status !== "conflict" && (
-        <div className="session-actions guide-actions">
-          {canPrepare && (
-            <Button
-              className="secondary-button"
-              variant="outline"
-              onClick={() => void session.recordGuide()}
-              disabled={session.busy}
-            >
-              {t("action.prepareGuide")}
-            </Button>
-          )}
-          <Button
-            className="primary-button"
-            onClick={() => void session.installSetup()}
-            disabled={steamRunning || session.busy}
-          >
-            {t("action.installAuto")}
-          </Button>
-        </div>
-      )}
-      {canPrepare && <p className="hint">{t("guide.prepareHint")}</p>}
+      <DispatcherSetup lang={lang} session={session} requireBackup />
 
       <ol className="guide-steps">
         {GUIDE_STEPS.map((step, index) => (
@@ -893,21 +792,6 @@ function GuidePanel({ lang, session }: { lang: Language; session: SessionControl
       )}
     </div>
   );
-}
-
-function setupMessageKey(status: SetupStatus): MessageKey {
-  switch (status) {
-    case "installed":
-      return "guide.setupInstalled";
-    case "guide":
-      return "guide.setupGuide";
-    case "restored":
-      return "guide.setupRestored";
-    case "conflict":
-      return "guide.setupConflict";
-    default:
-      return "guide.setupMissing";
-  }
 }
 
 function SessionDialog({ lang, session }: { lang: Language; session: SessionController }) {

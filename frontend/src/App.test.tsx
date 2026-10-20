@@ -26,6 +26,7 @@ vi.mock("./bridge/wails", () => ({
   bridge: {
     Snapshot: vi.fn(),
     RefreshCatalog: vi.fn(),
+    EnsureHelper: vi.fn(),
     SetLanguage: vi.fn(),
     OpenSteam: vi.fn(),
     RecoverSession: vi.fn(),
@@ -106,6 +107,8 @@ function recovery(overrides: Partial<Recovery> = {}): Recovery {
   return {
     helperAlive: false,
     expiredPlans: [],
+    setup: { status: "installed", hasBackup: true },
+    situation: situation({ kind: "idle", setup: "installed", restore: "available" }),
     ...overrides,
   };
 }
@@ -163,17 +166,17 @@ describe("library UI", () => {
     mocked.RefreshCatalog.mockResolvedValue(catalog);
     mocked.SetLanguage.mockResolvedValue();
     mocked.OpenSteam.mockResolvedValue();
-    mocked.RecoverSession.mockResolvedValue({
-      helperAlive: false,
-      expiredPlans: [],
-    });
-    mocked.Situation.mockResolvedValue({
-      kind: "idle",
-      setup: "missing",
-      restore: "not_needed",
-      steamRunning: false,
-    });
-    mocked.SetupSnapshot.mockResolvedValue({ status: "missing", hasBackup: false });
+    mocked.EnsureHelper.mockResolvedValue();
+    mocked.RecoverSession.mockResolvedValue(
+      recovery({
+        setup: { status: "installed", hasBackup: true },
+        situation: situation({ kind: "idle", setup: "installed", restore: "available" }),
+      }),
+    );
+    mocked.Situation.mockResolvedValue(
+      situation({ kind: "idle", setup: "installed", restore: "available" }),
+    );
+    mocked.SetupSnapshot.mockResolvedValue({ status: "installed", hasBackup: true });
     mocked.DispatcherCommand.mockResolvedValue("better-rpt-helper --donor -- %command%");
     mocked.SessionState.mockResolvedValue({
       token: "",
@@ -191,6 +194,22 @@ describe("library UI", () => {
     mocked.RestoreSession.mockResolvedValue();
     mocked.RunDiagnostics.mockResolvedValue(diagnosticsResult());
     mocked.SaveDiagnostics.mockResolvedValue("/tmp/better-rpt-diagnostic.md");
+  });
+
+  it("opens the setup wizard once when the integration is missing", async () => {
+    mocked.RecoverSession.mockResolvedValue(
+      recovery({
+        setup: undefined,
+        situation: undefined,
+      }),
+    );
+    mocked.SetupSnapshot.mockResolvedValue({ status: "missing", hasBackup: false });
+    render(<App />);
+
+    const dialog = await screen.findByRole("dialog", { name: "Configuración inicial" });
+    expect(within(dialog).getAllByText("Steam y SpaceWar").length).toBeGreaterThan(0);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cerrar" }));
+    expect(screen.queryByRole("dialog", { name: "Configuración inicial" })).not.toBeInTheDocument();
   });
 
   it("renders the catalog, count and lazy artwork", async () => {
@@ -373,6 +392,7 @@ describe("library UI", () => {
     );
     render(<App />);
     await screen.findAllByText("HELLDIVERS™ 2");
+    fireEvent.click(await screen.findByRole("button", { name: "Cerrar" }));
 
     fireEvent.mouseDown(screen.getByRole("tab", { name: "Guía" }));
     expect(await screen.findByText("Comando para SpaceWar")).toBeInTheDocument();
@@ -384,6 +404,30 @@ describe("library UI", () => {
     fireEvent.click(manualRestore);
     expect(manualRestore).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("gamemoderun %command%")).toBeInTheDocument();
+  });
+
+  it("shows a session problem as a toast", async () => {
+    mocked.SetupSnapshot.mockRejectedValue({
+      problem: {
+        code: "setup.unreadable",
+        message: "No se pudo leer la configuración de SpaceWar.",
+      },
+    });
+    render(<App />);
+    await screen.findAllByText("HELLDIVERS™ 2");
+
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "Guía" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Verificar de nuevo" }));
+
+    const description = await screen.findByText(
+      "No se pudo leer la configuración de SpaceWar.",
+    );
+    const toast = description.closest('[data-slot="toast"]');
+    expect(toast).not.toBeNull();
+    const close = toast?.querySelector('[data-slot="toast-close"]');
+    expect(close).toHaveAttribute("aria-label", "Cerrar");
+    fireEvent.focus(toast as HTMLElement);
+    expect(close).toHaveAttribute("aria-hidden", "false");
   });
 
   it("renders a stale configuration notice with a restore action", async () => {
