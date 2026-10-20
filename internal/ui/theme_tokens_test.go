@@ -32,7 +32,7 @@ func TestDesignTokensMatchTheme(t *testing.T) {
 		"line":      colorLine,
 		"line-soft": colorLineSoft,
 		"cream":     colorText,
-		"muted":     colorMuted,
+		"muted-ink": colorMuted,
 		"faint":     colorFaint,
 		"amber":     colorAmber,
 		"teal":      colorTeal,

@@ -18,7 +18,8 @@
   --color-line: #243a41;
   --color-line-soft: #1a2c32;
   --color-cream: #f2f5f4;
-  --color-muted: #8ca0a6;
+  /* shadcn reserves --color-muted for its own surface token. */
+  --color-muted-ink: #8ca0a6;
   --color-faint: #849ba2;
   --color-amber: #f4a261;
   --color-teal: #2a9d8f;
