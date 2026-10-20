@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -45,6 +46,33 @@ func TestAtomicWriteFile(t *testing.T) {
 	}
 	if len(entries) != 1 {
 		t.Fatalf("temporary files left behind: %v", entries)
+	}
+}
+
+func TestAtomicWriteFilePreservesExtendedAttributes(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+	if err := AtomicWriteFile(path, []byte("hello"), 0o640); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	name := "user.better-rpt-test"
+	if err := syscall.Setxattr(path, name, []byte("kept"), 0); err != nil {
+		t.Skipf("xattrs unsupported: %v", err)
+	}
+
+	if err := AtomicWriteFile(path, []byte("world"), 0o640); err != nil {
+		t.Fatalf("replace: %v", err)
+	}
+	size, err := syscall.Getxattr(path, name, nil)
+	if err != nil {
+		t.Fatalf("read xattr: %v", err)
+	}
+	value := make([]byte, size)
+	if _, err := syscall.Getxattr(path, name, value); err != nil {
+		t.Fatalf("read xattr: %v", err)
+	}
+	if string(value) != "kept" {
+		t.Fatalf("xattr = %q, want %q", value, "kept")
 	}
 }
 

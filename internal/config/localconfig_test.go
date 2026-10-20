@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/binary"
 	"errors"
 	"os"
 	"path/filepath"
@@ -394,15 +395,83 @@ func TestPrepareMalformedLeavesFileIntact(t *testing.T) {
 	}
 }
 
-func TestPrepareRefusesExtendedAttributes(t *testing.T) {
+func readXattr(t *testing.T, path, name string) []byte {
+	t.Helper()
+	size, err := syscall.Getxattr(path, name, nil)
+	if err != nil {
+		t.Fatalf("read xattr %s: %v", name, err)
+	}
+	value := make([]byte, size)
+	n, err := syscall.Getxattr(path, name, value)
+	if err != nil {
+		t.Fatalf("read xattr %s: %v", name, err)
+	}
+	return value[:n]
+}
+
+// posixACLBlob builds a system.posix_acl_access value with one named-user
+// entry, which is what makes the kernel store the ACL as an xattr.
+func posixACLBlob(owner, named, group, mask, other uint16) []byte {
+	const (
+		aclUserObj  = 0x01
+		aclUser     = 0x02
+		aclGroupObj = 0x04
+		aclMask     = 0x10
+		aclOther    = 0x20
+		undefinedID = 0xffffffff
+	)
+	entries := []struct {
+		tag  uint16
+		perm uint16
+		id   uint32
+	}{
+		{aclUserObj, owner, undefinedID},
+		{aclUser, named, uint32(os.Geteuid())},
+		{aclGroupObj, group, undefinedID},
+		{aclMask, mask, undefinedID},
+		{aclOther, other, undefinedID},
+	}
+	blob := make([]byte, 4, 4+len(entries)*8)
+	binary.LittleEndian.PutUint32(blob, 2)
+	for _, entry := range entries {
+		raw := make([]byte, 8)
+		binary.LittleEndian.PutUint16(raw[0:2], entry.tag)
+		binary.LittleEndian.PutUint16(raw[2:4], entry.perm)
+		binary.LittleEndian.PutUint32(raw[4:8], entry.id)
+		blob = append(blob, raw...)
+	}
+	return blob
+}
+
+func TestPreparePreservesExtendedAttributes(t *testing.T) {
 	root := transactionRoot(t, "localconfig.vdf")
 	path := filepath.Join(root, "userdata", "11111111", "config", "localconfig.vdf")
-	if err := syscall.Setxattr(path, "user.better-rpt-test", []byte("x"), 0); err != nil {
+	if err := syscall.Setxattr(path, "user.better-rpt-test", []byte("kept"), 0); err != nil {
 		t.Skipf("xattrs unsupported: %v", err)
 	}
 	defer syscall.Removexattr(path, "user.better-rpt-test")
-	options := transactionOptions(t, root)
-	if _, err := Prepare(options); !errors.Is(err, ErrLocalConfigUnsafe) {
-		t.Fatalf("error = %v, want ErrLocalConfigUnsafe", err)
+
+	if _, err := Prepare(transactionOptions(t, root)); err != nil {
+		t.Fatalf("prepare: %v", err)
+	}
+	if got := readXattr(t, path, "user.better-rpt-test"); string(got) != "kept" {
+		t.Fatalf("xattr after prepare = %q, want %q", got, "kept")
+	}
+}
+
+func TestPreparePreservesPOSIXACL(t *testing.T) {
+	root := transactionRoot(t, "localconfig.vdf")
+	path := filepath.Join(root, "userdata", "11111111", "config", "localconfig.vdf")
+	acl := posixACLBlob(0o6, 0o4, 0o4, 0o4, 0o0)
+	if err := syscall.Setxattr(path, "system.posix_acl_access", acl, 0); err != nil {
+		t.Skipf("POSIX ACLs unsupported: %v", err)
+	}
+	defer syscall.Removexattr(path, "system.posix_acl_access")
+
+	if _, err := Prepare(transactionOptions(t, root)); err != nil {
+		t.Fatalf("prepare: %v", err)
+	}
+	if got := readXattr(t, path, "system.posix_acl_access"); !bytes.Equal(got, acl) {
+		t.Fatalf("ACL after prepare = %x, want %x", got, acl)
 	}
 }

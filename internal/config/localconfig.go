@@ -558,14 +558,6 @@ func readLocalConfig(path string) ([]byte, os.FileMode, error) {
 	if os.Geteuid() == 0 {
 		return nil, 0, fmt.Errorf("%w: refusing to edit Steam as root", domain.ErrRoot)
 	}
-	if size, err := syscall.Listxattr(path, nil); err == nil && size > 0 {
-		return nil, 0, fmt.Errorf("%w: %s has extended attributes or ACLs", ErrLocalConfigUnsafe, path)
-	} else if err != nil && !errors.Is(err, syscall.ENOTSUP) && !errors.Is(err, syscall.ENOSYS) {
-		if errors.Is(err, syscall.ENOENT) {
-			return nil, 0, fmt.Errorf("%w: %s", ErrLocalConfigMissing, path)
-		}
-		return nil, 0, fmt.Errorf("%w: inspect %s: %v", ErrLocalConfigUnsafe, path, err)
-	}
 
 	fd, err := syscall.Open(path, syscall.O_RDONLY|syscall.O_CLOEXEC|syscall.O_NOFOLLOW, 0)
 	if err != nil {

@@ -12,6 +12,13 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Aviso en el panel de sesión y en el README para marcar el juego objetivo como
   privado en Steam y evitar que su actividad sustituya a la de SpaceWar.
 
+### Fixed
+
+- La edición de `localconfig.vdf` ya no rechaza archivos con atributos
+  extendidos o ACLs, como `security.selinux` en Fedora/Bazzite. La escritura
+  atómica conserva esos metadatos y solo falla antes de reemplazar el original
+  si no puede hacerlo.
+
 ## [0.1.1] - 2026-10-19 (e842cbc)
 
 ### Security
