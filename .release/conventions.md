@@ -32,6 +32,11 @@
   incluyen el enlace de comparación.
 - El hash del encabezado de la sección del changelog es el último commit antes
   del commit de release.
+- `git tag -F` recorta las líneas que empiezan por `#`; usa
+  `--cleanup=verbatim` para conservar los encabezados Markdown del changelog en
+  las notas del tag y de la release.
+- `gh release create --notes-from-tag` usa el cuerpo del tag anotado. El tag debe
+  existir en el remoto antes de crear la release; usa `--verify-tag`.
 - El commit de release puede no cambiar la versión si ya estaba fijada; el tag
   apunta al commit que contiene el changelog y `.release/`.
 
