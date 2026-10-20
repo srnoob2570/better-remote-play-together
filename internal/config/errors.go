@@ -41,4 +41,10 @@ var (
 	ErrSetupConflict = errors.New("Better RPT dispatcher setup conflicts with Steam")
 	// ErrSetupInvalid means the setup record is malformed.
 	ErrSetupInvalid = errors.New("Better RPT dispatcher setup is invalid")
+	// ErrControllerConfig means a SpaceWar Steam Input configset could not be
+	// inspected or updated safely.
+	ErrControllerConfig = errors.New("Steam controller config failed")
+	// ErrControllerConfigVerify means the post-write controller config did not
+	// contain the expected template.
+	ErrControllerConfigVerify = errors.New("Steam controller config verification failed")
 )

@@ -164,8 +164,9 @@ toca opciones de lanzamiento de otras aplicaciones.
   Si el overlay no aparece, revisa la configuración de Steam y el juego. Hay una
   regresión conocida de Steam documentada en `docs/known-issues.md`.
 - **Steam Input:** al conservar la identidad del donante, Steam puede cargar el
-  layout de SpaceWar para el mando del invitado. Usa una plantilla Gamepad
-  genérica en SpaceWar; ver `docs/known-issues.md`.
+  layout de SpaceWar para el mando del invitado. Better RPT intenta aplicar una
+  plantilla Gamepad genérica al iniciar; si no puede, usa una manualmente. Ver
+  `docs/known-issues.md`.
 - **Actualizaciones de Steam:** el formato de `localconfig.vdf` o `appinfo.vdf`
   puede cambiar. Better RPT muestra un error y no escribe datos dudosos.
 - **Flatpak/Snap:** se detectan, pero no se lanzan ni se modifican. Solo se
@@ -269,11 +270,12 @@ corrige la pérdida de paquetes de la red local. Detalles y enlaces en
 ### El mando del invitado aparece conectado pero no responde
 
 Steam Input está cargando el layout de SpaceWar (App ID 480) para el mando del
-invitado. En SpaceWar > Administrar > Configuración del controlador, elige una
-plantilla **Gamepad** genérica y vuelve a probar. Cierra el overlay antes de
-comprobar el mando; si está en crash-loop, reinicia Steam. Es la hipótesis mejor
-respaldada, pero aún no está verificada con un invitado real. Ver
-[`docs/known-issues.md`](docs/known-issues.md).
+invitado. Better RPT aplica al iniciar una plantilla **Gamepad** genérica a los
+configsets de mandos físicos, sin tocar el control táctil ni sobrescribir un
+layout existente. Si no se aplicó, hazlo manualmente en SpaceWar > Administrar >
+Configuración del controlador. Cierra el overlay antes de comprobar el mando; si
+está en crash-loop, reinicia Steam. Aún falta verificarlo con un invitado real.
+Ver [`docs/known-issues.md`](docs/known-issues.md).
 
 ## Desinstalación
 
@@ -409,7 +411,7 @@ Steam ni juegos reales.
 
 ## Estado de verificación de esta versión
 
-- 289 pruebas en 16 paquetes; `go vet` y `go test -race` pasan sin errores.
+- 294 pruebas en 16 paquetes; `go vet` y `go test -race` pasan sin errores.
 - Binario y helper construidos en Ubuntu 22.04; símbolo máximo `GLIBC_2.34`.
   `dpkg-shlibdeps` pidió `libc6 (>= 2.34)`; el paquete declara `2.35` como
   mínimo soportado.

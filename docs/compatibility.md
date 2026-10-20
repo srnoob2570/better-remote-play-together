@@ -70,13 +70,16 @@ Política:
 
 - No bloquear el lanzamiento por el mando: es una limitación conocida, no una
   condición verificable antes de jugar.
-- Si el invitado ve el mando conectado pero el target no responde, probar una
-  plantilla **Gamepad** genérica en SpaceWar y cerrar el overlay antes de
-  repetir. Son las dos causas mejor respaldadas.
-- No modificar automáticamente el layout del usuario ni cambiar
-  `SteamGameId`/`SteamOverlayGameId` sin una prueba real de RPT; conservar la
-  identidad del donante es lo que mantiene la sesión y el overlay asociados a
-  SpaceWar.
+- Al refrescar el catálogo, Better RPT añade una referencia a la plantilla
+  **Gamepad** genérica en los `configset_controller_<tipo>.vdf` de mandos
+  físicos cuando falta la entrada `480`. No toca `controller_mobile_touch`, no
+  sobrescribe layouts existentes y no requiere un mando conectado.
+- Si el invitado ve el mando conectado pero el target no responde, comprobar que
+  la entrada se aplicó y cerrar el overlay antes de repetir. Si Steam mantiene
+  la selección cacheada, reconectar el mando o reiniciar Steam.
+- No cambiar `SteamGameId`/`SteamOverlayGameId` sin una prueba real de RPT;
+  conservar la identidad del donante es lo que mantiene la sesión y el overlay
+  asociados a SpaceWar.
 - Documentar la evidencia y las pruebas pendientes en `docs/known-issues.md`.
 
 ## Target que sale inmediatamente

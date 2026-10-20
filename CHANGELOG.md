@@ -28,6 +28,9 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - ADR `docs/adr/0001-guide-first-launch.md` y `docs/guide-images.md`.
 - `docs/known-issues.md` con la regresión del overlay de Steam y la limitación
   del mando del invitado por el layout de Steam Input del donante.
+- Aplicación idempotente de la plantilla Gamepad genérica de SpaceWar al
+  refrescar el catálogo: solo añade la entrada `480` cuando falta, no sobrescribe
+  layouts existentes y no modifica el control táctil.
 
 ### Changed
 

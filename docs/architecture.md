@@ -28,6 +28,10 @@ defecto.
 - Consecuencia: Steam Input asocia el mando del invitado al App ID 480 y puede
   cargar el action set de SpaceWar; el soporte de mando del target hereda esa
   limitación. Ver `docs/known-issues.md`.
+- Al refrescar el catálogo, el servicio añade de forma idempotente una referencia
+  a la plantilla Gamepad genérica en los configsets de mandos físicos de
+  SpaceWar cuando falta la entrada `480`. No sobrescribe layouts existentes ni
+  modifica el control táctil.
 - No se usan APIs internas de Steam para lanzar el target ni para invitar.
 
 ## Paquetes

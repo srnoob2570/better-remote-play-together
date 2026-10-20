@@ -122,6 +122,29 @@ func (s *Service) RefreshCatalog(ctx context.Context) (steam.Catalog, error) {
 	if err != nil {
 		return steam.Catalog{}, err
 	}
+	layout, layoutErr := config.EnsureGenericControllerLayouts(catalog.Installation.Root)
+	if layoutErr != nil {
+		s.log.Warn("controller layout", "error", layoutErr)
+		catalog.Warnings = append(catalog.Warnings, steam.Warning{Path: "Steam controller config", Err: layoutErr})
+	} else {
+		if len(layout.Applied) > 0 {
+			s.log.Info("controller layout applied", "configsets", layout.Applied)
+		}
+		if len(layout.Existing) > 0 {
+			s.log.Warn("controller layout kept", "configsets", layout.Existing)
+			catalog.Warnings = append(catalog.Warnings, steam.Warning{
+				Path: "Steam controller config",
+				Err:  fmt.Errorf("SpaceWar already has a controller layout for %v; it was not changed", layout.Existing),
+			})
+		}
+		if len(layout.Skipped) > 0 {
+			s.log.Debug("controller layout skipped", "configsets", layout.Skipped)
+		}
+		for _, warning := range layout.Warnings {
+			s.log.Warn("controller layout", "error", warning)
+			catalog.Warnings = append(catalog.Warnings, steam.Warning{Path: "Steam controller config", Err: warning})
+		}
+	}
 	s.mu.Lock()
 	s.catalog = catalog
 	s.hasCatalog = true

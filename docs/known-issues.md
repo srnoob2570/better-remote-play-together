@@ -64,16 +64,25 @@ responde. Puede ocurrir con un mando físico o con los controles táctiles.
 del invitado a SpaceWar, carga su preset y mantiene el foco en 480. El juego
 objetivo recibe poco o ningún input. El mando no está desconectado.
 
+**Aplicación automática.** Al refrescar el catálogo, Better RPT añade la
+entrada `"480" { "template" "controller_<tipo>_gamepad_joystick.vdf" }` a los
+`configset_controller_<tipo>.vdf` de mandos físicos que ya existan. No requiere
+tener el mando conectado, no toca `controller_mobile_touch`, no sobrescribe un
+`480` propio o `autosave` y es idempotente. Si Steam está abierto puede mantener
+la selección cacheada; reconecta el mando o reinicia Steam. Better RPT no cierra
+Steam. Los configsets sin plantilla disponible se omiten.
+
 **Pruebas pendientes.**
 
-1. En SpaceWar > Administrar > Configuración del controlador, elegir una
-   plantilla **Gamepad** genérica (no el action set de SpaceWar) y repetir con
-   el invitado. Es la prueba más directa de la hipótesis del preset.
-2. Si la anterior no basta, probar con Steam Input desactivado para SpaceWar y
+1. Verificar con un invitado real que Steam carga la plantilla genérica después
+   de aplicar el cambio. Es la prueba que falta para cerrar la hipótesis.
+2. Si no se aplica, revisar el aviso de configuración en la app y comprobar si
+   el mando usa un `configset` específico que tenga prioridad.
+3. Si la plantilla no basta, probar con Steam Input desactivado para SpaceWar y
    confirmar que RPT sigue enviando el mando.
-3. Cerrar el overlay antes de probar el mando. Si está en crash-loop, reiniciar
+4. Cerrar el overlay antes de probar el mando. Si está en crash-loop, reiniciar
    Steam.
-4. Comparar con un mando local en el host para separar RPT de Steam Input.
+5. Comparar con un mando local en el host para separar RPT de Steam Input.
 
 **No aplicado.** Cambiar `SteamGameId` al App ID del target es una hipótesis de
 código atractiva, pero puede desasociar la sesión RPT del donante. No se cambia

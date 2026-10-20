@@ -152,6 +152,13 @@ Steamworks Shared). No se ofrece como objetivo.
 Capa de Steam dentro del juego desde la que se envían las invitaciones de
 Remote Play Together. Better RPT no implementa invitaciones propias.
 
+## Configset de Steam Input
+
+Archivo `configset_controller_<tipo>.vdf` donde Steam guarda qué layout usa cada
+App ID para un tipo de mando. Better RPT añade una referencia a la plantilla
+Gamepad genérica de SpaceWar cuando falta, sin sobrescribir layouts existentes
+ni modificar el control táctil.
+
 ## Estado obsoleto (legacy)
 
 Término histórico para una opción de lanzamiento de sesión única que quedó
