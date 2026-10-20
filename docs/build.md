@@ -29,7 +29,7 @@ Para iterar no hace falta instalar el `.deb` ni el AppImage:
 
 ```bash
 make dev       # go run ./cmd/better-rpt
-make build     # dist/better-rpt local, versión 0.1.0
+make build     # dist/better-rpt local, versión 0.1.1
 make helper    # dist/better-rpt-helper estático
 make all       # compila la app y el helper
 ```
@@ -77,7 +77,7 @@ ambos binarios dentro de Ubuntu 22.04, los copia a `dist/` y empaqueta con nfpm
 en el host.
 
 ```bash
-make deb                 # dist/better-rpt_0.1.0-1_amd64.deb
+make deb                 # dist/better-rpt_0.1.1-1_amd64.deb
 make deb VERSION=0.2.0   # otra versión
 ```
 
@@ -100,10 +100,10 @@ docker run --rm -v "$PWD:/src" -w /src ubuntu:22.04 bash -c '
   export GOTOOLCHAIN=local
   go version
   CGO_ENABLED=1 go build -trimpath -buildvcs=false \
-    -ldflags "-s -w -X main.version=0.1.0" \
+    -ldflags "-s -w -X main.version=0.1.1" \
     -o dist/better-rpt ./cmd/better-rpt
   CGO_ENABLED=0 go build -trimpath -buildvcs=false \
-    -ldflags "-s -w -X main.version=0.1.0" \
+    -ldflags "-s -w -X main.version=0.1.1" \
     -o dist/better-rpt-helper ./cmd/better-rpt-helper
 '
 ```
@@ -131,21 +131,21 @@ CGO_ENABLED=0 GOTOOLCHAIN=go1.27.2 \
 
 El helper no tiene interfaz gráfica, es estático y no usa Fyne; la app lo copia a
 `$XDG_DATA_HOME/better-rpt/bin/better-rpt-helper`. La versión final es
-`0.1.0`. `-trimpath` y `-buildvcs=false` son necesarios para la
+`0.1.1`. `-trimpath` y `-buildvcs=false` son necesarios para la
 reproducibilidad; `-s -w` reduce el binario. El binario Fyne final mide
-25,6 MB y el helper estático 3,4 MB; `--version` reporta `0.1.0` en ambos.
+25,6 MB y el helper estático 3,4 MB; `--version` reporta `0.1.1` en ambos.
 
 ## nfpm
 
 ```bash
 GOTOOLCHAIN=go1.27.2 go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
-VERSION=0.1.0 SOURCE_DATE_EPOCH=1700000000 \
+VERSION=0.1.1 SOURCE_DATE_EPOCH=1700000000 \
   "$HOME/go/bin/nfpm" package --config packaging/nfpm.yaml --packager deb \
   --target dist/
 ```
 
 El destino es un directorio, así que nfpm genera
-`dist/better-rpt_0.1.0-1_amd64.deb`. `packaging/nfpm.yaml` toma `version` de la
+`dist/better-rpt_0.1.1-1_amd64.deb`. `packaging/nfpm.yaml` toma `version` de la
 variable `VERSION`; nfpm expande
 `${VERSION}` del entorno al leer la configuración. `make deb` ya define esa
 variable.
@@ -264,7 +264,7 @@ docker volume rm better-rpt-deb-go-build better-rpt-deb-go-mod
 ```
 
 No se instala configuración de usuario ni servicios. `Installed-Size` es
-29.718 KB; el `.deb` final mide 13,9 MB (14.539.304 bytes). El icono es PNG
+29.730 KB; el `.deb` final mide 13,9 MB (14.544.880 bytes). El icono es PNG
 256×256 de 8 bits.
 
 ## Dependencias de runtime
@@ -363,7 +363,7 @@ env -u DISPLAY XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-0 \
 La verificación de esta versión incluyó:
 
 - `dpkg-deb -I/-c` y `desktop-file-validate` sin errores.
-- Instalación real con `apt install ./better-rpt_0.1.0-1_amd64.deb` en un
+- Instalación real con `apt install ./better-rpt_0.1.1-1_amd64.deb` en un
   contenedor Ubuntu 22.04 limpio.
 - `dpkg-shlibdeps -O /usr/bin/better-rpt` -> `libc6 (>= 2.34)`.
 - Ejecución como root rechazada con código 1; GUI como usuario normal bajo

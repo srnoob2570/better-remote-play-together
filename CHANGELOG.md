@@ -7,12 +7,16 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-19 (e842cbc)
+
 ### Security
 
 - Actualiza `golang.org/x/image` a `v0.47.0` y `golang.org/x/net` a `v0.61.0`,
   junto con `x/sys` y `x/text`, para corregir las vulnerabilidades
   CVE-2026-46599, CVE-2026-33809, CVE-2026-25680, CVE-2025-22872 y
   CVE-2025-22870 en dependencias indirectas de Fyne.
+
+**Full changelog:** [v0.1.0...v0.1.1][0.1.1]
 
 ## [0.1.0] - 2026-10-19 (36984f1)
 
@@ -95,5 +99,6 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Cierre y reapertura automática de Steam durante la preparación.
 - Diálogo «Cerrar Steam para preparar» y textos asociados.
 
-[Unreleased]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/srnoob2570/better-remote-play-together/releases/tag/v0.1.0

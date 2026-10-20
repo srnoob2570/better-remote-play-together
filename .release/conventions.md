@@ -5,7 +5,7 @@
 - `0.1.0` es la primera release: no había tags, releases ni ramas `release/*`.
   Las entradas de `[Unreleased]` se integraron en `0.1.0` porque nunca se publicó
   una versión anterior.
-- La versión se define en `Makefile` (`VERSION ?= 0.1.0`) y se pasa a
+- La versión se define en `Makefile` (`VERSION ?= 0.1.1`) y se pasa a
   `packaging/nfpm.yaml`; no hay archivo `VERSION` ni herramienta de bump
   automático.
 - El changelog sigue Keep a Changelog 1.1.0 en español y guarda los enlaces en el
@@ -37,6 +37,11 @@
   las notas del tag y de la release.
 - `gh release create --notes-from-tag` usa el cuerpo del tag anotado. El tag debe
   existir en el remoto antes de crear la release; usa `--verify-tag`.
+- Antes de cada release, ejecuta `govulncheck ./...` y revisa los avisos de
+  Dependabot. Actualiza las dependencias con `go get` y `go mod tidy`; los
+  binarios publicados deben reconstruirse para incluir el parche.
+- Las releases de seguridad usan un parche (`0.1.x`) y una sección `Security` en
+  el changelog.
 - El commit de release puede no cambiar la versión si ya estaba fijada; el tag
   apunta al commit que contiene el changelog y `.release/`.
 

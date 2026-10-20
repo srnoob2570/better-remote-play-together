@@ -49,10 +49,10 @@ El binario Fyne final se construye en Ubuntu 22.04 (glibc 2.35), igual que el `.
 
 ```bash
 CGO_ENABLED=1 GOTOOLCHAIN=go1.27.2 go build -trimpath -buildvcs=false \
-  -ldflags '-s -w -X main.version=0.1.0' -o dist/better-rpt ./cmd/better-rpt
+  -ldflags '-s -w -X main.version=0.1.1' -o dist/better-rpt ./cmd/better-rpt
 
 CGO_ENABLED=0 GOTOOLCHAIN=go1.27.2 go build -trimpath -buildvcs=false \
-  -ldflags '-s -w -X main.version=0.1.0' -o dist/better-rpt-helper ./cmd/better-rpt-helper
+  -ldflags '-s -w -X main.version=0.1.1' -o dist/better-rpt-helper ./cmd/better-rpt-helper
 ```
 
 AppDir y AppImage con las herramientas fijadas:
@@ -73,7 +73,7 @@ chmod 0755 dist/BetterRPT.AppDir/AppRun \
 ARCH=x86_64 SOURCE_DATE_EPOCH=1700000000 APPIMAGE_EXTRACT_AND_RUN=1 \
   /tmp/opencode/appimage-poc/appimagetool --no-appstream \
   --runtime-file /tmp/opencode/appimage-poc/runtime-x86_64 \
-  dist/BetterRPT.AppDir dist/BetterRPT-0.1.0-x86_64.AppImage
+  dist/BetterRPT.AppDir dist/BetterRPT-0.1.1-x86_64.AppImage
 ```
 
 Herramientas verificadas:
@@ -81,7 +81,7 @@ Herramientas verificadas:
 - `appimagetool` continuous, git `854e19e`, build 313 (2026-10-04), SHA-256 `95cbe7cce9717fce90c484e34052ee7c7f1d7635b33c12525b4776826a7d29b6`.
 - Runtime type2 commit `fedfad5`, SHA-256 `617aa77314d57c8b8e4fae9c3f0b35af7b30d5529cb69e98f64f92510ed98a46`, 944.632 bytes.
 - Para reproducibilidad, guardar ambos binarios en el repositorio de compilación o en caché con esos hashes; no depender de `continuous` ni de la descarga en cada compilación.
-- Dos compilaciones con el mismo AppDir y `SOURCE_DATE_EPOCH=1700000000` dieron el mismo SHA-256: `3b741e9b4048e051b9dc089e3a157f620dd94da6362f5bdeece9b85aa3a98ddb` (13,7 MB).
+- Dos compilaciones con el mismo AppDir y `SOURCE_DATE_EPOCH=1700000000` dieron el mismo SHA-256: `98be3ed19b246901ba523accc549d44a6232621be6b5fd79f9e120057fdb91fa` (13,7 MB).
 
 ## Runtime
 
