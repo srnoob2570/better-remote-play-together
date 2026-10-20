@@ -79,9 +79,9 @@ ARCH=x86_64 SOURCE_DATE_EPOCH=1700000000 APPIMAGE_EXTRACT_AND_RUN=1 \
 Herramientas verificadas:
 
 - `appimagetool` continuous, git `854e19e`, build 313 (2026-10-04), SHA-256 `95cbe7cce9717fce90c484e34052ee7c7f1d7635b33c12525b4776826a7d29b6`.
-- Runtime type2 commit `8f39b89`, SHA-256 `9f1ad7f4fd2ed213922e15ea82e4d8b601e1ae858aeb3acc121d26b5ed54f2ba`, 944.632 bytes.
+- Runtime type2 commit `fedfad5`, SHA-256 `617aa77314d57c8b8e4fae9c3f0b35af7b30d5529cb69e98f64f92510ed98a46`, 944.632 bytes.
 - Para reproducibilidad, guardar ambos binarios en el repositorio de compilación o en caché con esos hashes; no depender de `continuous` ni de la descarga en cada compilación.
-- Dos compilaciones con el mismo AppDir y `SOURCE_DATE_EPOCH=1700000000` dieron el mismo SHA-256: `95d22978ce54f09a0506e689c67fa4ea3b7fce12e00194af6b1e66c999c0b69d` (13,1 MB).
+- Dos compilaciones con el mismo AppDir y `SOURCE_DATE_EPOCH=1700000000` dieron el mismo SHA-256: `3b741e9b4048e051b9dc089e3a157f620dd94da6362f5bdeece9b85aa3a98ddb` (13,7 MB).
 
 ## Runtime
 

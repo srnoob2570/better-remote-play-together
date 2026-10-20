@@ -108,7 +108,7 @@ docker run --rm -v "$PWD:/src" -w /src ubuntu:22.04 bash -c '
 '
 ```
 
-El binario Fyne quedó en 24,3 MB y el helper estático en 3,3 MB. Verificar la
+El binario Fyne quedó en 25,6 MB y el helper estático en 3,4 MB. Verificar la
 versión de glibc con `objdump -T dist/better-rpt | grep GLIBC` (máximo
 `GLIBC_2.34`) y `dpkg-shlibdeps`; no asumirla por la versión del contenedor.
 La compilación en Ubuntu 22.04 se completó; no fue necesario usar Ubuntu 24.04 como
@@ -133,7 +133,7 @@ El helper no tiene interfaz gráfica, es estático y no usa Fyne; la app lo copi
 `$XDG_DATA_HOME/better-rpt/bin/better-rpt-helper`. La versión final es
 `0.1.0`. `-trimpath` y `-buildvcs=false` son necesarios para la
 reproducibilidad; `-s -w` reduce el binario. El binario Fyne final mide
-24,3 MB y el helper estático 3,3 MB; `--version` reporta `0.1.0` en ambos.
+25,6 MB y el helper estático 3,4 MB; `--version` reporta `0.1.0` en ambos.
 
 ## nfpm
 
@@ -264,7 +264,7 @@ docker volume rm better-rpt-deb-go-build better-rpt-deb-go-mod
 ```
 
 No se instala configuración de usuario ni servicios. `Installed-Size` es
-28.262 KB; el `.deb` final mide 13,2 MB (13.816.398 bytes). El icono es PNG
+29.718 KB; el `.deb` final mide 13,9 MB (14.539.304 bytes). El icono es PNG
 256×256 de 8 bits.
 
 ## Dependencias de runtime
