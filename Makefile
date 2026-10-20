@@ -4,7 +4,7 @@ BINARY ?= dist/better-rpt
 HELPER ?= dist/better-rpt-helper
 ARGS ?=
 
-.PHONY: dev build helper deb test test-race vet
+.PHONY: dev build helper deb test test-race vet release release-plan
 
 dev:
 	$(GO) run ./cmd/better-rpt $(ARGS)
@@ -26,6 +26,12 @@ deb:
 
 test:
 	$(GO) test ./...
+
+release:
+	./scripts/release.sh $(ARGS)
+
+release-plan:
+	./scripts/release.sh --dry-run $(ARGS)
 
 test-race:
 	$(GO) test -race ./internal/...

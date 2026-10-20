@@ -5,16 +5,19 @@
 - `0.1.0` es la primera release: no había tags, releases ni ramas `release/*`.
   Las entradas de `[Unreleased]` se integraron en `0.1.0` porque nunca se publicó
   una versión anterior.
-- La versión se define en `Makefile` (`VERSION ?= 0.1.2`) y se pasa a
-  `packaging/nfpm.yaml`; no hay archivo `VERSION` ni herramienta de bump
-  automático.
+- La versión se define en `Makefile` (`VERSION ?= 0.1.2`), se pasa a
+  `packaging/nfpm.yaml` y `scripts/release.sh` la deduce de los commits.
+- `make release` (o `scripts/release.sh`) es el flujo canónico: mueve
+  `[Unreleased]`, actualiza referencias y documentación, compila y verifica los
+  artefactos, crea commit, tag y rama, y publica en GitHub.
 - El changelog sigue Keep a Changelog 1.1.0 en español y guarda los enlaces en el
   bloque de referencias al final.
 - Los commits siguen Conventional Commits en español, según
   `.commit/conventions.md`.
 - El tag usa el prefijo `v` y cada release conserva una rama `release/<tag>`.
 - La release se publica en GitHub con los artefactos adjuntos. No hay CI de
-  GitHub ni registro de paquetes; la compilación y la subida son manuales.
+  GitHub ni registro de paquetes; la compilación y la subida las hace
+  `make release` en el host.
 
 ## Gotchas
 
@@ -29,8 +32,14 @@
   si cambia el runtime continuo, actualiza ambos.
 - La cuenta `gh` activa `johanruizb` no tiene permiso de push en
   `srnoob2570/better-remote-play-together`. El remoto SSH `github-srnoob`
-  autentica como `srnoob2570`; para crear la release usa el token de esa cuenta
-  o cambia la cuenta activa.
+  autentica como `srnoob2570`; `scripts/release.sh` detecta el owner y usa su
+  token automáticamente.
+- Las herramientas del AppImage se cachean en
+  `$XDG_CACHE_HOME/better-rpt/release-tools`; el script verifica sus hashes y
+  las copia desde `/tmp/opencode/appimage-poc` si están disponibles.
+- `scripts/release.sh` reanuda: no duplica un commit, tag o rama existentes y
+  termina si la release ya está publicada. `--dry-run` muestra el plan y
+  `--skip-build` reutiliza `dist/`.
 - La primera release no lleva la línea `**Full changelog:**`; las siguientes sí
   incluyen el enlace de comparación.
 - El hash del encabezado de la sección del changelog es el último commit antes
@@ -43,6 +52,7 @@
 - Antes de cada release, ejecuta `govulncheck ./...` y revisa los avisos de
   Dependabot. Actualiza las dependencias con `go get` y `go mod tidy`; los
   binarios publicados deben reconstruirse para incluir el parche.
+  `scripts/release.sh` ejecuta `govulncheck` si está instalado y avisa si falta.
 - Las releases de seguridad usan un parche (`0.1.x`) y una sección `Security` en
   el changelog.
 - El commit de release puede no cambiar la versión si ya estaba fijada; el tag
@@ -50,7 +60,9 @@
 
 ## Preferencias
 
-- Compilar y subir los artefactos manualmente; no usar GitHub Actions por ahora.
+- Ejecutar `make release` desde el host; no usar GitHub Actions por ahora.
+- El flujo completo pide confirmación solo dos veces: antes de crear y antes de
+  publicar. `--yes` las omite para uso desatendido.
 - Mantener el changelog y los mensajes de commit en español.
 - Adjuntar siempre `SHA256SUMS` junto al `.deb` y el AppImage.
 - No publicar en un registro de paquetes; GitHub Releases es el canal.

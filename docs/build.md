@@ -373,3 +373,10 @@ La verificación de esta versión incluyó:
   `dist/SHA256SUMS` contiene los hashes publicados.
 - El paquete final está en `dist/`; no se usa un artefacto efímero de
   `/tmp` para la entrega.
+
+## Publicar una release
+
+`make release` automatiza el bump, el changelog, los artefactos, el commit, el
+tag, la rama y la publicación en GitHub. `make release-plan` muestra el plan sin
+tocar nada. El detalle de opciones, reanudación y requisitos está en
+[`release.md`](release.md).
