@@ -13,15 +13,15 @@
   --color-quiet: #0c171b;
   --color-selected: #2a2118;
   --color-hover: #241d15;
-  --color-line: #243a41;
-  --color-line-soft: #1a2c32;
+  --color-line: #304b53;
+  --color-line-soft: #284148;
   --color-cream: #f2f5f4;
   /* shadcn reserves --color-muted for its own surface token. */
-  --color-muted-ink: #8ca0a6;
-  --color-faint: #849ba2;
+  --color-muted-ink: #aec0c5;
+  --color-faint: #a3b6bb;
   --color-amber: #f4a261;
   --color-teal: #2a9d8f;
-  --color-seam: #1b3a3a;
+  --color-seam: #244747;
   --color-mint: #7bd6a8;
   --color-cyan: #7fc8d8;
   --color-coral: #ee7b66;
@@ -32,12 +32,17 @@
   --font-code: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 
   /* UI type scale and spacing (px) */
-  --size-text: 15px;
-  --size-heading: 26px;
-  --size-subheading: 16px;
-  --size-caption: 12px;
+  --size-text: 16px;
+  --size-control: 15px;
+  --size-small: 14px;
+  --size-caption: 13px;
+  --size-heading: 28px;
+  --size-lead: 22px;
+  --size-game-title: 30px;
+  --size-game-title-compact: 26px;
+  --size-subheading: 17px;
   --size-row-title: 17px;
-  --size-field-value: 14px;
+  --size-field-value: 15px;
   --size-padding: 12px;
   --size-inner-padding: 10px;
   --size-line-spacing: 5px;

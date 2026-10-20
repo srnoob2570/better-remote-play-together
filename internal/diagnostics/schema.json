@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/srnoob2570/better-remote-play-together/diagnostics.schema.json",
+  "title": "Better RPT diagnostics report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generated_at", "version", "format", "language", "summary", "checks"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "version": { "type": "string" },
+    "format": { "enum": ["deb", "appimage", "dev"] },
+    "language": { "enum": ["es", "en"] },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verdict", "counts", "total"],
+      "properties": {
+        "verdict": { "enum": ["ok", "warn", "fail"] },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ok", "warn", "fail", "skip"],
+          "properties": {
+            "ok": { "type": "integer", "minimum": 0 },
+            "warn": { "type": "integer", "minimum": 0 },
+            "fail": { "type": "integer", "minimum": 0 },
+            "skip": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "total": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "title", "message", "evidence"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["ok", "warn", "fail", "skip"] },
+          "title": { "type": "string", "minLength": 1 },
+          "message": { "type": "string", "minLength": 1 },
+          "evidence": { "type": "array", "items": { "type": "string" } },
+          "nextStep": { "type": "string" },
+          "docs": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

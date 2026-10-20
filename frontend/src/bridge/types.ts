@@ -146,3 +146,43 @@ export interface SetupSnapshot {
   hasBackup: boolean;
   currentValue?: string;
 }
+
+export type DiagnosticStatus = "ok" | "warn" | "fail" | "skip";
+
+export interface DiagnosticCheck {
+  id: string;
+  status: DiagnosticStatus;
+  title: string;
+  message: string;
+  evidence: string[];
+  nextStep?: string;
+  docs?: string[];
+}
+
+export interface DiagnosticCounts {
+  ok: number;
+  warn: number;
+  fail: number;
+  skip: number;
+}
+
+export interface DiagnosticSummary {
+  verdict: Exclude<DiagnosticStatus, "skip">;
+  counts: DiagnosticCounts;
+  total: number;
+}
+
+export interface DiagnosticReport {
+  schema_version: number;
+  generated_at: string;
+  version: string;
+  format: string;
+  language: Language;
+  summary: DiagnosticSummary;
+  checks: DiagnosticCheck[];
+}
+
+export interface DiagnosticsResult {
+  report: DiagnosticReport;
+  markdown: string;
+}

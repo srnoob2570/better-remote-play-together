@@ -31,6 +31,7 @@ type Emitter interface {
 // App is the part of app.Service the bridge needs. *app.Service satisfies it;
 // tests provide a fake.
 type App interface {
+	Paths() config.Paths
 	Config() config.Config
 	Language() i18n.Language
 	Catalog() (steam.Catalog, bool)

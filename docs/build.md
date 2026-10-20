@@ -1,6 +1,6 @@
 # Compilación y empaquetado
 
-Receta verificada para el ticket 12. El `.deb` final se construye en un
+Receta verificada para la versión 0.2.0. El `.deb` final se construye en un
 contenedor **Ubuntu 22.04** (amd64), con Wails v3.0.0-beta.33/GTK3/WebKit2GTK
 4.1, Go 1.27.2 y nfpm v2.48.0. El paquete declara `libc6 >= 2.35` como mínimo
 soportado. Se probó una instalación limpia del `.deb` en Ubuntu 22.04, el
@@ -10,7 +10,7 @@ receta está en `docs/appimage.md`.
 
 ## Dependencias de compilación (Debian/Ubuntu)
 
-La UI migrada usa Wails v3 con GTK3/WebKit2GTK 4.1. Para desarrollo y pruebas:
+La UI React usa Wails v3 con GTK3/WebKit2GTK 4.1. Para desarrollo y pruebas:
 
 ```bash
 sudo apt-get install \
@@ -321,9 +321,9 @@ Probado con el `.deb` instalado en Ubuntu 22.04:
 ## Accesibilidad en Linux
 
 La UI React se renderiza en WebKitGTK y conserva navegación por teclado,
-nombres accesibles, foco visible y contraste. La auditoría de paridad y las
-pruebas de accesibilidad se cierran en el ticket 13. No se publica una variante
-`accessibility` separada.
+nombres accesibles, foco visible y contraste. La auditoría de paridad,
+accesibilidad y snapshots se ejecuta con Playwright y axe; no se publica una
+variante `accessibility` separada.
 
 ## Compatibilidad de glibc
 
@@ -360,7 +360,7 @@ npm run test:e2e:update
 
 No hay workflow de CI todavía: el gate es local y requiere Go 1.27.2, Node,
 GTK3/WebKit2GTK 4.1, Xvfb y Chrome. Un CI futuro necesitará esa matriz; no se
-añadió en este ticket para no duplicar el entorno de escritorio.
+añadió en esta versión para no duplicar el entorno de escritorio.
 
 El smoke real se ejecutó con el binario de producción y XDG temporal bajo Xvfb:
 arranque, assets, `steam catalog refreshed libraries=1 games=5 warnings=0`,
@@ -393,7 +393,7 @@ La verificación de esta versión incluyó:
   Xvfb con HOME/XDG temporales.
 - El pipeline de release repite la compilación y compara los SHA-256 antes de
   publicar; en esta ronda se construyó una vez cada formato. Los hashes finales
-  están en el ticket 12 y en `dist/`.
+  están en `dist/SHA256SUMS` y en el historial de la release.
 - El paquete final está en `dist/`; no se usa un artefacto efímero de
   `/tmp` para la entrega.
 

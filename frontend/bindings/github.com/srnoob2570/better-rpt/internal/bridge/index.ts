@@ -10,6 +10,7 @@ export type {
     Active,
     Catalog,
     Config,
+    DiagnosticsResult,
     Game,
     LastSession,
     Problem,

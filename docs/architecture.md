@@ -50,14 +50,19 @@ internal/config/         # setup del dispatcher, backups y transacción de local
 internal/launch/         # planificador puro + ejecutor nativo/Proton
 internal/session/        # máquina de estados, intención, última sesión y helper
 internal/bridge/         # fachada Wails: DTOs, eventos, errores y contexto de sesión
+internal/diagnostics/    # comprobaciones de solo lectura y render del informe
+internal/logging/        # log persistente rotado y saneado
+internal/redact/         # saneado de home, usuario, tokens e IPs
 internal/i18n/           # textos ES/EN y locale del sistema
 internal/fsutil/         # escritura atómica y permisos
 packaging/               # nfpm, AppImage, .desktop, icono
 ```
 
-Dependencias permitidas: `cmd/better-rpt → bridge → {app, art}`;
-`app → {steam, config, launch, session}`; `art → domain`; `bridge` no importa
-Wails; `domain` no importa nada del proyecto.
+Dependencias permitidas: `cmd/better-rpt → {bridge, diagnostics}`;
+`bridge → {app, art, diagnostics}`; `app → {steam, config, launch, session}`;
+`diagnostics → {config, steam, session, helper, i18n}`; `logging → {config,
+fsutil, redact}`; `art → domain`; `bridge` no importa Wails; `domain` no importa
+nada del proyecto. `diagnostics` solo usa APIs de lectura de esos paquetes.
 
 ## Flujo
 
@@ -180,6 +185,8 @@ La UI consume `Situation`, no vuelve a inferir el estado a partir de cadenas de
 $XDG_DATA_HOME/better-rpt/
 ├── bin/better-rpt-helper
 ├── backups/localconfig-*.vdf|json      # Kind=session|dispatcher
+├── diagnostics/better-rpt-diagnostic-*.md
+├── logs/better-rpt.log                 # 1 MiB, 3 backups
 ├── sessions/
 │   ├── plan-<token>.json
 │   ├── state-<token>.json
@@ -238,9 +245,12 @@ Al arrancar:
 
 ## Shell Wails
 
-- `cmd/better-rpt/main.go` mantiene el orden del MVP: flags, rechazo de root,
-  logger `slog` a stderr y `app.New` (lock de instancia) antes de crear la
-  ventana. Un segundo proceso falla con `error.instance` y no abre ventana.
+- `cmd/better-rpt/main.go` ejecuta `diagnostics.Main` antes de parsear los flags
+  normales y antes del rechazo de root, para que `--diagnose` funcione sin GUI,
+  sin DISPLAY, con la app abierta y como root. Después mantiene el orden del
+  MVP: flags, rechazo de root, resolución de `config.Paths`, `logging.Open`,
+  `app.NewWithPaths` (lock de instancia) y creación de la ventana. Un segundo
+  proceso falla con `error.instance` y no abre ventana.
 - Wails v3 `v3.0.0-beta.33` se compila con `-tags gtk3`; la ventana abre en
   1280×800, mínimo 1024×600 y `InitialPosition: WindowCentered`. El icono viene
   de `internal/brand`.
@@ -250,6 +260,10 @@ Al arrancar:
 - Producción (`-tags production`) embebe `cmd/better-rpt/dist`; desarrollo
   (`wails3 dev`) proxya Vite y lee los assets de disco. `make build` orquesta
   frontend, bindings y binario.
+- `frontend/src/App.tsx` mantiene la vista principal (biblioteca + panel de
+  sesión) y la vista **Diagnóstico** a pantalla completa. `Toaster` muestra las
+  notificaciones de copia, guardado y error; sus textos salen del catálogo
+  compartido.
 - Los atajos Ctrl+F, F5 y Esc viven en React: son de la página, no atajos
   globales del escritorio.
 
@@ -270,11 +284,38 @@ Al arrancar:
   launch/steam a códigos estables y cae a `internal`.
 - `Recovery` incluye la situación, el setup y la última sesión para que la UI
   actual pueda reconstruir la guía y el panel sin llamadas adicionales.
+- `RunDiagnostics` ejecuta el mismo motor que `--diagnose` con las rutas y el
+  idioma del servicio; no adquiere el lock ni escribe. `SaveDiagnostics` es la
+  única escritura de la UI: valida el Markdown y lo guarda como `0600` en
+  `$XDG_DATA_HOME/better-rpt/diagnostics/`.
 - El contrato TS manual vive en `frontend/src/bridge/types.ts` y
   `frontend/src/bridge/client.ts`; `TestTypeScriptContractMatchesDTOs` compara
   los nombres de campo con los tags JSON de Go. `frontend/src/bridge/wails.ts`
   adapta los bindings generados por Wails a esa fachada y normaliza los slices
   que Wails modela como nullable.
+
+## Diagnóstico
+
+- `internal/diagnostics` define 31 IDs estables, estados OK/WARN/FAIL/SKIP y un
+  `Report` con `schema_version: 1`. El CLI usa el mismo `Run` que el bridge y
+  renderiza Markdown o JSON; `--json` se valida antes de imprimirse.
+- Las dependencias reales del binario se leen con `debug/elf` (`DT_NEEDED`) y se
+  resuelven con `ldd`; no se asume una lista fija de bibliotecas.
+- AppImage: se comprueban FUSE, opciones del montaje, SELinux/AppArmor y la
+  alternativa `--appimage-extract-and-run`. Las denegaciones que requieren root
+  se marcan `SKIP`, nunca `FAIL` inventado.
+- Steam y sesión se inspeccionan con APIs de lectura (`steam.Detect`,
+  `config.DetectSetup`, `config.ListBackups`, `config.InspectOverlay`,
+  `config.InspectControllerLayouts`, `helper.Inspect`, store de sesiones). No se
+  llama a `app.New`, `RefreshCatalog` ni `Ensure`: no hay lock, escritura de
+  configsets ni lanzamiento.
+- La pantalla Diagnóstico agrupa primero `WARN`/`FAIL` y deja `OK`/`SKIP` en un
+  desplegable. Los enlaces de documentación se abren con `Browser.OpenURL` en el
+  navegador del sistema; copiar y guardar confirman con un toast.
+- Todo el texto pasa por `internal/redact` antes de entrar en el informe: home,
+  usuario, SteamID64, tokens de 32 hex e IPs. El log persistente de
+  `internal/logging` usa el mismo saneado, rota a 1 MiB con tres copias y
+  `app.logs` solo muestra el último error relevante.
 
 ## Arte local
 
@@ -301,6 +342,9 @@ Al arrancar:
 
 - Unitarias: VDF, appinfo, bibliotecas, construcción de comandos, setup,
   backup/restore, máquina de estados, intención, última sesión e i18n.
+- Diagnóstico: tablas de comprobaciones con dependencias inyectadas, saneado,
+  rotación del log, códigos de salida del CLI y golden JSON/Markdown de un
+  Fedora/AppImage simulado sin DISPLAY, Steam ni FUSE.
 - Integración: árboles de Steam simulados, dispatcher con intención/fallback,
   no-shutdown, conflicto de configuración y regresión A→B.
 - Humo manual: instalar el `.deb`/AppImage, abrir la app, pegar/instalar el

@@ -1,18 +1,39 @@
 # Interfaz de Better RPT
 
-Documento de apoyo del rediseño «guía primero». Define jerarquía, estados,
+Documento de apoyo del rediseño «guía primero». La implementación actual es
+una aplicación Wails v3 con React y WebKitGTK. Define jerarquía, estados,
 acciones y textos del MVP. El flujo de cerrar Steam ya no existe.
 
 ## Ventana
 
 - Tamaño inicial 1280×800; mínimo 1024×600.
-- Cabecera: **Better RPT** a la izquierda; selector **ES | EN** a la derecha.
+- Cabecera: **Better RPT** a la izquierda; a la derecha, botón **Diagnóstico**,
+  versión y selector **ES | EN**.
 - Cuerpo en dos columnas: biblioteca (≈60 %) y panel lateral (≈40 %, mínimo
   400 px).
 - La biblioteca y la sesión son dos campos de color distintos: tinta para la
   biblioteca y verde profundo para la sesión.
-- Sin barra de menús ni pantallas adicionales. La guía vive en una pestaña del
-  panel lateral; los errores se muestran en el panel o en diálogos.
+- No hay barra de menús. **Diagnóstico** es la única pantalla secundaria y se
+  abre desde la cabecera; la guía vive en una pestaña del panel lateral. Los
+  errores se muestran en el panel, en diálogos o en notificaciones toast.
+
+## Diagnóstico
+
+- El botón **Diagnóstico** de la cabecera abre una pantalla de solo lectura con
+  el mismo motor que `better-rpt --diagnose`; el botón de volver regresa a la
+  biblioteca sin perder selección ni filtros.
+- La cabecera muestra el veredicto y los recuentos OK/WARN/FAIL/SKIP. Los
+  problemas (`FAIL` y `WARN`) aparecen primero, y las comprobaciones correctas u
+  omitidas quedan en un desplegable compacto.
+- Cada problema muestra estado, mensaje, evidencia, siguiente paso y enlaces a
+  `docs/appimage.md`, `docs/compatibility.md` o `docs/known-issues.md`. Los
+  enlaces abren el navegador del sistema, no una página dentro del WebView.
+- **Actualizar** vuelve a ejecutar las comprobaciones. **Copiar informe** copia
+  el Markdown y **Guardar informe** escribe un archivo privado en
+  `$XDG_DATA_HOME/better-rpt/diagnostics/`.
+- No adquiere el lock de instancia, no modifica Steam y no lanza juegos. El
+  detalle de las 31 comprobaciones y del JSON está en
+  [`docs/diagnostics.md`](diagnostics.md).
 
 ## Biblioteca
 
@@ -29,7 +50,8 @@ acciones y textos del MVP. El flujo de cerrar Steam ya no existe.
 - Orden alfabético por nombre; sin ordenación configurable.
 - Las herramientas/runtimes y SpaceWar no se listan.
 - La biblioteca sigue visible y navegable durante la sesión, la guía y la
-  restauración. No hay una pantalla que obligue a «volver a la biblioteca».
+  restauración. Diagnóstico es la única pantalla secundaria; el resto del flujo
+  no obliga a «volver a la biblioteca».
 
 ## Panel lateral: tres pestañas
 
@@ -54,6 +76,10 @@ selección ni el estado de la biblioteca.
 Estados del setup: `missing`, `guide`, `installed`, `restored`, `conflict`.
 Estados de situación: `idle`, `prepared`, `active`, `finished`,
 `restore_pending`, `restored`, `orphan`, `conflict`.
+
+La tira de pestañas muestra el estado del setup como indicador compacto cuando
+existe; la guía lo repite con una instrucción y la acción **Verificar de
+nuevo**.
 
 Una configuración huérfana o un conflicto se muestran como un aviso separado,
 con una sola explicación: no se añade además un motivo de restauración que
@@ -97,10 +123,15 @@ nuevo** se deshabilita con el motivo visible. La biblioteca sigue navegable.
 
 ## Guía
 
-La guía es el flujo principal y debe poder consultarse sin Steam cerrado:
+La guía es el flujo principal y debe poder consultarse con Steam abierto:
 
-- Estado del setup compacto: una etiqueta y una línea de instrucción, sin
-  tarjeta de aviso para el estado normal «no instalada».
+- El estado del setup se muestra como indicador compacto en la tira de
+  pestañas (etiqueta **Integración de SpaceWar** + estado), visible también
+  fuera de la guía. Sustituye al aviso de compatibilidad y no usa una tarjeta
+  de aviso para el estado normal «no instalada».
+- Dentro de la guía, una fila de estado en la parte superior muestra el mensaje
+  correspondiente y **Verificar de nuevo**, siempre disponible. Al terminar
+  muestra un toast **Estado actualizado**; no hay confirmación inline.
 - Si SpaceWar ya contiene el dispatcher pero no existe `setup.json`, la guía lo
   reconoce como **instalado** y explica que el lanzamiento funciona pero
   **Restaurar** no está disponible porque no hay copia del valor original.
@@ -110,9 +141,14 @@ La guía es el flujo principal y debe poder consultarse sin Steam cerrado:
   '<helper>' --donor -- %command%
   ```
 
-- Botón **Copiar comando** con confirmación inline: el texto cambia a
-  **Copiado** durante dos segundos, sin mover el scroll ni mostrar un aviso al
-  final del panel.
+- Botón **Copiar comando**: al copiar muestra un toast **Copiado** (o un toast
+  de error si falla), sin cambiar el texto del botón ni mover el scroll.
+- Aviso de Steam y acciones de instalación solo si el setup no está instalado
+  ni en conflicto: con Steam cerrado se ofrece **Instalar automáticamente**;
+  con Steam abierto está deshabilitado y se muestra un único aviso para pegar
+  el comando manualmente.
+- **Guardar valor original** solo se muestra si falta el setup o está
+  restaurado; registra el backup del valor actual sin escribir Steam.
 - Pasos:
   1. Steam → Biblioteca → SpaceWar → Propiedades.
   2. Opciones de lanzamiento.
@@ -121,21 +157,14 @@ La guía es el flujo principal y debe poder consultarse sin Steam cerrado:
   5. Aceptar el popup de Steam («Allow game launch?» / «¿Permitir iniciar el
      juego?»).
   6. Abrir el overlay (Shift+Tab) e invitar a Remote Play Together.
-- Valor original de `LaunchOptions`, para que el usuario sepa qué se
-  restaurará.
-- Imágenes reales inline, justo después del paso que explican: opciones de
+- Imágenes inline, justo después del paso que explican: opciones de
   lanzamiento tras el paso 2, comando pegado tras el 3, popup tras el 5 e
-  invitación tras el 6. Se muestran a 160 px de alto para no alargar la guía. Si
-  una captura no está disponible, se muestra una ilustración claramente
-  etiquetada y se documenta la tarea de sustitución en `docs/guide-images.md`.
-- Instalación automática al final de la guía, solo si el setup no está
-  instalado: con Steam cerrado se ofrece el botón; con Steam abierto está
-  deshabilitado y muestra un único aviso para pegar el comando manualmente.
-- **Preparar guía** solo se muestra si el setup no está instalado; registra el
-  backup del valor actual sin escribir Steam. **Verificar de nuevo** está
-  siempre disponible, ocupa toda la fila cuando está solo y muestra
-  **Estado actualizado** inline. Si ambos aparecen, comparten una fila de dos
-  columnas.
+  invitación tras el 6. Se muestran a 160 px de alto para no alargar la guía.
+  Las capturas de opciones y comando son reales; popup e invitación siguen
+  pendientes y se documentan en `docs/guide-images.md`.
+- **Restauración manual** es un bloque plegable al final, después de los pasos,
+  y solo aparece si hay backup. Contiene el valor original de `LaunchOptions` y
+  cómo restaurarlo; no interrumpe el flujo de la guía.
 
 ## Sesión activa
 
@@ -206,17 +235,41 @@ Patrón: qué pasó, acción primaria, detalle técnico plegable. Ejemplos:
 
 - Inicial: `LANGUAGE`, `LC_ALL` o `LANG`; si no hay ninguna, español.
 - Selector en cabecera, cambio instantáneo, persistido en la configuración.
-- Todos los textos viven en `internal/i18n`; no hay cadenas incrustadas en la UI.
+- Todos los textos viven en `internal/i18n/catalogs/es.json` y
+  `internal/i18n/catalogs/en.json`; no hay cadenas incrustadas en la UI.
 - Las claves ES/EN deben tener el mismo conjunto.
+
+## Notificaciones
+
+La UI usa notificaciones toast (toast notifications) de shadcn/Base UI para
+confirmar acciones y mostrar errores sin bloquear la biblioteca ni el panel:
+
+- avisos de sesión (éxito o advertencia), incluidos el comando copiado, la guía
+  preparada, el estado actualizado y la instalación completada;
+- error de sesión, con acción **Reintentar** cuando corresponde;
+- error al cargar o actualizar el catálogo, al cambiar de idioma o al abrir
+  Steam;
+- éxito o error al copiar o guardar el informe de diagnóstico, al cargarlo o
+  actualizarlo, o al abrir su documentación;
+- error al copiar el comando de la guía.
+
+Los toast se apilan en una región accesible y se pueden cerrar con su botón. No
+sustituyen la evidencia persistente del panel: los avisos de restauración
+pendiente, configuración huérfana o conflicto, el error de una sesión terminada
+y el estado de error de la biblioteca siguen visibles en su contexto, con sus
+acciones de reintento o restauración.
 
 ## Accesibilidad
 
-- Navegación completa por teclado: Tab por cabecera → búsqueda → filtro →
-  biblioteca → pestañas → panel; Enter selecciona/activa; Ctrl+F enfoca la
-  búsqueda; F5 refresca; Esc cierra diálogos.
+- Navegación completa por teclado: Tab por cabecera → Diagnóstico → búsqueda →
+  filtro → biblioteca → pestañas → panel; Enter selecciona/activa; Ctrl+F
+  enfoca la búsqueda; F5 refresca; Esc cierra diálogos y devuelve el foco.
+- En Diagnóstico, el orden de tabulación recorre volver, actualizar, copiar,
+  guardar y las acciones de cada comprobación; los enlaces de documentación son
+  alcanzables por teclado.
 - Nombres accesibles en botones e iconos; los estados incluyen texto, no solo
   color.
-- Contraste y foco visibles.
+- Contraste y foco visibles; los toast tienen botón de cierre accesible.
 - Lector de pantalla: la UI React/WebKitGTK expone nombres y roles accesibles;
   la auditoría automatizada cubre WCAG A/AA y el recorrido por teclado. Una
   auditoría manual con lector de pantalla queda fuera del MVP.
@@ -232,14 +285,19 @@ Patrón: qué pasó, acción primaria, detalle técnico plegable. Ejemplos:
 | action.copyCommand | Copiar comando | Copy command |
 | action.copied | Copiado | Copied |
 | action.installAuto | Instalar automáticamente | Install automatically |
-| action.prepareGuide | Preparar guía | Prepare guide |
+| action.prepareGuide | Guardar valor original | Save original value |
+| action.refreshSetup | Verificar de nuevo | Check again |
 | action.restore | Restaurar | Restore |
 | last.title | Última sesión | Last session |
 | last.started | Inicio | Started |
 | last.duration | Duración | Duration |
 | guide.title | Guía de lanzamiento | Launch guide |
 | guide.command | Comando para SpaceWar | SpaceWar command |
-| guide.prepareHint | Preparar guía guarda el valor original antes de pegar el comando. | Prepare guide saves the original value before pasting the command. |
+| guide.prepareHint | Guarda el valor actual de Opciones de lanzamiento de SpaceWar para poder restaurarlo después. No modifica Steam. | Saves SpaceWar's current Launch Options value so you can restore it later. It does not modify Steam. |
+| guide.copyError | No se pudo copiar el comando. | The command could not be copied. |
+| guide.manualRestore | Restauración manual | Manual restore |
+| guide.originalValue | Valor original | Original value |
+| guide.restoreHint | Para restaurar sin cerrar Steam, pega el valor original en Opciones de lanzamiento. También puedes usar Restaurar cuando Steam esté cerrado. | To restore without closing Steam, paste the original value into Launch Options. You can also use Restore while Steam is closed. |
 | guide.setupAdopted | SpaceWar ya usa Better RPT. No hay copia del valor original, así que Restaurar no está disponible. | SpaceWar already uses Better RPT. There is no copy of the original value, so Restore is unavailable. |
 | guide.checkDone | Estado actualizado. | Status updated. |
 | guide.step1 | Abre Steam → Biblioteca → SpaceWar → Propiedades. | Open Steam → Library → SpaceWar → Properties. |
@@ -258,5 +316,5 @@ Patrón: qué pasó, acción primaria, detalle técnico plegable. Ejemplos:
 | pending.title | Configuración anterior | Previous configuration |
 | pending.orphanTitle | Configuración huérfana | Orphaned configuration |
 
-La lista completa está en `internal/i18n/i18n.go`; este extracto no sustituye la
-fuente.
+La lista completa está en `internal/i18n/catalogs/es.json` y
+`internal/i18n/catalogs/en.json`; este extracto no sustituye la fuente.

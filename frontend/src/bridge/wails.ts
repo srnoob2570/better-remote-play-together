@@ -4,6 +4,8 @@ import type { Bridge } from "./client";
 import type {
   Active,
   Catalog,
+  DiagnosticReport,
+  DiagnosticsResult,
   Game,
   Language,
   Recovery,
@@ -82,6 +84,21 @@ export const bridge: Bridge = {
   },
   OpenSteam(): Promise<void> {
     return generated.OpenSteam();
+  },
+  async RunDiagnostics(): Promise<DiagnosticsResult> {
+    const value = await generated.RunDiagnostics();
+    const report = value.report as unknown as DiagnosticReport;
+    const checks = (report.checks ?? []).map((check) => {
+      const row = check as unknown as { evidence?: string[] | null; docs?: string[] | null };
+      return { ...check, evidence: row.evidence ?? [], docs: row.docs ?? [] };
+    });
+    return {
+      report: { ...report, checks },
+      markdown: value.markdown,
+    };
+  },
+  SaveDiagnostics(markdown: string): Promise<string> {
+    return generated.SaveDiagnostics(markdown);
   },
   Version(): Promise<string> {
     return generated.Version();

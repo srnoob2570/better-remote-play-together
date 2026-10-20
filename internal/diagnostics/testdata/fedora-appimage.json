@@ -1,0 +1,340 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-20T12:00:00Z",
+  "version": "0.2.0",
+  "format": "appimage",
+  "language": "es",
+  "summary": {
+    "verdict": "fail",
+    "counts": {
+      "ok": 13,
+      "warn": 2,
+      "fail": 5,
+      "skip": 11
+    },
+    "total": 31
+  },
+  "checks": [
+    {
+      "id": "system.version",
+      "status": "ok",
+      "title": "Versión de Better RPT",
+      "message": "Versión 0.2.0.",
+      "evidence": [
+        "version=0.2.0"
+      ]
+    },
+    {
+      "id": "system.format",
+      "status": "ok",
+      "title": "Formato de paquete",
+      "message": "Formato detectado: appimage.",
+      "evidence": [
+        "format=appimage"
+      ]
+    },
+    {
+      "id": "system.os",
+      "status": "ok",
+      "title": "Distribución",
+      "message": "Distribución reconocida.",
+      "evidence": [
+        "os=Fedora Linux 44 (Workstation Edition)",
+        "id=$USER",
+        "version_id=44"
+      ]
+    },
+    {
+      "id": "system.kernel",
+      "status": "ok",
+      "title": "Kernel",
+      "message": "OK",
+      "evidence": [
+        "kernel=6.15.0-200.fc44.x86_64"
+      ]
+    },
+    {
+      "id": "system.arch",
+      "status": "ok",
+      "title": "Arquitectura",
+      "message": "OK",
+      "evidence": [
+        "arch=amd64"
+      ]
+    },
+    {
+      "id": "system.glibc",
+      "status": "ok",
+      "title": "glibc",
+      "message": "glibc es compatible con el mínimo 2.35.",
+      "evidence": [
+        "glibc=2.39"
+      ],
+      "docs": [
+        "docs/appimage.md"
+      ]
+    },
+    {
+      "id": "system.locale",
+      "status": "ok",
+      "title": "Locale",
+      "message": "OK",
+      "evidence": [
+        "locale=en_US.UTF-8"
+      ]
+    },
+    {
+      "id": "system.session",
+      "status": "ok",
+      "title": "Sesión gráfica",
+      "message": "Sesión Wayland detectada.",
+      "evidence": [
+        "XDG_SESSION_TYPE=wayland",
+        "WAYLAND_DISPLAY=wayland-0"
+      ]
+    },
+    {
+      "id": "system.desktop",
+      "status": "ok",
+      "title": "Escritorio",
+      "message": "OK",
+      "evidence": [
+        "desktop=GNOME"
+      ]
+    },
+    {
+      "id": "system.root",
+      "status": "ok",
+      "title": "Usuario root",
+      "message": "OK",
+      "evidence": [
+        "euid=1000"
+      ]
+    },
+    {
+      "id": "appimage.fuse",
+      "status": "fail",
+      "title": "FUSE",
+      "message": "No se encontraron fusermount3 ni /dev/fuse.",
+      "evidence": [
+        "fusermount3=no encontrado",
+        "/dev/fuse=false"
+      ],
+      "nextStep": "Instala fuse3 o ejecuta el AppImage con --appimage-extract-and-run.",
+      "docs": [
+        "docs/appimage.md"
+      ]
+    },
+    {
+      "id": "appimage.mount",
+      "status": "fail",
+      "title": "Montaje del AppImage",
+      "message": "El montaje del AppImage tiene noexec o nosuid.",
+      "evidence": [
+        "mount=$HOME/Apps",
+        "options=rw,nosuid,nodev"
+      ],
+      "nextStep": "Copia el AppImage a tu home y vuelve a ejecutarlo desde allí.",
+      "docs": [
+        "docs/appimage.md"
+      ]
+    },
+    {
+      "id": "appimage.mac",
+      "status": "skip",
+      "title": "SELinux/AppArmor",
+      "message": "No se pudieron leer denegaciones de SELinux/AppArmor sin root.",
+      "evidence": [],
+      "docs": [
+        "docs/appimage.md",
+        "docs/known-issues.md"
+      ]
+    },
+    {
+      "id": "deps.elf",
+      "status": "fail",
+      "title": "Dependencias del binario",
+      "message": "Faltan 2 bibliotecas dinámicas.",
+      "evidence": [
+        "executable=$HOME/Apps/BetterRPT-0.2.0-x86_64.AppImage",
+        "DT_NEEDED=libgtk-3.so.0, libwebkit2gtk-4.1.so.0",
+        "missing=libgtk-3.so.0, libwebkit2gtk-4.1.so.0"
+      ],
+      "nextStep": "Instala las bibliotecas que faltan (GTK3, WebKit2GTK 4.1, Wayland, X11, Mesa/GL) o usa el paquete de tu distribución.",
+      "docs": [
+        "docs/appimage.md"
+      ]
+    },
+    {
+      "id": "steam.install",
+      "status": "fail",
+      "title": "Steam instalado",
+      "message": "La instalación de Steam es flatpak, no nativa.",
+      "evidence": [
+        "variant=flatpak",
+        "root=$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam"
+      ],
+      "nextStep": "Better RPT solo admite Steam nativo. Instala Steam desde el repositorio de tu distribución.",
+      "docs": [
+        "docs/compatibility.md"
+      ]
+    },
+    {
+      "id": "steam.variant",
+      "status": "fail",
+      "title": "Variante de Steam",
+      "message": "La variante flatpak no está soportada.",
+      "evidence": [
+        "variant=flatpak"
+      ],
+      "nextStep": "Usa Steam nativo; Flatpak y Snap no están soportados.",
+      "docs": [
+        "docs/compatibility.md"
+      ]
+    },
+    {
+      "id": "steam.running",
+      "status": "skip",
+      "title": "Steam en ejecución",
+      "message": "No hay una instalación de Steam que comprobar.",
+      "evidence": []
+    },
+    {
+      "id": "steam.spacewar",
+      "status": "skip",
+      "title": "SpaceWar (480)",
+      "message": "No hay catálogo de Steam que comprobar.",
+      "evidence": []
+    },
+    {
+      "id": "steam.dispatcher",
+      "status": "skip",
+      "title": "Dispatcher de SpaceWar",
+      "message": "No hay una instalación de Steam que comprobar.",
+      "evidence": []
+    },
+    {
+      "id": "steam.backups",
+      "status": "warn",
+      "title": "Copias de seguridad",
+      "message": "Todavía no hay copias de seguridad.",
+      "evidence": [],
+      "nextStep": "Revisa los permisos de $XDG_DATA_HOME/better-rpt/backups.",
+      "docs": [
+        "docs/compatibility.md"
+      ]
+    },
+    {
+      "id": "steam.permissions",
+      "status": "skip",
+      "title": "Permisos de configuración",
+      "message": "No hay una instalación de Steam que comprobar.",
+      "evidence": []
+    },
+    {
+      "id": "steam.overlay",
+      "status": "skip",
+      "title": "Overlay de Steam",
+      "message": "No hay una instalación de Steam que comprobar.",
+      "evidence": []
+    },
+    {
+      "id": "steam.controllers",
+      "status": "skip",
+      "title": "Configsets de mando",
+      "message": "No hay una instalación de Steam que comprobar.",
+      "evidence": []
+    },
+    {
+      "id": "steam.warnings",
+      "status": "skip",
+      "title": "Avisos del catálogo",
+      "message": "No hay catálogo de Steam que revisar.",
+      "evidence": []
+    },
+    {
+      "id": "app.config",
+      "status": "ok",
+      "title": "Configuración de Better RPT",
+      "message": "config.json es válido.",
+      "evidence": [
+        "config=valid",
+        "language=(auto)"
+      ],
+      "docs": [
+        "docs/known-issues.md"
+      ]
+    },
+    {
+      "id": "app.xdg",
+      "status": "ok",
+      "title": "Directorios XDG",
+      "message": "Los directorios de configuración, datos y runtime son escribibles.",
+      "evidence": [
+        "config=exists,writable=true",
+        "data=exists,writable=true",
+        "runtime=exists,writable=true"
+      ],
+      "docs": [
+        "docs/known-issues.md"
+      ]
+    },
+    {
+      "id": "app.lock",
+      "status": "ok",
+      "title": "Bloqueo de instancia",
+      "message": "El bloqueo de instancia está libre o pertenece a una app en ejecución.",
+      "evidence": [
+        "app.lock=free"
+      ],
+      "docs": [
+        "docs/known-issues.md"
+      ]
+    },
+    {
+      "id": "app.helper",
+      "status": "warn",
+      "title": "Helper instalado",
+      "message": "El helper necesita atención.",
+      "evidence": [
+        "path=$HOME/.local/share/better-rpt/bin/better-rpt-helper",
+        "exists=false"
+      ],
+      "nextStep": "Abre Better RPT una vez para instalar el helper.",
+      "docs": [
+        "docs/known-issues.md",
+        "docs/appimage.md"
+      ]
+    },
+    {
+      "id": "app.logs",
+      "status": "skip",
+      "title": "Registro de la aplicación",
+      "message": "Todavía no hay registro persistente.",
+      "evidence": [],
+      "docs": [
+        "docs/known-issues.md"
+      ]
+    },
+    {
+      "id": "session.state",
+      "status": "skip",
+      "title": "Última sesión",
+      "message": "No hay una sesión activa ni una última sesión.",
+      "evidence": []
+    },
+    {
+      "id": "limits.rpt",
+      "status": "skip",
+      "title": "Límites del diagnóstico",
+      "message": "NAT/P2P, anti-cheat y la compatibilidad de un juego concreto no se diagnostican.",
+      "evidence": [
+        "Estos límites se explican en la guía de compatibilidad."
+      ],
+      "docs": [
+        "docs/compatibility.md",
+        "docs/known-issues.md"
+      ]
+    }
+  ]
+}

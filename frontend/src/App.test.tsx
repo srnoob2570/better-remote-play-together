@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
   Catalog,
+  DiagnosticsResult,
   Game,
   LastSession,
   Recovery,
@@ -13,6 +14,9 @@ import type {
 import App from "./App";
 
 vi.mock("@wailsio/runtime", () => ({
+  Browser: {
+    OpenURL: vi.fn().mockResolvedValue(undefined),
+  },
   Events: {
     On: vi.fn(() => () => {}),
   },
@@ -37,8 +41,12 @@ vi.mock("./bridge/wails", () => ({
     DispatcherCommand: vi.fn(),
     OpenSpaceWarInstall: vi.fn(),
     SessionState: vi.fn(),
+    RunDiagnostics: vi.fn(),
+    SaveDiagnostics: vi.fn(),
   },
 }));
+
+import { Browser } from "@wailsio/runtime";
 
 import { bridge } from "./bridge/wails";
 
@@ -112,6 +120,42 @@ function lastSession(overrides: Partial<LastSession> = {}): LastSession {
   };
 }
 
+function diagnosticsResult(): DiagnosticsResult {
+  return {
+    report: {
+      schema_version: 1,
+      generated_at: "2026-10-20T12:00:00Z",
+      version: "0.2.0",
+      format: "appimage",
+      language: "es",
+      summary: {
+        verdict: "warn",
+        counts: { ok: 1, warn: 1, fail: 0, skip: 0 },
+        total: 2,
+      },
+      checks: [
+        {
+          id: "system.version",
+          status: "ok",
+          title: "Versión de Better RPT",
+          message: "0.2.0",
+          evidence: ["better-rpt 0.2.0"],
+        },
+        {
+          id: "appimage.fuse",
+          status: "warn",
+          title: "FUSE",
+          message: "No se encontró FUSE: faltan fusermount3 y /dev/fuse.",
+          evidence: ["fusermount3: not found", "/dev/fuse: missing"],
+          nextStep: "Instala fuse3 o usa --appimage-extract-and-run.",
+          docs: ["docs/appimage.md"],
+        },
+      ],
+    },
+    markdown: "# Better RPT diagnostics\n\nWARN · OK 1 · WARN 1 · FAIL 0 · SKIP 0\n",
+  };
+}
+
 describe("library UI", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -145,6 +189,8 @@ describe("library UI", () => {
     mocked.RecordGuideSetup.mockResolvedValue({ status: "guide", hasBackup: true });
     mocked.RestoreSetup.mockResolvedValue({ status: "restored", hasBackup: false });
     mocked.RestoreSession.mockResolvedValue();
+    mocked.RunDiagnostics.mockResolvedValue(diagnosticsResult());
+    mocked.SaveDiagnostics.mockResolvedValue("/tmp/better-rpt-diagnostic.md");
   });
 
   it("renders the catalog, count and lazy artwork", async () => {
@@ -193,10 +239,11 @@ describe("library UI", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Actualizar" }));
 
+    const library = screen.getByRole("region", { name: "Biblioteca" });
     expect(
-      await screen.findByText("No se pudo leer la biblioteca de Steam."),
-    ).toBeInTheDocument();
-    expect(screen.getByText("falló la lectura")).toBeInTheDocument();
+      (await screen.findAllByText("No se pudo leer la biblioteca de Steam.")).length,
+    ).toBeGreaterThan(0);
+    expect(within(library).getByText("falló la lectura")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
   });
 
@@ -357,11 +404,14 @@ describe("library UI", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "No se pudo completar la operación" }),
+      (await screen.findAllByRole("heading", { name: "No se pudo completar la operación" })).length,
+    ).toBeGreaterThan(0);
+    const sessionPanel = screen.getByRole("complementary", { name: "Sesión" });
+    expect(
+      within(sessionPanel).getByText("Instala el comando desde la guía antes de jugar."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Instala el comando desde la guía antes de jugar.")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Detalle técnico"));
-    expect(screen.getByText("stack")).toBeInTheDocument();
+    fireEvent.click(within(sessionPanel).getByText("Detalle técnico"));
+    expect(within(sessionPanel).getByText("stack")).toBeInTheDocument();
   });
 
   it("renders skeletons while the snapshot is loading", () => {
@@ -369,5 +419,48 @@ describe("library UI", () => {
     render(<App />);
 
     expect(document.querySelector('[aria-busy="true"]')).toBeInTheDocument();
+  });
+
+  it("opens diagnostics, copies the report and saves it", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    render(<App />);
+    await screen.findAllByText("HELLDIVERS™ 2");
+
+    fireEvent.click(screen.getByRole("button", { name: "Diagnóstico" }));
+
+    expect(await screen.findByRole("heading", { name: "Diagnóstico" })).toBeInTheDocument();
+    expect(mocked.RunDiagnostics).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByText("WARN").length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("heading", { name: "Requiere atención (1)" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Otras comprobaciones (1)")).toBeInTheDocument();
+    expect(
+      screen.getByText("No se encontró FUSE: faltan fusermount3 y /dev/fuse."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Instala fuse3 o usa --appimage-extract-and-run.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "docs/appimage.md" })).toHaveAttribute(
+      "href",
+      "https://github.com/srnoob2570/better-remote-play-together/blob/main/docs/appimage.md",
+    );
+    fireEvent.click(screen.getByRole("link", { name: "docs/appimage.md" }));
+    expect(Browser.OpenURL).toHaveBeenCalledWith(
+      "https://github.com/srnoob2570/better-remote-play-together/blob/main/docs/appimage.md",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Copiar informe" }));
+    expect(await screen.findByText("Informe copiado.")).toBeInTheDocument();
+    expect(writeText).toHaveBeenCalledWith(diagnosticsResult().markdown);
+
+    fireEvent.click(screen.getByRole("button", { name: "Guardar informe" }));
+    expect(await screen.findByText("Informe guardado en /tmp/better-rpt-diagnostic.md")).toBeInTheDocument();
+    expect(mocked.SaveDiagnostics).toHaveBeenCalledWith(diagnosticsResult().markdown);
+
+    fireEvent.click(screen.getByRole("button", { name: "Volver a la biblioteca" }));
+    expect(await screen.findByRole("heading", { name: "Biblioteca" })).toBeInTheDocument();
   });
 });

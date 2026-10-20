@@ -184,8 +184,8 @@ toca opciones de lanzamiento de otras aplicaciones.
   instaladas; no hay pruebas de GUI de extremo a extremo ni soporte declarado
   en esas distribuciones.
 - **Accesibilidad:** navegación por teclado, atajos, foco visible y contraste.
-  La UI React se renderiza en WebKitGTK; la auditoría de accesibilidad se
-  cierra en el ticket 13.
+  La UI React se renderiza en WebKitGTK; la auditoría de accesibilidad está
+  cubierta por Playwright y axe.
 - **Una sesión a la vez:** no se pueden preparar dos donantes ni lanzar dos
   targets concurrentes.
 
@@ -203,6 +203,9 @@ Better RPT no descarga código ni envía datos por red. Todo queda en el equipo:
 - Setup del dispatcher: `$XDG_DATA_HOME/better-rpt/setup.json`.
 - Sesiones: `$XDG_DATA_HOME/better-rpt/sessions/` con plan/estado,
   `launch-intent.json` y `last-launch.json`.
+- Log persistente: `$XDG_DATA_HOME/better-rpt/logs/better-rpt.log`, rotado a
+  1 MiB con tres copias y saneado; el diagnóstico solo muestra el último error.
+- Informes guardados: `$XDG_DATA_HOME/better-rpt/diagnostics/`.
 - Runtime: `$XDG_RUNTIME_DIR/better-rpt/` para el bloqueo; no es dato
   persistente.
 
@@ -211,6 +214,25 @@ marcado como privado en Steam, su actividad puede sustituir a la de SpaceWar en
 tu perfil. El panel de sesión de la app incluye este recordatorio.
 
 ## Problemas frecuentes
+
+### Diagnóstico automático
+
+Si no sabes qué falla, ejecuta el diagnóstico de solo lectura antes de abrir un
+issue:
+
+```bash
+better-rpt --diagnose
+better-rpt --diagnose --json --out /tmp/better-rpt-diagnostic.json
+```
+
+No necesita GUI ni `DISPLAY`; funciona con la app abierta y también como root
+(lo marca como `FAIL`, porque la app se niega a arrancar así). No modifica Steam,
+no usa la red y no envía nada. El comando devuelve `0` si no hay `FAIL`, `1` si
+hay alguno y `2` si los argumentos son incorrectos. En la app, el botón
+**Diagnóstico** muestra el mismo informe y permite copiarlo o guardarlo. Si el
+binario no puede cargarse por una biblioteca ausente, `AppRun` del AppImage
+imprime cuáles faltan antes de arrancar. Detalles, IDs de comprobación y esquema
+JSON en [`docs/diagnostics.md`](docs/diagnostics.md).
 
 ### «No se encontró una instalación nativa de Steam»
 
@@ -258,6 +280,12 @@ está en pantalla. **Jugar de nuevo** repite el último lanzamiento con los mism
 parámetros.
 
 ### El AppImage no arranca
+
+Ejecuta primero el diagnóstico; si FUSE no está disponible, usa la extracción:
+
+```bash
+APPIMAGE_EXTRACT_AND_RUN=1 ./BetterRPT-0.2.0-x86_64.AppImage --diagnose
+```
 
 Instala `fuse3` o ejecuta con `--appimage-extract-and-run`. En Wayland, si hay
 problemas de decoración o GL, deja que GTK/Wails detecte el backend; no hace
@@ -311,8 +339,8 @@ Para el AppImage, borra el archivo. Los datos anteriores siguen las mismas rutas
 ## Desarrollo local (sin instalar)
 
 No hace falta instalar el `.deb` ni el AppImage para desarrollar o probar la
-app. La UI migrada usa Wails v3 + React; `make dev` arranca Vite y el binario
-Wails con recarga en caliente:
+app. La UI React usa Wails v3; `make dev` arranca Vite y el binario Wails con
+recarga en caliente:
 
 ```bash
 # una vez, con el CLI de Wails en PATH
@@ -429,7 +457,8 @@ Steam ni juegos reales.
 
 ## Estado de verificación de esta versión
 
-- 407 pruebas en 19 paquetes; `go vet` pasa sin errores.
+- 400 pruebas en 21 paquetes; `go vet` pasa sin errores. En el frontend,
+  15 pruebas Vitest y 44 Playwright (paridad, 27 snapshots y accesibilidad).
 - Binario y helper construidos en Ubuntu 22.04 con `-tags "gtk3 production"`;
   el `.deb` declara `libc6 (>= 2.35)`, GTK3 y WebKit2GTK 4.1.
 - `.deb` instalado desde cero en Ubuntu 22.04; `better-rpt --version` y arranque
@@ -437,6 +466,9 @@ Steam ni juegos reales.
   se comprobó con Weston headless en el mismo contenedor.
 - AppImage arrancado con FUSE y con `--appimage-extract-and-run`; GUI X11 y
   cierre limpio con `WM_DELETE_WINDOW` comprobados (883 ms hasta la ventana).
+- `better-rpt --diagnose` probado sin `DISPLAY`/Wayland, como root (`FAIL`
+  esperado), con un lock de instancia ocupado y con `--json`/`--out` (`0600`);
+  el informe tiene 31 comprobaciones, no adquiere el lock ni escribe Steam.
 - Medición orientativa en reposo, X11: 157.480 KB del proceso principal y
   276.340 KB sumando los procesos de WebKit. No hay límite duro de RAM.
 - Una compilación de cada formato; los SHA-256 están en `dist/SHA256SUMS` cuando

@@ -1,6 +1,6 @@
 # Distribución
 
-Contrato del ticket 09 para el paquete `.deb` del MVP. El AppImage es un artefacto secundario y se concreta en `docs/appimage.md`.
+Contrato de distribución del paquete `.deb` del MVP. El AppImage es un artefacto secundario y se concreta en `docs/appimage.md`.
 
 ## Artefactos
 
@@ -63,7 +63,7 @@ Sin servicios, unidades systemd, setuid ni configuración de usuario instalada p
 
 ## Dependencias
 
-`Depends` parte de lo detectado en el ticket 08 y se fija para Ubuntu 22.04:
+`Depends` parte de lo detectado en el binario y se fija para Ubuntu 22.04:
 
 ```text
 libc6 (>= 2.35), libgl1, libegl1,
@@ -100,6 +100,8 @@ probaron en Ubuntu 22.04. La app se abre desde el menú de aplicaciones o con
 - Backups: `$XDG_DATA_HOME/better-rpt/backups/` o `~/.local/share/better-rpt/backups/` (dir 0700, archivos 0600, retención 10; `Kind=session` o `dispatcher`).
 - Setup del dispatcher: `$XDG_DATA_HOME/better-rpt/setup.json` (0600), con el backup y el valor original de SpaceWar.
 - Sesiones: `$XDG_DATA_HOME/better-rpt/sessions/` con plan/estado, `launch-intent.json` y `last-launch.json` (0600).
+- Log persistente: `$XDG_DATA_HOME/better-rpt/logs/better-rpt.log`, rotado a 1 MiB con tres copias y saneado.
+- Informes de diagnóstico: `$XDG_DATA_HOME/better-rpt/diagnostics/` (Markdown `0600`).
 - Runtime: `$XDG_RUNTIME_DIR/better-rpt/` para el bloqueo de sesión; no es dato persistente.
 - El paquete no crea ni modifica estos directorios; los crea la app al ejecutarse como usuario.
 

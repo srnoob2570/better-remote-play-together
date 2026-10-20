@@ -14,8 +14,11 @@ import (
 	"github.com/srnoob2570/better-rpt/internal/app"
 	"github.com/srnoob2570/better-rpt/internal/brand"
 	"github.com/srnoob2570/better-rpt/internal/bridge"
+	"github.com/srnoob2570/better-rpt/internal/config"
+	"github.com/srnoob2570/better-rpt/internal/diagnostics"
 	"github.com/srnoob2570/better-rpt/internal/domain"
 	"github.com/srnoob2570/better-rpt/internal/i18n"
+	"github.com/srnoob2570/better-rpt/internal/logging"
 )
 
 var version = "dev"
@@ -25,6 +28,10 @@ func main() {
 }
 
 func run() int {
+	if handled, code := diagnostics.Main(os.Args[1:], os.Stdout, os.Stderr, version); handled {
+		return code
+	}
+
 	flags := flag.NewFlagSet("better-rpt", flag.ContinueOnError)
 	flags.SetOutput(os.Stderr)
 	showVersion := flags.Bool("version", false, "print the version and exit")
@@ -45,8 +52,22 @@ func run() int {
 		return 1
 	}
 
-	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	svc, err := app.New(logger)
+	paths, err := config.ResolvePaths()
+	if err != nil {
+		fatal(err)
+		return 1
+	}
+	logger, closeLog, logErr := logging.Open(paths, version)
+	defer func() {
+		if err := closeLog(); err != nil {
+			logger.Warn("close log", "error", err)
+		}
+	}()
+	if logErr != nil {
+		fmt.Fprintf(os.Stderr, "warning: %v\n", logErr)
+	}
+
+	svc, err := app.NewWithPaths(paths, logger)
 	if err != nil {
 		fatal(err)
 		return 1

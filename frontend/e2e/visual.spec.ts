@@ -116,4 +116,19 @@ test.describe("visual parity", () => {
     await page.getByRole("row", { name: /Valheim/ }).hover();
     await expect(page).toHaveScreenshot("visual/library-hover-1280x800.png");
   });
+
+  for (const size of [
+    { width: 1280, height: 800, name: "1280x800" },
+    { width: 1024, height: 600, name: "1024x600" },
+    { width: 1920, height: 1080, name: "1920x1080" },
+  ]) {
+    test(`diagnostics at ${size.name}`, async ({ page }) => {
+      await page.setViewportSize({ width: size.width, height: size.height });
+      await prepare(page, "library", "es");
+      await page.getByRole("button", { name: "Diagnóstico" }).click();
+      await expect(page.getByRole("heading", { name: "Diagnóstico", exact: true })).toBeVisible();
+      await expect(page.getByText("No se encontró FUSE: faltan fusermount3 y /dev/fuse.")).toBeVisible();
+      await expect(page).toHaveScreenshot(`visual/diagnostics-${size.name}.png`);
+    });
+  }
 });

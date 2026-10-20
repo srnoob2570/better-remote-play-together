@@ -50,6 +50,16 @@ func (p Paths) HelperPath() string {
 	return filepath.Join(p.DataDir, "bin", "better-rpt-helper")
 }
 
+// LogsDir is the private persistent log directory.
+func (p Paths) LogsDir() string {
+	return filepath.Join(p.DataDir, "logs")
+}
+
+// DiagnosticsDir is the private directory for saved diagnostic reports.
+func (p Paths) DiagnosticsDir() string {
+	return filepath.Join(p.DataDir, "diagnostics")
+}
+
 // Ensure creates the private user directories.
 func (p Paths) Ensure() error {
 	for _, dir := range []string{p.ConfigDir, p.DataDir, p.RuntimeDir} {

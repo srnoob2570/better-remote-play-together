@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -39,6 +41,7 @@ func (r *eventRecorder) snapshot() []recordedEvent {
 }
 
 type fakeApp struct {
+	paths      config.Paths
 	config     config.Config
 	language   i18n.Language
 	catalog    steam.Catalog
@@ -60,6 +63,7 @@ type fakeApp struct {
 	setLanguageFn  func(string) error
 }
 
+func (f *fakeApp) Paths() config.Paths            { return f.paths }
 func (f *fakeApp) Config() config.Config          { return f.config }
 func (f *fakeApp) Language() i18n.Language        { return f.language }
 func (f *fakeApp) Catalog() (steam.Catalog, bool) { return f.catalog, f.hasCatalog }
@@ -659,6 +663,34 @@ func TestSessionStateMapsProblemAndExitCode(t *testing.T) {
 	}
 	if got.CreatedAt == "" || got.StartedAt == "" {
 		t.Fatalf("timestamps = %+v", got)
+	}
+}
+
+func TestSaveDiagnosticsWritesPrivateReport(t *testing.T) {
+	paths := config.Paths{DataDir: t.TempDir()}
+	b := New(&fakeApp{paths: paths}, "0.2.0", nil)
+
+	path, err := b.SaveDiagnostics("# Better RPT diagnostics\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "# Better RPT diagnostics\n" {
+		t.Fatalf("report = %q", data)
+	}
+	info, err := os.Stat(path)
+	if err != nil || info.Mode().Perm() != 0o600 {
+		t.Fatalf("report mode: %v %#v", err, info)
+	}
+	dir, err := os.Stat(filepath.Dir(path))
+	if err != nil || dir.Mode().Perm() != 0o700 {
+		t.Fatalf("diagnostics dir mode: %v %#v", err, dir)
+	}
+	if _, err := b.SaveDiagnostics(""); err == nil {
+		t.Fatal("expected empty report error")
 	}
 }
 

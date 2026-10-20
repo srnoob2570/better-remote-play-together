@@ -3,6 +3,8 @@ import { setTransport } from "@wailsio/runtime";
 import type {
   Active,
   Catalog,
+  DiagnosticReport,
+  DiagnosticsResult,
   Game,
   LastSession,
   Problem,
@@ -98,6 +100,66 @@ function last(overrides: Partial<LastSession> = {}): LastSession {
 
 function catalog(overrides: Partial<Catalog> = {}): Catalog {
   return { games, warnings: [], ...overrides };
+}
+
+function diagnostics(lang: "es" | "en"): DiagnosticsResult {
+  const en = lang === "en";
+  const report: DiagnosticReport = {
+    schema_version: 1,
+    generated_at: NOW.toISOString(),
+    version: "0.2.0",
+    format: "appimage",
+    language: lang,
+    summary: {
+      verdict: "warn",
+      counts: { ok: 2, warn: 1, fail: 0, skip: 1 },
+      total: 4,
+    },
+    checks: [
+      {
+        id: "system.version",
+        status: "ok",
+        title: en ? "Better RPT version" : "Versión de Better RPT",
+        message: "0.2.0",
+        evidence: ["better-rpt 0.2.0"],
+      },
+      {
+        id: "appimage.fuse",
+        status: "warn",
+        title: "FUSE",
+        message: en
+          ? "FUSE was not found: fusermount3 and /dev/fuse are missing."
+          : "No se encontró FUSE: faltan fusermount3 y /dev/fuse.",
+        evidence: ["fusermount3: not found", "/dev/fuse: missing"],
+        nextStep: en
+          ? "Install fuse3 and reopen the AppImage, or use --appimage-extract-and-run."
+          : "Instala fuse3 y vuelve a abrir el AppImage, o usa --appimage-extract-and-run.",
+        docs: ["docs/appimage.md"],
+      },
+      {
+        id: "app.config",
+        status: "ok",
+        title: en ? "App configuration" : "Configuración de la app",
+        message: en ? "config.json is valid." : "config.json es válido.",
+        evidence: ["~/.config/better-rpt/config.json"],
+      },
+      {
+        id: "limits.rpt",
+        status: "skip",
+        title: en ? "Diagnostics limits" : "Límites del diagnóstico",
+        message: en
+          ? "NAT, anti-cheat and per-game Remote Play compatibility are not diagnosed."
+          : "No se diagnostican NAT, anti-cheat ni la compatibilidad de un juego concreto con Remote Play.",
+        evidence: [],
+        nextStep: en ? "See the compatibility guide." : "Consulta la guía de compatibilidad.",
+        docs: ["docs/compatibility.md"],
+      },
+    ],
+  };
+  return {
+    report,
+    markdown: `# Better RPT diagnostics\n\n${report.summary.verdict.toUpperCase()} · OK 2 · WARN 1 · FAIL 0 · SKIP 1\n`,
+  };
 }
 
 function baseSetup(): SetupSnapshot {
@@ -253,6 +315,7 @@ function scenarioData(name: Scenario, lang: "es" | "en") {
     setLanguage: (next: "es" | "en") => {
       lang = next;
     },
+    getLanguage: () => lang,
   };
 }
 
@@ -301,6 +364,10 @@ export function installMockTransport(scenarioName: string, language: "es" | "en"
           return;
         case 1761850530:
           return "0.2.0";
+        case 2429811133:
+          return diagnostics(data.getLanguage());
+        case 1614206993:
+          return "/home/tester/.local/share/better-rpt/diagnostics/better-rpt-diagnostic-2026-10-20T12-00-00Z.md";
         default:
           throw new Error(`unmocked bridge call ${String(call?.methodID)}`);
       }

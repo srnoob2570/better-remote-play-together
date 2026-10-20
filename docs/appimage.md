@@ -1,6 +1,6 @@
 # AppImage
 
-Decisión del ticket 16. El AppImage es el artefacto secundario para distribuciones sin `.deb`; el `.deb` sigue siendo el principal.
+Decisión de empaquetado. El AppImage es el artefacto secundario para distribuciones sin `.deb`; el `.deb` sigue siendo el principal.
 
 ## Decisión principal: helper estable
 
@@ -27,7 +27,7 @@ El launch option resultante se cita con comillas simples para soportar espacios:
 '/home/usuario/.local/share/better-rpt/bin/better-rpt-helper' --donor --target <appid> --session <32hex> # %command%
 ```
 
-El helper valida `SteamAppId=480`/`SteamGameId=480`, el plan y el token, como se define en el ticket 03. La app usa la misma ruta en `.deb` y AppImage, de modo que cambiar de formato no deja una opción de lanzamiento huérfana. Esto revisa la ruta `/usr/bin/better-rpt --donor` del ticket 01; el resto de su transacción (backup, atomicidad, restauración exacta) no cambia.
+El helper valida `SteamAppId=480`/`SteamGameId=480`, el plan y el token, como se define en `docs/architecture.md`. La app usa la misma ruta en `.deb` y AppImage, de modo que cambiar de formato no deja una opción de lanzamiento huérfana. La ruta anterior `/usr/bin/better-rpt --donor` queda revisada; el resto de su transacción (backup, atomicidad, restauración exacta) no cambia.
 
 ## Estructura del AppDir
 
@@ -96,6 +96,7 @@ Herramientas verificadas:
 
 - El runtime type2 verificado es `static-pie`; no contiene `libfuse.so.2`. Usa `fusermount`/`fusermount3` del sistema y es compatible con FUSE 3.
 - Si FUSE no está disponible: ejecutar con `--appimage-extract-and-run` o `APPIMAGE_EXTRACT_AND_RUN=1`. Esa extracción temporal **no** se usa para el launch option.
+- Si el AppImage no arranca, `--diagnose` explica FUSE, glibc, bibliotecas ELF, sesión gráfica, SELinux/AppArmor y Steam sin abrir la GUI. Con FUSE ausente: `APPIMAGE_EXTRACT_AND_RUN=1 ./BetterRPT-0.2.0-x86_64.AppImage --diagnose`. Ver [`diagnostics.md`](diagnostics.md).
 - El AppImage no incluye glibc, GTK3, WebKit2GTK 4.1, GL, Wayland ni X11: se usan las bibliotecas del sistema. Requisitos mínimos: glibc ≥ 2.35, `libgtk-3-0`/`libgtk-3-0t64`, `libwebkit2gtk-4.1-0`, `libwayland-client`, `libwayland-cursor`, `libwayland-egl`, `libxkbcommon`, Mesa/GL y las bibliotecas X11 que use la sesión. `AppRun` comprueba GTK/WebKit y muestra qué falta.
 - Probado con el artefacto final: `--version` directo con FUSE, con `APPIMAGE_EXTRACT_AND_RUN=1` y con `--appimage-extract-and-run`; GUI bajo Xvfb con el catálogo real de Steam (5 juegos), cierre limpio con `WM_DELETE_WINDOW` y extracción con `--appimage-extract` verificada. También se comprobó `--version` en Fedora 44 y Arch tras instalar las bibliotecas gráficas.
 - Linux Mint/Pop!_OS y otras familias con glibc ≥ 2.35 no se probaron una a una; no se declara una garantía por versión.

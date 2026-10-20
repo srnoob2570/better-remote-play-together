@@ -66,7 +66,7 @@ test.describe("parity states", () => {
     await open(page, "ended");
     await expect(page.getByText("Última sesión")).toBeVisible();
     await page.getByRole("button", { name: "Restaurar SpaceWar" }).click();
-    const dialog = page.getByRole("dialog");
+    const dialog = page.getByRole("dialog", { name: "Restaurar SpaceWar" });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText("Restaurar SpaceWar")).toBeVisible();
     await dialog.getByRole("button", { name: "Restaurar", exact: true }).click();
@@ -102,9 +102,16 @@ test.describe("parity states", () => {
 
   test("session error keeps the technical detail available", async ({ page }) => {
     await open(page, "session-error");
-    await expect(page.getByText("No se pudo completar la operación")).toBeVisible();
-    await expect(page.getByText("La configuración de SpaceWar cambió fuera de Better RPT. No se sobrescribió.")).toBeVisible();
-    await expect(page.getByText("Detalle técnico")).toBeVisible();
+    const panel = page.getByRole("tabpanel", { name: "Sesión" });
+    await expect(
+      panel.getByRole("heading", { name: "No se pudo completar la operación" }),
+    ).toBeVisible();
+    await expect(
+      panel.getByText(
+        "La configuración de SpaceWar cambió fuera de Better RPT. No se sobrescribió.",
+      ),
+    ).toBeVisible();
+    await expect(panel.getByText("Detalle técnico")).toBeVisible();
   });
 
   test("language switch updates the whole UI", async ({ page }) => {
@@ -123,5 +130,18 @@ test.describe("parity states", () => {
     await search.fill("Valheim");
     await page.keyboard.press("Escape");
     await expect(search).toHaveValue("");
+  });
+
+  test("diagnostics shows the report and returns to the library", async ({ page }) => {
+    await open(page, "library");
+    await page.getByRole("button", { name: "Diagnóstico" }).click();
+    await expect(page.getByRole("heading", { name: "Diagnóstico", exact: true })).toBeVisible();
+    await expect(page.getByText("No se encontró FUSE: faltan fusermount3 y /dev/fuse.")).toBeVisible();
+    await expect(page.getByRole("link", { name: "docs/appimage.md" })).toHaveAttribute(
+      "href",
+      "https://github.com/srnoob2570/better-remote-play-together/blob/main/docs/appimage.md",
+    );
+    await page.getByRole("button", { name: "Volver a la biblioteca" }).click();
+    await expect(page.getByRole("heading", { name: "Biblioteca" })).toBeVisible();
   });
 });

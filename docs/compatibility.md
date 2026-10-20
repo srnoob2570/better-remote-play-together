@@ -1,6 +1,6 @@
 # Compatibilidad y errores
 
-Documento de apoyo del ticket 07. Define la política de estados, bloqueos, advertencias y textos ES/EN. Es la base para `README.md` y la resolución de problemas.
+Documento de apoyo de compatibilidad y resolución de problemas. Define la política de estados, bloqueos, advertencias y textos ES/EN. Es la base para `README.md`.
 
 ## Principios
 

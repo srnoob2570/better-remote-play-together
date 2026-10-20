@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Toaster, toast } from "@/components/ui/toast";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 import { artUrl } from "./art";
@@ -20,10 +21,13 @@ import { bridge } from "./bridge/wails";
 import type { Catalog, Game, GameKind, GameStatus, Problem, Snapshot } from "./bridge/types";
 import { translate, type Language, type MessageKey } from "./i18n";
 import { SessionPanel } from "./components/SessionPanel";
+import { DiagnosticsPane } from "./components/DiagnosticsPane";
+import { problemText } from "./session/problem";
 import { useSession } from "./session/useSession";
 
 type Filter = "all" | "ready" | "unknown" | "incompatible";
 type LibraryMode = "loading" | "ready" | "empty" | "no-results" | "error";
+type View = "library" | "diagnostics";
 
 const FILTERS: Filter[] = ["all", "ready", "unknown", "incompatible"];
 const ROW_HEIGHT = 42;
@@ -52,13 +56,49 @@ export default function App() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [status, setStatus] = useState<LibraryMode>("loading");
   const [problem, setProblem] = useState<Problem | null>(null);
-  const [headerError, setHeaderError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedId, setSelectedId] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<View>("library");
   const searchRef = useRef<HTMLInputElement>(null);
   const session = useSession();
+  const t = (key: MessageKey, ...args: Array<string | number>) =>
+    translate(lang, key, ...args);
+
+  useEffect(() => {
+    if (!session.notice) return;
+    toast.add({
+      type: session.notice.tone === "mint" ? "success" : "warning",
+      title: translate(lang, session.notice.key, ...(session.notice.args ?? [])),
+    });
+  }, [lang, session.notice]);
+
+  useEffect(() => {
+    if (!session.problem) return;
+    const message = problemText(lang, session.problem);
+    toast.add({
+      type: "error",
+      title: translate(lang, "error.title"),
+      description: session.problem.detail
+        ? `${message}\n\n${session.problem.detail}`
+        : message,
+      actionProps: {
+        children: translate(lang, "action.retry"),
+        onClick: () => void session.refreshContext(),
+      },
+    });
+  }, [lang, session.problem, session.refreshContext]);
+
+  useEffect(() => {
+    const error = session.state?.phase === "error" ? session.state.error : undefined;
+    if (!error) return;
+    toast.add({
+      type: "error",
+      title: translate(lang, "error.title"),
+      description: problemText(lang, error),
+    });
+  }, [lang, session.state?.phase, session.state?.token]);
 
   useEffect(() => {
     let alive = true;
@@ -86,8 +126,14 @@ export default function App() {
         setStatus("ready");
       } catch (reason: unknown) {
         if (!alive) return;
-        setProblem(toBridgeError(reason).problem);
+        const next = toBridgeError(reason).problem;
+        setProblem(next);
         setStatus("error");
+        toast.add({
+          type: "error",
+          title: t("error.title"),
+          description: next.message,
+        });
       }
     }
 
@@ -128,9 +174,6 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [busy]);
 
-  const t = (key: MessageKey, ...args: Array<string | number>) =>
-    translate(lang, key, ...args);
-
   const games = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return (catalog?.games ?? [])
@@ -167,14 +210,19 @@ export default function App() {
     setBusy(true);
     setStatus("loading");
     setProblem(null);
-    setHeaderError(null);
     try {
       const refreshed = await bridge.RefreshCatalog();
       setCatalog(normalizeCatalog(refreshed));
       setStatus("ready");
     } catch (reason: unknown) {
-      setProblem(toBridgeError(reason).problem);
+      const next = toBridgeError(reason).problem;
+      setProblem(next);
       setStatus("error");
+      toast.add({
+        type: "error",
+        title: t("error.refresh"),
+        description: next.message,
+      });
     } finally {
       setBusy(false);
     }
@@ -182,7 +230,6 @@ export default function App() {
 
   async function changeLanguage(next: Language) {
     if (next === lang) return;
-    setHeaderError(null);
     try {
       await bridge.SetLanguage(next);
       setLang(next);
@@ -192,16 +239,23 @@ export default function App() {
           : current,
       );
     } catch (reason: unknown) {
-      setHeaderError(toBridgeError(reason).problem.message);
+      toast.add({
+        type: "error",
+        title: t("error.title"),
+        description: toBridgeError(reason).problem.message,
+      });
     }
   }
 
   async function openSteam() {
-    setHeaderError(null);
     try {
       await bridge.OpenSteam();
     } catch (reason: unknown) {
-      setHeaderError(toBridgeError(reason).problem.message);
+      toast.add({
+        type: "error",
+        title: t("error.title"),
+        description: toBridgeError(reason).problem.message,
+      });
     }
   }
 
@@ -221,6 +275,14 @@ export default function App() {
           </div>
         </div>
         <div className="header-right">
+          <Button
+            variant="ghost"
+            className="diagnostics-button"
+            data-active={view === "diagnostics"}
+            onClick={() => setView("diagnostics")}
+          >
+            {t("diagnostics.open")}
+          </Button>
           <span className="app-version">
             {t("app.version")} {snapshot?.version ?? ""}
           </span>
@@ -240,39 +302,40 @@ export default function App() {
         </div>
       </header>
 
-      {headerError && (
-        <p className="header-error" role="alert">
-          {headerError}
-        </p>
-      )}
-
-      <main className="app-main">
-        <LibraryPane
-          lang={lang}
-          mode={mode}
-          games={games}
-          catalog={catalog}
-          query={query}
-          filter={filter}
-          selectedId={selectedId}
-          problem={problem}
-          searchRef={searchRef}
-          onQuery={setQuery}
-          onFilter={setFilter}
-          onSelect={setSelectedId}
-          onRefresh={() => void refresh()}
-          onOpenSteam={() => void openSteam()}
-          onReset={resetFilters}
-        />
-        <SessionPanel
-          lang={lang}
-          games={catalog?.games ?? []}
-          selected={selected}
-          donorInstalled={donorInstalled}
-          session={session}
-          onSelectLast={setSelectedId}
-        />
+      <main className={view === "diagnostics" ? "app-main diagnostics-main" : "app-main"}>
+        {view === "diagnostics" ? (
+          <DiagnosticsPane lang={lang} onBack={() => setView("library")} />
+        ) : (
+          <>
+            <LibraryPane
+              lang={lang}
+              mode={mode}
+              games={games}
+              catalog={catalog}
+              query={query}
+              filter={filter}
+              selectedId={selectedId}
+              problem={problem}
+              searchRef={searchRef}
+              onQuery={setQuery}
+              onFilter={setFilter}
+              onSelect={setSelectedId}
+              onRefresh={() => void refresh()}
+              onOpenSteam={() => void openSteam()}
+              onReset={resetFilters}
+            />
+            <SessionPanel
+              lang={lang}
+              games={catalog?.games ?? []}
+              selected={selected}
+              donorInstalled={donorInstalled}
+              session={session}
+              onSelectLast={setSelectedId}
+            />
+          </>
+        )}
       </main>
+      <Toaster closeLabel={t("common.close")} />
     </div>
   );
 }
@@ -407,7 +470,7 @@ function LibraryPane({
       )}
 
       {mode === "error" && (
-        <Empty className="library-empty" role="alert">
+        <Empty className="library-empty">
           <h2>{t("error.refresh")}</h2>
           <p className="mono">{problem?.message ?? t("error.generic")}</p>
           {problem?.detail && <p className="mono">{problem.detail}</p>}

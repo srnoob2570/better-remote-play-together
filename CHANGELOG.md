@@ -21,6 +21,15 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - El `.deb` y el AppImage se construyen sobre Wails v3 con GTK3/WebKit2GTK 4.1,
   incluyen el helper estable y comprueban las bibliotecas del sistema antes de
   arrancar.
+- El diagnóstico de solo lectura comparte motor entre `better-rpt --diagnose`
+  (Markdown, `--json` y `--out`) y la pantalla **Diagnóstico**. Comprueba
+  entorno, AppImage/FUSE, bibliotecas ELF, Steam, helper y sesión, sanea el
+  informe y no modifica Steam ni adquiere el lock de instancia. El log
+  persistente rota en `$XDG_DATA_HOME/better-rpt/logs/`.
+- La pantalla **Diagnóstico** prioriza los avisos y fallos, deja el resto en un
+  desplegable, abre la documentación en el navegador del sistema y confirma
+  copiar o guardar con notificaciones toast. La guía usa capturas reales de
+  Steam para las opciones de lanzamiento y el comando pegado.
 
 ### Fixed
 
@@ -30,7 +39,7 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Removed
 
-- Se retiró la interfaz Fyne y sus dependencias; la aplicación usa
+- Se retiró la interfaz anterior y sus dependencias; la aplicación usa
   exclusivamente Wails v3, React y WebKitGTK.
 
 ## [0.1.2] - 2026-10-20 (57d6fc6)
@@ -56,7 +65,7 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Actualiza `golang.org/x/image` a `v0.47.0` y `golang.org/x/net` a `v0.61.0`,
   junto con `x/sys` y `x/text`, para corregir las vulnerabilidades
   CVE-2026-46599, CVE-2026-33809, CVE-2026-25680, CVE-2025-22872 y
-  CVE-2025-22870 en dependencias indirectas de Fyne.
+  CVE-2025-22870 en dependencias indirectas de la interfaz anterior.
 
 **Full changelog:** [v0.1.0...v0.1.1][0.1.1]
 
@@ -73,7 +82,7 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   tras un cierre inesperado o un plan expirado.
 - Helper estático instalado en `$XDG_DATA_HOME/better-rpt/bin` que inicia el
   juego objetivo como hijo del contexto del donante.
-- Interfaz Fyne con biblioteca, búsqueda por nombre o App ID, filtros por estado,
+- Interfaz de escritorio con biblioteca, búsqueda por nombre o App ID, filtros por estado,
   panel de sesión, detalles técnicos y textos en español e inglés.
 - Kit de marca Relay Link con logotipos, iconos y recursos para el escritorio y
   el empaquetado.

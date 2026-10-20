@@ -20,6 +20,16 @@ test("unknown-compatibility dialog has no WCAG A/AA violations", async ({ page }
   expect(results.violations).toEqual([]);
 });
 
+test("diagnostics has no WCAG A/AA violations", async ({ page }) => {
+  await page.goto("/e2e.html?e2e=library&lang=es");
+  await expect(page.getByRole("heading", { name: "Biblioteca" })).toBeVisible();
+  await page.getByRole("button", { name: "Diagnóstico" }).click();
+  await expect(page.getByText("No se encontró FUSE: faltan fusermount3 y /dev/fuse.")).toBeVisible();
+
+  const results = await new AxeBuilder({ page }).withTags(wcag).analyze();
+  expect(results.violations).toEqual([]);
+});
+
 test("keyboard shortcuts and dialog focus stay inside the dialog", async ({ page }) => {
   await page.goto("/e2e.html?e2e=library&lang=es");
   await expect(page.getByRole("heading", { name: "Biblioteca" })).toBeVisible();

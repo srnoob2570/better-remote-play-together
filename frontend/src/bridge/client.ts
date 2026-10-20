@@ -1,6 +1,7 @@
 import type {
   Active,
   Catalog,
+  DiagnosticsResult,
   Language,
   Problem,
   Recovery,
@@ -34,6 +35,8 @@ export interface Bridge {
   SetLanguage(language: Language): Promise<void>;
   OpenSpaceWarInstall(): Promise<void>;
   OpenSteam(): Promise<void>;
+  RunDiagnostics(): Promise<DiagnosticsResult>;
+  SaveDiagnostics(markdown: string): Promise<string>;
   Version(): Promise<string>;
 }
 

@@ -9,6 +9,7 @@ import {
   DialogTitle as UIDialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import {
   Tabs as UITabs,
   TabsContent as UITabsContent,
@@ -66,18 +67,21 @@ const PREP_STEPS: MessageKey[] = [
   "prep.waitHelper",
 ];
 
-const GUIDE_STEPS: Array<{ title: MessageKey; body: MessageKey; image: string; alt: MessageKey }> = [
+const GUIDE_STEPS: Array<{
+  title: MessageKey;
+  body: MessageKey;
+  image?: string;
+  alt?: MessageKey;
+}> = [
   {
     title: "guide.step1.title",
     body: "guide.step1.body",
-    image: "/guide/launch-options.png",
-    alt: "guide.image.launchOptions",
   },
   {
     title: "guide.step2.title",
     body: "guide.step2.body",
-    image: "/guide/command.png",
-    alt: "guide.image.command",
+    image: "/guide/launch-options.png",
+    alt: "guide.image.launchOptions",
   },
   {
     title: "guide.step3.title",
@@ -88,8 +92,6 @@ const GUIDE_STEPS: Array<{ title: MessageKey; body: MessageKey; image: string; a
   {
     title: "guide.step4.title",
     body: "guide.step4.body",
-    image: "/guide/popup.png",
-    alt: "guide.image.popup",
   },
   {
     title: "guide.step5.title",
@@ -132,10 +134,10 @@ export function SessionPanel({
   const showEnded =
     (state?.phase === "ended" || state?.phase === "error") &&
     (!selected || selected.appId === state?.targetAppId);
+  const setupStatus = session.setup?.status;
 
   return (
     <aside className="session-pane" aria-label={t("session.section")}>
-      <SessionAlerts lang={lang} session={session} />
       <UITabs
         className="session-tabs-root"
         value={tab}
@@ -155,8 +157,11 @@ export function SessionPanel({
           <UITabsTrigger className="session-tab" value="guide">
             {t("session.tabGuide")}
           </UITabsTrigger>
-          {selected?.status === "unknown" && (
-            <span className="compat-note">{t("compat.unknownHint")}</span>
+          {setupStatus && (
+            <span className="setup-indicator" data-tone={setupTone(setupStatus)}>
+              <span className="setup-indicator-label">{t("setup.title")}</span>
+              <span className="setup-indicator-value">{t(SETUP_KEY[setupStatus])}</span>
+            </span>
           )}
         </UITabsList>
 
@@ -227,52 +232,6 @@ export function SessionPanel({
       </UITabs>
       <SessionDialog lang={lang} session={session} />
     </aside>
-  );
-}
-
-function SessionAlerts({
-  lang,
-  session,
-}: {
-  lang: Language;
-  session: SessionController;
-}) {
-  const t = (key: MessageKey, ...args: Array<string | number>) =>
-    translate(lang, key, ...args);
-  if (!session.notice && !session.problem) return null;
-
-  return (
-    <div className="session-alerts">
-      {session.notice && (
-        <div className="callout" data-tone={session.notice.tone ?? "amber"} role="status">
-          <p className="callout-body">
-            {t(session.notice.key, ...(session.notice.args ?? []))}
-          </p>
-        </div>
-      )}
-
-      {session.problem && (
-        <div className="callout" data-tone="coral" role="alert">
-          <h2 className="callout-title">{t("error.title")}</h2>
-          <p className="callout-body">{problemText(lang, session.problem)}</p>
-          {session.problem.detail && (
-            <details className="error-detail">
-              <summary>{t("error.detail")}</summary>
-              <pre>{session.problem.detail}</pre>
-            </details>
-          )}
-          <div className="inline-actions">
-            <Button
-              variant="ghost"
-              className="refresh-button"
-              onClick={() => void session.refreshContext()}
-            >
-              {t("action.retry")}
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -712,7 +671,7 @@ function EndedPanel({
         )}
       </div>
       {error && (
-        <div className="callout" data-tone="coral" role="alert">
+        <div className="callout" data-tone="coral">
           <p className="callout-body">{problemText(lang, error)}</p>
           {error.detail && (
             <details className="error-detail">
@@ -811,10 +770,10 @@ function GuidePanel({ lang, session }: { lang: Language; session: SessionControl
   const t = (key: MessageKey, ...args: Array<string | number>) =>
     translate(lang, key, ...args);
   const [command, setCommand] = useState("");
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const setup = session.setup;
   const status = setup?.status ?? "missing";
   const steamRunning = session.situation?.steamRunning ?? false;
+  const canPrepare = status === "missing" || status === "restored";
 
   useEffect(() => {
     let alive = true;
@@ -831,18 +790,12 @@ function GuidePanel({ lang, session }: { lang: Language; session: SessionControl
     };
   }, []);
 
-  useEffect(() => {
-    if (copyState === "idle") return;
-    const timer = window.setTimeout(() => setCopyState("idle"), 2000);
-    return () => window.clearTimeout(timer);
-  }, [copyState]);
-
   async function copyCommand() {
     try {
       await navigator.clipboard.writeText(command);
-      setCopyState("copied");
+      toast.add({ type: "success", title: t("action.copied") });
     } catch {
-      setCopyState("failed");
+      toast.add({ type: "error", title: t("guide.copyError") });
     }
   }
 
@@ -853,13 +806,17 @@ function GuidePanel({ lang, session }: { lang: Language; session: SessionControl
         <p className="hint">{t("guide.intro")}</p>
       </div>
 
-      <div className="setup-row">
-        <span className="hint">{t("setup.title")}</span>
-        <span className="meta-value" data-tone={status === "installed" ? "mint" : "amber"}>
-          {t(SETUP_KEY[status])}
-        </span>
+      <div className="guide-status">
+        <p className="hint">{t(setupMessageKey(status))}</p>
+        <Button
+          variant="ghost"
+          className="refresh-button"
+          onClick={() => void session.refreshSetup()}
+          disabled={session.busy}
+        >
+          {t("action.refreshSetup")}
+        </Button>
       </div>
-      <p className="hint">{t(setupMessageKey(status))}</p>
 
       <div>
         <h3 className="section-title">{t("guide.command")}</h3>
@@ -871,56 +828,37 @@ function GuidePanel({ lang, session }: { lang: Language; session: SessionControl
           onClick={() => void copyCommand()}
           disabled={!command}
         >
-          {copyState === "copied"
-            ? t("action.copied")
-            : copyState === "failed"
-              ? t("error.generic")
-              : t("action.copyCommand")}
+          {t("action.copyCommand")}
         </Button>
       </div>
 
-      <p className={steamRunning ? "hint-amber" : "hint"}>
-        {steamRunning ? t("guide.steamOpen") : t("guide.steamClosed")}
-      </p>
-      <div className="session-actions guide-actions">
-        <Button
-          className="secondary-button"
-          variant="outline"
-          onClick={() => void session.recordGuide()}
-          disabled={session.busy}
-        >
-          {t("action.prepareGuide")}
-        </Button>
-        <Button
-          className="secondary-button"
-          variant="outline"
-          onClick={() => void session.refreshSetup()}
-          disabled={session.busy}
-        >
-          {t("action.refreshSetup")}
-        </Button>
-        <Button
-          className="primary-button"
-          onClick={() => void session.installSetup()}
-          disabled={steamRunning || session.busy}
-        >
-          {t("action.installAuto")}
-        </Button>
-      </div>
-
-      {setup?.hasBackup && (
-        <div>
-          <h3 className="section-title">{t("guide.originalValue")}</h3>
-          <pre className="guide-command">
-            {setup.originalValue || t("guide.originalEmpty")}
-          </pre>
+      {status !== "installed" && status !== "conflict" && (
+        <p className={steamRunning ? "hint-amber" : "hint"}>
+          {steamRunning ? t("guide.steamOpen") : t("guide.steamClosed")}
+        </p>
+      )}
+      {status !== "installed" && status !== "conflict" && (
+        <div className="session-actions guide-actions">
+          {canPrepare && (
+            <Button
+              className="secondary-button"
+              variant="outline"
+              onClick={() => void session.recordGuide()}
+              disabled={session.busy}
+            >
+              {t("action.prepareGuide")}
+            </Button>
+          )}
+          <Button
+            className="primary-button"
+            onClick={() => void session.installSetup()}
+            disabled={steamRunning || session.busy}
+          >
+            {t("action.installAuto")}
+          </Button>
         </div>
       )}
-
-      <section>
-        <h3 className="section-title">{t("guide.manualRestore")}</h3>
-        <p className="hint">{t("guide.restoreHint")}</p>
-      </section>
+      {canPrepare && <p className="hint">{t("guide.prepareHint")}</p>}
 
       <ol className="guide-steps">
         {GUIDE_STEPS.map((step, index) => (
@@ -929,19 +867,40 @@ function GuidePanel({ lang, session }: { lang: Language; session: SessionControl
             <div>
               <h4 className="section-title">{t(step.title)}</h4>
               <p className="hint">{t(step.body)}</p>
-              <img
-                className="guide-image"
-                src={step.image}
-                alt={t(step.alt)}
-                loading="lazy"
-                decoding="async"
-              />
+              {step.image && step.alt && (
+                <img
+                  className="guide-image"
+                  src={step.image}
+                  alt={t(step.alt)}
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
             </div>
           </li>
         ))}
       </ol>
+
+      {setup?.hasBackup && (
+        <details className="guide-restore">
+          <summary>{t("guide.manualRestore")}</summary>
+          <div className="guide-restore-body">
+            <h3 className="section-title">{t("guide.originalValue")}</h3>
+            <pre className="guide-command">
+              {setup.originalValue || t("guide.originalEmpty")}
+            </pre>
+            <p className="hint">{t("guide.restoreHint")}</p>
+          </div>
+        </details>
+      )}
     </div>
   );
+}
+
+function setupTone(status: SetupStatus): "mint" | "amber" | "coral" {
+  if (status === "installed") return "mint";
+  if (status === "conflict") return "coral";
+  return "amber";
 }
 
 function setupMessageKey(status: SetupStatus): MessageKey {

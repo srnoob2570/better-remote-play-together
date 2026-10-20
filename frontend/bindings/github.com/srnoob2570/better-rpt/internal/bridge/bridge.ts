@@ -95,6 +95,24 @@ export function RestoreSetup(): $CancellablePromise<$models.Setup> {
 }
 
 /**
+ * RunDiagnostics runs the same read-only engine as `--diagnose`. It uses the
+ * service's resolved paths and cached catalog, but never takes the instance
+ * lock or writes Steam configuration.
+ */
+export function RunDiagnostics(): $CancellablePromise<$models.DiagnosticsResult> {
+    return $Call.ByID(2429811133);
+}
+
+/**
+ * SaveDiagnostics writes the Markdown report to the private diagnostics
+ * directory. The UI only passes text produced by RunDiagnostics; the size cap
+ * prevents an accidental large write.
+ */
+export function SaveDiagnostics(markdown: string): $CancellablePromise<string> {
+    return $Call.ByID(1614206993, markdown);
+}
+
+/**
  * SessionState reads the durable state for polling.
  */
 export function SessionState(token: string): $CancellablePromise<$models.SessionState> {
