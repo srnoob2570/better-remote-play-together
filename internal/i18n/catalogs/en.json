@@ -337,6 +337,7 @@
   "guide.image.command": "Pasted command",
   "guide.image.invite": "Remote Play Together overlay",
   "guide.image.launchOptions": "SpaceWar Launch Options",
+  "guide.image.library": "SpaceWar menu with the Properties option",
   "guide.image.popup": "Steam confirmation prompt",
   "guide.installDone": "Command installed. You can now play without closing Steam.",
   "guide.intro": "Better RPT does not close Steam. Install the command in SpaceWar once, then launch the game from here.",

@@ -337,6 +337,7 @@
   "guide.image.command": "Comando pegado",
   "guide.image.invite": "Overlay de Remote Play Together",
   "guide.image.launchOptions": "Opciones de lanzamiento de SpaceWar",
+  "guide.image.library": "Menú de SpaceWar con la opción Propiedades",
   "guide.image.popup": "Aviso de confirmación de Steam",
   "guide.installDone": "Comando instalado. Ya puedes jugar sin cerrar Steam.",
   "guide.intro": "Better RPT no cierra Steam. Instala una vez el comando en SpaceWar y luego lanza el juego desde aquí.",

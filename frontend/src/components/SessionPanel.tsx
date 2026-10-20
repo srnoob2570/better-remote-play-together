@@ -68,6 +68,8 @@ const GUIDE_STEPS: Array<{
   {
     title: "guide.step1.title",
     body: "guide.step1.body",
+    image: "/guide/library-properties.png",
+    alt: "guide.image.library",
   },
   {
     title: "guide.step2.title",
@@ -126,7 +128,6 @@ export function SessionPanel({
   const showEnded =
     (state?.phase === "ended" || state?.phase === "error") &&
     (!selected || selected.appId === state?.targetAppId);
-  const setupStatus = session.setup?.status;
 
   return (
     <aside className="session-pane" aria-label={t("session.section")}>
@@ -787,25 +788,25 @@ function GuidePanel({ lang, session }: { lang: Language; session: SessionControl
 
   return (
     <div className="session-body">
-      <div>
+      <div className="guide-intro">
         <h2 className="section-title">{t("guide.title")}</h2>
         <p className="hint">{t("guide.intro")}</p>
       </div>
 
-      <div className="guide-status">
-        <p className="hint">{t(setupMessageKey(status))}</p>
-        <Button
-          variant="ghost"
-          className="refresh-button"
-          onClick={() => void session.refreshSetup()}
-          disabled={session.busy}
-        >
-          {t("action.refreshSetup")}
-        </Button>
-      </div>
+      <p className="hint">{t(setupMessageKey(status))}</p>
 
-      <div>
-        <h3 className="section-title">{t("guide.command")}</h3>
+      <div className="guide-command-block">
+        <div className="guide-command-head">
+          <h3 className="section-title">{t("guide.command")}</h3>
+          <Button
+            variant="ghost"
+            className="refresh-button"
+            onClick={() => void session.refreshSetup()}
+            disabled={session.busy}
+          >
+            {t("action.refreshSetup")}
+          </Button>
+        </div>
         <pre className="guide-command">{command || "…"}</pre>
         <p className="hint">{t("guide.commandHint")}</p>
         <Button

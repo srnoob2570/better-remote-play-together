@@ -131,4 +131,22 @@ test.describe("visual parity", () => {
       await expect(page).toHaveScreenshot(`visual/diagnostics-${size.name}.png`);
     });
   }
+
+  for (const size of [
+    { width: 1280, height: 800, name: "1280x800" },
+    { width: 1024, height: 600, name: "1024x600" },
+  ]) {
+    test(`guide at ${size.name}`, async ({ page }) => {
+      await page.setViewportSize({ width: size.width, height: size.height });
+      await prepare(page, "details", "es");
+      await page.getByRole("tab", { name: "Guía" }).click();
+      await expect(page.getByRole("heading", { name: "Comando para SpaceWar" })).toBeVisible();
+      await expect(page.locator(".guide-command-block .guide-command")).toHaveText(
+        "better-rpt-helper --donor -- %command%",
+      );
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await page.waitForTimeout(100);
+      await expect(page).toHaveScreenshot(`visual/guide-${size.name}.png`);
+    });
+  }
 });

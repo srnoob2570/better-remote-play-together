@@ -128,9 +128,11 @@ La guía es el flujo principal y debe poder consultarse con Steam abierto:
   **Integración de SpaceWar** + estado), visible también fuera de la guía.
   Sustituye al aviso de compatibilidad y no usa una tarjeta de aviso para el
   estado normal «no instalada».
-- Dentro de la guía, una fila de estado en la parte superior muestra el mensaje
-  correspondiente y **Verificar de nuevo**, siempre disponible. Al terminar
-  muestra un toast **Estado actualizado**; no hay confirmación inline.
+- Dentro de la guía, el mensaje de estado aparece como una línea de texto sobre
+  el comando y **Verificar de nuevo** comparte fila con **Comando para
+  SpaceWar**, alineado a la derecha y disponible salvo mientras se comprueba.
+  Al terminar muestra un toast **Estado actualizado**; no hay confirmación
+  inline.
 - Si SpaceWar ya contiene el dispatcher pero no existe `setup.json`, la guía lo
   reconoce como **instalado** y explica que el lanzamiento funciona pero
   **Restaurar** no está disponible porque no hay copia del valor original.
@@ -156,11 +158,13 @@ La guía es el flujo principal y debe poder consultarse con Steam abierto:
   5. Aceptar el popup de Steam («Allow game launch?» / «¿Permitir iniciar el
      juego?»).
   6. Abrir el overlay (Shift+Tab) e invitar a Remote Play Together.
-- Imágenes inline, justo después del paso que explican: opciones de
-  lanzamiento tras el paso 2, comando pegado tras el 3, popup tras el 5 e
-  invitación tras el 6. Se muestran a 160 px de alto para no alargar la guía.
-  Las capturas de opciones y comando son reales; popup e invitación siguen
-  pendientes y se documentan en `docs/guide-images.md`.
+- Imágenes inline, justo después del paso que explican: biblioteca tras el
+  paso 1, opciones de lanzamiento tras el 2, comando pegado tras el 3, popup
+  tras el 5 e invitación tras el 6. Se muestran a todo el ancho de la guía con
+  su proporción 2.5:1 (unos 136-270 px de alto según el viewport), sin
+  recortes. Las cinco son capturas reales; la de invitación se recorta al menú
+  para no mostrar perfiles de terceros. Se documentan en
+  `docs/guide-images.md`.
 - **Restauración manual** es un bloque plegable al final, después de los pasos,
   y solo aparece si hay backup. Contiene el valor original de `LaunchOptions` y
   cómo restaurarlo; no interrumpe el flujo de la guía.

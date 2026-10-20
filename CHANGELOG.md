@@ -41,6 +41,9 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - El resumen de la última sesión muestra “Resultado: Terminada” en lugar de
   repetir “Terminada Terminada”, y el panel de preparación cabe completo en
   ventanas de 1024×600.
+- Las capturas de la guía respetan su proporción 2.5:1 y se muestran completas a
+  1024, 1280 y 1920 px; el paso 1 se recorta al menú de SpaceWar para que
+  **Propiedades** se lea.
 
 ### Removed
 

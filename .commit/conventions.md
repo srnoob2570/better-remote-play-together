@@ -20,6 +20,8 @@
   consulta.
 - `.feedback/` guarda contratos y capturas de las iteraciones visuales; está
   ignorado y no se versiona.
+- Las capturas de `frontend/public/guide/` son 1200×480 (2.5:1) y se muestran a
+  ancho completo con `aspect-ratio: 5 / 2`; no volver a fijar una altura.
 - Los fixtures de `testdata/steam/` son entradas de prueba versionadas; los
   scripts de `testdata/steam/` los materializan en directorios temporales.
 - De `.codegraph/` solo se versiona su `.gitignore`; el índice (`codegraph.db`)

@@ -37,6 +37,21 @@ test.describe("parity states", () => {
     await expect(page.getByText("better-rpt-helper --donor -- %command%")).toBeVisible();
   });
 
+  test("guide images keep their 2.5:1 aspect ratio", async ({ page }) => {
+    await open(page, "details");
+    await page.getByRole("tab", { name: "Guía" }).click();
+    const images = page.locator(".guide-image");
+    await expect(images).toHaveCount(5);
+
+    for (let index = 0; index < 5; index += 1) {
+      const box = await images.nth(index).boundingBox();
+      expect(box).not.toBeNull();
+      const ratio = box!.width / box!.height;
+      expect(ratio).toBeGreaterThan(2.45);
+      expect(ratio).toBeLessThan(2.55);
+    }
+  });
+
   test("empty and error states", async ({ page }) => {
     await open(page, "empty");
     await expect(page.getByText("No hay juegos instalados.")).toBeVisible();
