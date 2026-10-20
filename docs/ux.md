@@ -55,8 +55,10 @@ Estados del setup: `missing`, `guide`, `installed`, `restored`, `conflict`.
 Estados de situación: `idle`, `prepared`, `active`, `finished`,
 `restore_pending`, `restored`, `orphan`, `conflict`.
 
-Una configuración huérfana o un conflicto se muestran como un aviso separado.
-No se presentan como «última sesión» ni seleccionan automáticamente un juego.
+Una configuración huérfana o un conflicto se muestran como un aviso separado,
+con una sola explicación: no se añade además un motivo de restauración que
+repita la misma falta de backup. No se presentan como «última sesión» ni
+seleccionan automáticamente un juego.
 
 ## Última sesión
 
@@ -64,7 +66,7 @@ Cuando existe `last-launch.json`, la pestaña **Sesión** muestra una tarjeta
 completa del último juego si no hay otra selección o si el juego seleccionado es
 ese mismo último juego:
 
-- portada, nombre y App ID del último juego;
+- portada, nombre y estado del último juego;
 - origen (Better RPT o Steam);
 - estado: pendiente, correcto, error, timeout, cancelado o desconocido;
 - fecha de inicio y duración;
@@ -76,10 +78,11 @@ ese mismo último juego:
   - **Ver guía**: abre la guía sin cambiar la selección.
 
 Si el usuario selecciona otro juego, la tarjeta principal sigue siendo la del
-juego seleccionado. **Última sesión** aparece debajo en formato compacto, con
-portada pequeña, nombre, estado, **Jugar de nuevo** y **Abrir última sesión**;
-nunca reemplaza la selección actual. **Abrir última sesión** selecciona ese
-juego en la biblioteca.
+juego seleccionado. **Última sesión** aparece debajo en una fila compacta, con
+portada pequeña, nombre, estado y **Abrir última sesión**; nunca reemplaza la
+selección actual. **Abrir última sesión** selecciona ese juego en la biblioteca.
+No se repite **Jugar de nuevo** en la fila compacta: la acción principal sigue
+siendo la del juego seleccionado.
 
 Si el último juego ya no está instalado o cambió su lanzamiento, **Jugar de
 nuevo** se deshabilita con el motivo visible. La biblioteca sigue navegable.
@@ -96,14 +99,17 @@ nuevo** se deshabilita con el motivo visible. La biblioteca sigue navegable.
 
 La guía es el flujo principal y debe poder consultarse sin Steam cerrado:
 
-- Estado del setup y motivo si hay conflicto.
+- Estado del setup compacto: una etiqueta y una línea de instrucción, sin
+  tarjeta de aviso para el estado normal «no instalada».
 - Comando exacto:
 
   ```text
   '<helper>' --donor -- %command%
   ```
 
-- Botón **Copiar comando**.
+- Botón **Copiar comando** con confirmación inline: el texto cambia a
+  **Copiado** durante dos segundos, sin mover el scroll ni mostrar un aviso al
+  final del panel.
 - Pasos:
   1. Steam → Biblioteca → SpaceWar → Propiedades.
   2. Opciones de lanzamiento.
@@ -116,13 +122,14 @@ La guía es el flujo principal y debe poder consultarse sin Steam cerrado:
   restaurará.
 - Imágenes reales inline, justo después del paso que explican: opciones de
   lanzamiento tras el paso 2, comando pegado tras el 3, popup tras el 5 e
-  invitación tras el 6. Si una captura no está disponible, se muestra una
-  ilustración claramente etiquetada y se documenta la tarea de sustitución en
-  `docs/guide-images.md`.
+  invitación tras el 6. Se muestran a 160 px de alto para no alargar la guía. Si
+  una captura no está disponible, se muestra una ilustración claramente
+  etiquetada y se documenta la tarea de sustitución en `docs/guide-images.md`.
 - Instalación automática al final de la guía: solo con Steam cerrado; con Steam
   abierto el botón está deshabilitado y explica que debe pegarse el comando o
   cerrar Steam manualmente.
-- **Preparar guía**: registra el backup del valor actual sin escribir Steam, para
+- **Preparar guía** y **Verificar de nuevo** en una fila de dos columnas.
+  **Preparar guía** registra el backup del valor actual sin escribir Steam, para
   poder restaurar después de que el usuario pegue el comando.
 
 ## Sesión activa
@@ -216,13 +223,13 @@ Patrón: qué pasó, acción primaria, detalle técnico plegable. Ejemplos:
 | action.openLast | Abrir última sesión | Open last session |
 | action.viewGuide | Ver guía | View guide |
 | action.copyCommand | Copiar comando | Copy command |
+| action.copied | Copiado | Copied |
 | action.installAuto | Instalar automáticamente | Install automatically |
 | action.prepareGuide | Preparar guía | Prepare guide |
 | action.restore | Restaurar | Restore |
 | last.title | Última sesión | Last session |
 | last.started | Inicio | Started |
 | last.duration | Duración | Duration |
-| last.hint | La biblioteca sigue disponible. | The library remains available. |
 | guide.title | Guía de lanzamiento | Launch guide |
 | guide.command | Comando para SpaceWar | SpaceWar command |
 | guide.prepareHint | Preparar guía guarda el valor original antes de pegar el comando. | Prepare guide saves the original value before pasting the command. |

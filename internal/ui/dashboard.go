@@ -799,7 +799,7 @@ func (d *dashboard) sidebarActive() {
 // preparation. A new session supersedes the stale transaction and keeps the
 // original launch-option value.
 func (d *dashboard) addPendingRestore() {
-	d.addPendingCallout()
+	d.addPendingCallout(true)
 }
 
 func (d *dashboard) sidebarLast() {
@@ -812,51 +812,64 @@ func (d *dashboard) sidebarLast() {
 		game = d.gameForID(d.last.AppID)
 	}
 	d.add(headingLabel(d.svc.T("last.title")))
-	d.add(d.gameCover(game))
-	d.add(d.gameInfo(game))
-
-	extra := make([]fyne.CanvasObject, 0, 5)
-	extra = append(extra, captionLabel(d.svc.T(lastSourceKey(d.last.Source))))
-	extra = append(extra, statusLabel(d.svc.T(lastOutcomeKey(d.last.Outcome)), outcomeTone(d.last.Outcome)))
-	if !d.last.StartedAt.IsZero() {
-		extra = append(extra, monoLabel(d.svc.T("last.started")+": "+d.last.StartedAt.Local().Format("2006-01-02 15:04")))
-	}
-	if !d.last.EndedAt.IsZero() && !d.last.StartedAt.IsZero() {
-		extra = append(extra, monoLabel(d.svc.T("last.duration")+": "+formatDuration(d.last.EndedAt.Sub(d.last.StartedAt))))
-	}
+	d.add(d.compactLastHeader(game))
 	if d.last.Error != "" {
 		problem := captionWrapLabel(d.svc.T("error.title") + ": " + d.last.Error)
 		problem.Importance = widget.WarningImportance
-		extra = append(extra, problem)
+		d.add(problem)
 	}
 
 	installable := found && game.Status != domain.StatusIncompatible &&
 		game.Status != domain.StatusMissing && game.Status != domain.StatusError &&
 		game.Status != domain.StatusActive
-	if d.situation.Setup == session.SetupInstalled && installable {
-		d.add(tall(primaryButton(d.svc.T("action.playAgain"), d.replaySession), 48))
-	} else {
+	playAvailable := d.situation.Setup == session.SetupInstalled && installable
+	play := primaryButton(d.svc.T("action.playAgain"), d.replaySession)
+	if !playAvailable {
+		play.Disable()
+	}
+	restore := newActionButton(d.svc.T("action.restore"), d.confirmRestoreCurrent)
+	if d.situation.Restore != session.RestoreAvailable {
+		restore.Disable()
+	}
+	d.add(container.NewGridWithColumns(2, tall(play, 40), tall(restore, 40)))
+
+	if !playAvailable {
 		reason := d.svc.T("last.setupMissing")
 		if !installable {
 			reason = d.svc.T(statusLabelKey(game.Status))
 		}
-		disabled := primaryButton(d.svc.T("action.playAgain"), nil)
-		disabled.Disable()
-		d.add(captionWrapLabel(reason), tall(disabled, 48))
+		d.add(captionWrapLabel(reason))
 	}
-	d.addRestoreAction()
+	if d.situation.Restore != session.RestoreAvailable {
+		d.add(captionWrapLabel(d.svc.T(restoreReasonKey(d.situation.Restore))))
+	}
+
 	viewGuide := newActionButton(d.svc.T("action.viewGuide"), d.openGuide)
 	viewGuide.Importance = widget.LowImportance
 	d.add(tall(viewGuide, 40))
-	d.add(captionWrapLabel(d.svc.T("last.hint")))
-	d.add(newCallout(d.svc.T(situationLabelKey(d.situation.Kind)), "", situationTone(d.situation.Kind), extra...).obj)
-	d.addPendingCallout()
+	d.addPendingCallout(false)
 	d.sidebarNotice()
+}
 
-	if game, ok := d.selectedGame(); ok && game.AppID != d.last.AppID {
-		d.add(widget.NewSeparator())
-		d.sidebarSelection()
+// compactLastHeader keeps the last-session identity readable without repeating
+// the full library card. The status and source live in the same block; the
+// action row below owns the buttons.
+func (d *dashboard) compactLastHeader(game domain.Game) fyne.CanvasObject {
+	cover := container.NewGridWrap(fyne.NewSize(72, 96), d.gameCoverSized(game, 96))
+	name := widget.NewLabelWithStyle(d.gameName(game), fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	name.SizeName = theme.SizeNameSubHeadingText
+	name.Wrapping = fyne.TextWrapWord
+
+	meta := vbox(4, name)
+	meta.Add(statusLabel(d.svc.T(lastOutcomeKey(d.last.Outcome)), outcomeTone(d.last.Outcome)))
+	meta.Add(captionLabel(d.svc.T(lastSourceKey(d.last.Source))))
+	if !d.last.StartedAt.IsZero() {
+		meta.Add(captionLabel(d.last.StartedAt.Local().Format("2006-01-02 15:04")))
 	}
+	if !d.last.EndedAt.IsZero() && !d.last.StartedAt.IsZero() {
+		meta.Add(captionLabel(d.svc.T("last.duration") + ": " + formatDuration(d.last.EndedAt.Sub(d.last.StartedAt))))
+	}
+	return container.NewBorder(nil, nil, cover, nil, meta)
 }
 
 func outcomeTone(outcome session.LaunchOutcome) tone {
@@ -872,18 +885,7 @@ func outcomeTone(outcome session.LaunchOutcome) tone {
 	}
 }
 
-func (d *dashboard) addRestoreAction() {
-	label := d.svc.T("action.restore")
-	if d.situation.Restore != session.RestoreAvailable {
-		button := newActionButton(label, nil)
-		button.Disable()
-		d.add(captionWrapLabel(d.svc.T(restoreReasonKey(d.situation.Restore))), tall(button, 48))
-		return
-	}
-	d.add(tall(primaryButton(label, d.confirmRestoreCurrent), 48))
-}
-
-func (d *dashboard) addPendingCallout() {
+func (d *dashboard) addPendingCallout(showRestore bool) {
 	switch d.situation.Kind {
 	case session.SituationRestorePending, session.SituationOrphan, session.SituationConflict:
 	default:
@@ -897,15 +899,15 @@ func (d *dashboard) addPendingCallout() {
 	} else if d.pendingGame.AppID != 0 {
 		body = fmt.Sprintf(d.svc.T("pending.body"), d.gameName(d.pendingGame))
 	}
-	extra := []fyne.CanvasObject{}
-	if d.situation.Restore == session.RestoreNoBackup {
-		extra = append(extra, captionWrapLabel(d.svc.T("pending.noBackup")))
-	}
-	d.add(newCallout(title, body, toneWarning, extra...).obj)
-	if d.situation.Restore == session.RestoreAvailable {
-		d.add(tall(newActionButton(d.svc.T("pending.restore"), d.confirmRestoreCurrent), 48))
-	} else {
-		d.add(captionWrapLabel(d.svc.T(restoreReasonKey(d.situation.Restore))))
+	d.add(newCallout(title, body, toneWarning).obj)
+	if showRestore {
+		if d.situation.Restore == session.RestoreAvailable {
+			d.add(tall(newActionButton(d.svc.T("pending.restore"), d.confirmRestoreCurrent), 40))
+		} else if d.situation.Kind == session.SituationRestorePending {
+			// Orphan/conflict body already explains why there is no restore
+			// action; repeating the reason here is the duplicate-message bug.
+			d.add(captionWrapLabel(d.svc.T(restoreReasonKey(d.situation.Restore))))
+		}
 	}
 	guide := newActionButton(d.svc.T("pending.guide"), d.openGuide)
 	guide.Importance = widget.LowImportance
@@ -927,7 +929,8 @@ func (d *dashboard) sidebarGuide() {
 	case session.SetupConflict:
 		statusBody = d.svc.T("guide.setupConflict")
 	}
-	d.add(newCallout(d.svc.T("setup.title")+": "+d.svc.T(setupLabelKey(d.situation.Setup)), statusBody, situationTone(d.situation.Kind)).obj)
+	d.add(sectionLabel(d.svc.T("setup.title") + ": " + d.svc.T(setupLabelKey(d.situation.Setup))))
+	d.add(captionWrapLabel(statusBody))
 
 	d.add(sectionLabel(d.svc.T("guide.command")))
 	command, err := d.svc.DispatcherCommand()
@@ -935,11 +938,14 @@ func (d *dashboard) sidebarGuide() {
 		d.add(captionWrapLabel(err.Error()))
 	} else {
 		d.add(monoWrapLabel(command))
-		copyButton := newActionButton(d.svc.T("action.copyCommand"), func() {
+		copyButton := newActionButton(d.svc.T("action.copyCommand"), nil)
+		copyButton.OnTapped = func() {
 			d.window.Clipboard().SetContent(command)
-			d.notice = d.svc.T("guide.copyDone")
-			d.rebuildSidebar()
-		})
+			copyButton.SetText(d.svc.T("action.copied"))
+			time.AfterFunc(2*time.Second, func() {
+				fyne.Do(func() { copyButton.SetText(d.svc.T("action.copyCommand")) })
+			})
+		}
 		copyButton.Importance = widget.LowImportance
 		d.add(tall(copyButton, 40))
 	}
@@ -947,11 +953,10 @@ func (d *dashboard) sidebarGuide() {
 
 	record := newActionButton(d.svc.T("action.prepareGuide"), d.recordGuideSetup)
 	record.Importance = widget.LowImportance
-	d.add(tall(record, 40))
-	d.add(captionWrapLabel(d.svc.T("guide.prepareHint")))
 	refresh := newActionButton(d.svc.T("action.refreshSetup"), d.refreshSituation)
 	refresh.Importance = widget.LowImportance
-	d.add(tall(refresh, 40))
+	d.add(container.NewGridWithColumns(2, tall(record, 40), tall(refresh, 40)))
+	d.add(captionWrapLabel(d.svc.T("guide.prepareHint")))
 
 	d.add(widget.NewSeparator())
 	steps := []struct {
@@ -980,7 +985,7 @@ func (d *dashboard) sidebarGuide() {
 		d.add(captionWrapLabel(d.svc.T("guide.steamOpen")))
 		install := newActionButton(d.svc.T("action.installAuto"), nil)
 		install.Disable()
-		d.add(captionWrapLabel(d.svc.T("guide.autoUnavailable")), tall(install, 40))
+		d.add(tall(install, 40))
 	} else {
 		d.add(widget.NewSeparator())
 		d.add(captionWrapLabel(d.svc.T("guide.steamClosed")))
@@ -1071,7 +1076,7 @@ func (d *dashboard) installSetup() {
 		fyne.Do(func() {
 			if err != nil {
 				if errors.Is(err, domain.ErrSteamRunning) {
-					d.notice = d.svc.T("guide.autoUnavailable")
+					d.notice = d.svc.T("guide.steamOpen")
 					d.refreshSituation()
 					return
 				}
@@ -1108,7 +1113,7 @@ func (d *dashboard) sidebarSelection() {
 			button.Disable()
 			d.add(tall(button, 48))
 		}
-		d.addPendingCallout()
+		d.addPendingCallout(true)
 		return
 	}
 
@@ -1130,20 +1135,14 @@ func (d *dashboard) sidebarSelection() {
 		button.Disable()
 		d.add(tall(button, 48))
 	case d.situation.Setup == session.SetupInstalled:
-		d.add(
-			captionWrapLabel(d.svc.T("selection.actionHint")),
-			tall(primaryButton(d.svc.T("action.play"), d.prepareSelected), 48),
-		)
+		d.add(tall(primaryButton(d.svc.T("action.play"), d.prepareSelected), 48))
 	default:
-		d.add(
-			captionWrapLabel(d.svc.T("selection.guideHint")),
-			tall(primaryButton(d.svc.T("action.viewGuide"), d.openGuide), 48),
-		)
+		d.add(tall(primaryButton(d.svc.T("action.viewGuide"), d.openGuide), 48))
 	}
 	if d.last != nil && d.last.AppID != game.AppID {
 		d.addLastShortcut()
 	}
-	d.addPendingCallout()
+	d.addPendingCallout(true)
 
 	if len(d.warnings) > 0 {
 		content := vbox(8)
@@ -1161,29 +1160,18 @@ func (d *dashboard) addLastShortcut() {
 	}
 	last := d.last
 	game := d.gameForID(last.AppID)
-	installable := game.Status != domain.StatusIncompatible &&
-		game.Status != domain.StatusMissing && game.Status != domain.StatusError &&
-		game.Status != domain.StatusActive
+	cover := container.NewGridWrap(fyne.NewSize(48, 64), d.gameCoverSized(game, 64))
+	name := widget.NewLabelWithStyle(d.gameName(game), fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	name.Wrapping = fyne.TextWrapWord
+	name.SizeName = theme.SizeNameSubHeadingText
+	meta := vbox(3, name, captionLabel(d.svc.T(lastSourceKey(last.Source))+" · "+d.svc.T(lastOutcomeKey(last.Outcome))))
+	info := container.NewBorder(nil, nil, cover, nil, meta)
+	open := newActionButton(d.svc.T("action.openLast"), d.openLastSession)
+	open.Importance = widget.LowImportance
 
 	d.add(widget.NewSeparator())
 	d.add(sectionLabel(d.svc.T("last.title")))
-	d.add(d.gameCoverSized(game, 64))
-	d.add(captionWrapLabel(d.gameName(game)))
-	d.add(captionLabel(d.svc.T(lastSourceKey(last.Source)) + " · " + d.svc.T(lastOutcomeKey(last.Outcome))))
-	if d.situation.Setup == session.SetupInstalled && installable {
-		d.add(tall(primaryButton(d.svc.T("action.playAgain"), d.replaySession), 40))
-	} else {
-		reason := d.svc.T("last.setupMissing")
-		if !installable {
-			reason = d.svc.T(statusLabelKey(game.Status))
-		}
-		button := primaryButton(d.svc.T("action.playAgain"), nil)
-		button.Disable()
-		d.add(captionWrapLabel(reason), tall(button, 40))
-	}
-	open := newActionButton(d.svc.T("action.openLast"), d.openLastSession)
-	open.Importance = widget.LowImportance
-	d.add(tall(open, 40))
+	d.add(container.NewBorder(nil, nil, nil, open, info))
 }
 
 func (d *dashboard) openLastSession() {
@@ -1208,7 +1196,7 @@ func (d *dashboard) openLastSession() {
 }
 
 func (d *dashboard) gameCover(game domain.Game) fyne.CanvasObject {
-	return d.gameCoverSized(game, 128)
+	return d.gameCoverSized(game, 96)
 }
 
 func (d *dashboard) gameCoverSized(game domain.Game, coverHeight float32) fyne.CanvasObject {

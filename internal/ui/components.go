@@ -937,9 +937,9 @@ func newCallout(title, body string, tone tone, extra ...fyne.CanvasObject) *call
 	content = append(content, extra...)
 	column := vbox(8, content...)
 
-	background := canvas.NewRectangle(tint(toneColor(tone), 0x12))
-	background.CornerRadius = 10
-	background.StrokeColor = tint(toneColor(tone), 0x55)
+	background := canvas.NewRectangle(tint(toneColor(tone), 0x0c))
+	background.CornerRadius = 6
+	background.StrokeColor = tint(toneColor(tone), 0x33)
 	background.StrokeWidth = 1
 
 	return &callout{obj: container.NewStack(background, pad(column, 14, 14, 16, 14))}
@@ -1121,12 +1121,12 @@ func guideFigure(title string, resource fyne.Resource, caption string) fyne.Canv
 	if resource != nil {
 		image := canvas.NewImageFromResource(resource)
 		image.FillMode = canvas.ImageFillContain
-		image.SetMinSize(fyne.NewSize(1, 280))
-		visual = tall(image, 280)
+		image.SetMinSize(fyne.NewSize(1, 160))
+		visual = tall(image, 160)
 	} else {
 		background := canvas.NewRectangle(colorSurfaceRaised)
 		background.CornerRadius = 6
-		visual = tall(container.NewStack(background, container.NewCenter(captionWrapLabel(caption))), 280)
+		visual = tall(container.NewStack(background, container.NewCenter(captionWrapLabel(caption))), 160)
 	}
 	return vbox(6, titleLabel, visual, captionWrapLabel(caption))
 }
