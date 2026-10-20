@@ -456,7 +456,7 @@ megabytes = lambda n: f"{n / 1048576:.1f}".replace(".", ",")
 path = pathlib.Path("docs/appimage.md")
 text = path.read_text(encoding="utf-8")
 text, count = re.subn(
-    r"(SHA-256: `)[0-9a-f]{64}(` \()[0-9,]+( MB\))",
+    r"(produjo `)[0-9a-f]{64}(` \()[0-9,]+( MB\))",
     rf"\g<1>{app_sha}\g<2>{megabytes(app_size)}\g<3>",
     text,
     count=1,
