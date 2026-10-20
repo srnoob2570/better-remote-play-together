@@ -1128,5 +1128,9 @@ func guideFigure(title string, resource fyne.Resource, caption string) fyne.Canv
 		background.CornerRadius = 6
 		visual = tall(container.NewStack(background, container.NewCenter(captionWrapLabel(caption))), 160)
 	}
-	return vbox(6, titleLabel, visual, captionWrapLabel(caption))
+	objects := []fyne.CanvasObject{titleLabel, visual}
+	if caption != "" {
+		objects = append(objects, captionWrapLabel(caption))
+	}
+	return vbox(6, objects...)
 }

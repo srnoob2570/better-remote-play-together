@@ -37,23 +37,25 @@ type dashboard struct {
 	app     fyne.App
 	window  fyne.Window
 
-	catalog    steam.Catalog
-	visible    []domain.Game
-	selectedID uint32
-	query      string
-	filter     filterKey
-	loading    bool
-	refreshing bool
-	refreshErr error
-	warnings   []string
-	donorFound bool
-	donorGame  domain.Game
-	recovered  bool
-	notice     string
-	warned     map[uint32]bool
-	lastError  error
-	lastDetail string
-	retry      func()
+	catalog       steam.Catalog
+	visible       []domain.Game
+	selectedID    uint32
+	query         string
+	filter        filterKey
+	loading       bool
+	refreshing    bool
+	refreshErr    error
+	warnings      []string
+	donorFound    bool
+	donorGame     domain.Game
+	recovered     bool
+	notice        string
+	guideFeedback string
+	guideError    error
+	warned        map[uint32]bool
+	lastError     error
+	lastDetail    string
+	retry         func()
 
 	preparing       bool
 	prepStarted     time.Time
@@ -924,6 +926,9 @@ func (d *dashboard) sidebarGuide() {
 		statusBody = d.svc.T("guide.setupGuide")
 	case session.SetupInstalled:
 		statusBody = d.svc.T("guide.setupInstalled")
+		if d.setup.Setup == nil || d.setup.Setup.Backup.Path == "" {
+			statusBody = d.svc.T("guide.setupAdopted")
+		}
 	case session.SetupRestored:
 		statusBody = d.svc.T("guide.setupRestored")
 	case session.SetupConflict:
@@ -931,6 +936,10 @@ func (d *dashboard) sidebarGuide() {
 	}
 	d.add(sectionLabel(d.svc.T("setup.title") + ": " + d.svc.T(setupLabelKey(d.situation.Setup))))
 	d.add(captionWrapLabel(statusBody))
+	if d.guideError != nil {
+		d.add(newCallout(d.svc.T("error.title"), d.svc.T("error.body"), toneError,
+			pathLabel(d.guideError.Error())).obj)
+	}
 
 	d.add(sectionLabel(d.svc.T("guide.command")))
 	command, err := d.svc.DispatcherCommand()
@@ -951,12 +960,28 @@ func (d *dashboard) sidebarGuide() {
 	}
 	d.add(captionWrapLabel(d.svc.T("guide.commandHint")))
 
-	record := newActionButton(d.svc.T("action.prepareGuide"), d.recordGuideSetup)
-	record.Importance = widget.LowImportance
-	refresh := newActionButton(d.svc.T("action.refreshSetup"), d.refreshSituation)
+	var setupActions []fyne.CanvasObject
+	if d.situation.Setup != session.SetupInstalled {
+		record := newActionButton(d.svc.T("action.prepareGuide"), d.recordGuideSetup)
+		record.Importance = widget.LowImportance
+		setupActions = append(setupActions, tall(record, 40))
+	}
+	refresh := newActionButton(d.svc.T("action.refreshSetup"), d.checkSetup)
 	refresh.Importance = widget.LowImportance
-	d.add(container.NewGridWithColumns(2, tall(record, 40), tall(refresh, 40)))
-	d.add(captionWrapLabel(d.svc.T("guide.prepareHint")))
+	setupActions = append(setupActions, tall(refresh, 40))
+	if len(setupActions) == 1 {
+		d.add(setupActions[0])
+	} else {
+		d.add(container.NewGridWithColumns(2, setupActions...))
+	}
+	if d.guideFeedback != "" {
+		feedback := captionWrapLabel(d.guideFeedback)
+		feedback.Importance = widget.SuccessImportance
+		d.add(feedback)
+	}
+	if d.situation.Setup != session.SetupInstalled {
+		d.add(captionWrapLabel(d.svc.T("guide.prepareHint")))
+	}
 
 	d.add(widget.NewSeparator())
 	steps := []struct {
@@ -975,21 +1000,23 @@ func (d *dashboard) sidebarGuide() {
 	for index, step := range steps {
 		rows = append(rows, numberedRow(index+1, bodyLabel(d.svc.T(step.title)+". "+d.svc.T(step.body)), toneInfo))
 		if step.image != nil {
-			rows = append(rows, guideFigure(d.svc.T(step.imageTitle), step.image, d.svc.T("guide.image.placeholder")))
+			rows = append(rows, guideFigure(d.svc.T(step.imageTitle), step.image, ""))
 		}
 	}
 	d.add(vbox(12, rows...))
 
-	if d.situation.SteamRunning {
-		d.add(widget.NewSeparator())
-		d.add(captionWrapLabel(d.svc.T("guide.steamOpen")))
-		install := newActionButton(d.svc.T("action.installAuto"), nil)
-		install.Disable()
-		d.add(tall(install, 40))
-	} else {
-		d.add(widget.NewSeparator())
-		d.add(captionWrapLabel(d.svc.T("guide.steamClosed")))
-		d.add(tall(primaryButton(d.svc.T("action.installAuto"), d.installSetup), 48))
+	if d.situation.Setup != session.SetupInstalled {
+		if d.situation.SteamRunning {
+			d.add(widget.NewSeparator())
+			d.add(captionWrapLabel(d.svc.T("guide.steamOpen")))
+			install := newActionButton(d.svc.T("action.installAuto"), nil)
+			install.Disable()
+			d.add(tall(install, 40))
+		} else {
+			d.add(widget.NewSeparator())
+			d.add(captionWrapLabel(d.svc.T("guide.steamClosed")))
+			d.add(tall(primaryButton(d.svc.T("action.installAuto"), d.installSetup), 48))
+		}
 	}
 
 	if d.setup.Setup != nil && d.setup.Setup.Backup.Path != "" {
@@ -1007,6 +1034,7 @@ func (d *dashboard) sidebarGuide() {
 
 func (d *dashboard) openGuide() {
 	d.sessionTab = 2
+	d.guideError = nil
 	if d.sessionTabs != nil {
 		d.sessionTabs.selectTab(2)
 	}
@@ -1056,15 +1084,30 @@ func (d *dashboard) replaySession() {
 	}()
 }
 
+func (d *dashboard) checkSetup() {
+	d.guideError = nil
+	d.refreshSituation()
+	d.guideFeedback = d.svc.T("guide.checkDone")
+	d.rebuildSidebar()
+	time.AfterFunc(2*time.Second, func() {
+		fyne.Do(func() {
+			d.guideFeedback = ""
+			d.rebuildSidebar()
+		})
+	})
+}
+
 func (d *dashboard) recordGuideSetup() {
 	go func() {
 		_, err := d.svc.RecordGuideSetup(context.Background())
 		fyne.Do(func() {
 			if err != nil {
-				d.setError(err, d.recordGuideSetup)
+				d.guideError = err
+				d.rebuildSidebar()
 				return
 			}
-			d.notice = d.svc.T("guide.recordDone")
+			d.guideError = nil
+			d.guideFeedback = d.svc.T("guide.recordDone")
 			d.refreshSituation()
 		})
 	}()
@@ -1076,14 +1119,17 @@ func (d *dashboard) installSetup() {
 		fyne.Do(func() {
 			if err != nil {
 				if errors.Is(err, domain.ErrSteamRunning) {
-					d.notice = d.svc.T("guide.steamOpen")
+					d.guideError = nil
+					d.guideFeedback = d.svc.T("guide.steamOpen")
 					d.refreshSituation()
 					return
 				}
-				d.setError(err, d.installSetup)
+				d.guideError = err
+				d.rebuildSidebar()
 				return
 			}
-			d.notice = d.svc.T("guide.installDone")
+			d.guideError = nil
+			d.guideFeedback = d.svc.T("guide.installDone")
 			d.refreshSituation()
 		})
 	}()

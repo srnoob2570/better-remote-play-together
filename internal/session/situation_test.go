@@ -79,6 +79,27 @@ func TestClassifySituation(t *testing.T) {
 			restore: RestoreAvailable,
 		},
 		{
+			name: "adopted dispatcher without a backup is installed but not restorable",
+			evidence: Evidence{
+				Setup:  SetupInstalled,
+				Marker: MarkerDispatcher,
+			},
+			kind:    SituationIdle,
+			restore: RestoreNoBackup,
+		},
+		{
+			name: "finished adopted dispatcher without a backup stays not restorable",
+			evidence: Evidence{
+				Setup:  SetupInstalled,
+				Marker: MarkerDispatcher,
+				State:  situationState(testToken, domain.PhaseEnded, 900001),
+			},
+			kind:    SituationFinished,
+			restore: RestoreNoBackup,
+			token:   testToken,
+			target:  900001,
+		},
+		{
 			name: "armed intent is prepared",
 			evidence: Evidence{
 				Setup:       SetupInstalled,

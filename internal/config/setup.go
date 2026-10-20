@@ -314,6 +314,11 @@ func DetectSetup(paths Paths, steamRoot string) (SetupSnapshot, error) {
 		Current:     option,
 	}
 	if setup == nil {
+		if option.Exists && IsDispatcherMarker(option.Value) {
+			// The user already pasted the dispatcher through Steam. Better RPT
+			// can launch with it, but has no original value to restore.
+			snapshot.Status = SetupInstalled
+		}
 		return snapshot, nil
 	}
 	switch setup.Status {

@@ -101,6 +101,9 @@ La guía es el flujo principal y debe poder consultarse sin Steam cerrado:
 
 - Estado del setup compacto: una etiqueta y una línea de instrucción, sin
   tarjeta de aviso para el estado normal «no instalada».
+- Si SpaceWar ya contiene el dispatcher pero no existe `setup.json`, la guía lo
+  reconoce como **instalado** y explica que el lanzamiento funciona pero
+  **Restaurar** no está disponible porque no hay copia del valor original.
 - Comando exacto:
 
   ```text
@@ -125,12 +128,14 @@ La guía es el flujo principal y debe poder consultarse sin Steam cerrado:
   invitación tras el 6. Se muestran a 160 px de alto para no alargar la guía. Si
   una captura no está disponible, se muestra una ilustración claramente
   etiquetada y se documenta la tarea de sustitución en `docs/guide-images.md`.
-- Instalación automática al final de la guía: solo con Steam cerrado; con Steam
-  abierto el botón está deshabilitado y explica que debe pegarse el comando o
-  cerrar Steam manualmente.
-- **Preparar guía** y **Verificar de nuevo** en una fila de dos columnas.
-  **Preparar guía** registra el backup del valor actual sin escribir Steam, para
-  poder restaurar después de que el usuario pegue el comando.
+- Instalación automática al final de la guía, solo si el setup no está
+  instalado: con Steam cerrado se ofrece el botón; con Steam abierto está
+  deshabilitado y muestra un único aviso para pegar el comando manualmente.
+- **Preparar guía** solo se muestra si el setup no está instalado; registra el
+  backup del valor actual sin escribir Steam. **Verificar de nuevo** está
+  siempre disponible, ocupa toda la fila cuando está solo y muestra
+  **Estado actualizado** inline. Si ambos aparecen, comparten una fila de dos
+  columnas.
 
 ## Sesión activa
 
@@ -233,6 +238,8 @@ Patrón: qué pasó, acción primaria, detalle técnico plegable. Ejemplos:
 | guide.title | Guía de lanzamiento | Launch guide |
 | guide.command | Comando para SpaceWar | SpaceWar command |
 | guide.prepareHint | Preparar guía guarda el valor original antes de pegar el comando. | Prepare guide saves the original value before pasting the command. |
+| guide.setupAdopted | SpaceWar ya usa Better RPT. No hay copia del valor original, así que Restaurar no está disponible. | SpaceWar already uses Better RPT. There is no copy of the original value, so Restore is unavailable. |
+| guide.checkDone | Estado actualizado. | Status updated. |
 | guide.step1 | Abre Steam → Biblioteca → SpaceWar → Propiedades. | Open Steam → Library → SpaceWar → Properties. |
 | guide.step2 | Entra en Opciones de lanzamiento. | Open Launch Options. |
 | guide.step3 | Pega el comando y guarda. | Paste the command and save. |

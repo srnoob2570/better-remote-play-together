@@ -105,6 +105,27 @@ func mustBuildDispatcher(t *testing.T, helper string) string {
 	return value
 }
 
+func TestDetectSetupAdoptsExistingDispatcherWithoutBackup(t *testing.T) {
+	root := transactionRoot(t, "localconfig.vdf")
+	options := setupOptions(t, root)
+	if _, err := InstallSetup(options); err != nil {
+		t.Fatalf("install setup: %v", err)
+	}
+	if err := os.Remove(SetupPath(options.Paths)); err != nil {
+		t.Fatalf("remove setup record: %v", err)
+	}
+	snapshot, err := DetectSetup(options.Paths, root)
+	if err != nil {
+		t.Fatalf("detect setup: %v", err)
+	}
+	if snapshot.Status != SetupInstalled || snapshot.Setup != nil {
+		t.Fatalf("snapshot = %+v, want installed without setup record", snapshot)
+	}
+	if !IsDispatcherMarker(snapshot.Current.Value) {
+		t.Fatalf("current value is not a dispatcher: %q", snapshot.Current.Value)
+	}
+}
+
 func TestInstallSetupRefusesSteamRunningWithoutWriting(t *testing.T) {
 	root := transactionRoot(t, "localconfig.vdf")
 	original := readFixture(t, root)

@@ -167,12 +167,12 @@ func Classify(e Evidence) Situation {
 		}
 		if e.State.Phase == domain.PhaseActive && !e.HelperAlive {
 			s.Kind = SituationFinished
-			s.Restore = restoreState(e, effectiveSetup == SetupInstalled || e.SetupBackup)
+			s.Restore = setupRestoreState(e, effectiveSetup == SetupInstalled)
 			return s
 		}
 		if e.State.Terminal() {
 			s.Kind = SituationFinished
-			s.Restore = restoreState(e, effectiveSetup == SetupInstalled || e.SetupBackup)
+			s.Restore = setupRestoreState(e, effectiveSetup == SetupInstalled)
 			return s
 		}
 	}
@@ -181,7 +181,7 @@ func Classify(e Evidence) Situation {
 		s.Kind = SituationPrepared
 		s.Token = e.Intent.Token
 		s.TargetAppID = e.Intent.TargetAppID
-		s.Restore = restoreState(e, true)
+		s.Restore = setupRestoreState(e, true)
 		return s
 	}
 
@@ -190,7 +190,7 @@ func Classify(e Evidence) Situation {
 	// pending from its old launch option.
 	if e.State != nil && !e.State.Terminal() && !e.HelperAlive {
 		s.Kind = SituationFinished
-		s.Restore = restoreState(e, effectiveSetup == SetupInstalled || e.SetupBackup)
+		s.Restore = setupRestoreState(e, effectiveSetup == SetupInstalled)
 		return s
 	}
 
@@ -203,8 +203,26 @@ func Classify(e Evidence) Situation {
 	}
 
 	s.Kind = SituationIdle
-	s.Restore = restoreState(e, effectiveSetup == SetupInstalled && e.SetupBackup)
+	s.Restore = setupRestoreState(e, effectiveSetup == SetupInstalled)
 	return s
+}
+
+// setupRestoreState distinguishes a dispatcher installed without a backup
+// (adopted from an existing SpaceWar command) from one with a reversible setup.
+func setupRestoreState(e Evidence, installed bool) RestoreState {
+	if !installed {
+		return RestoreNotNeeded
+	}
+	if e.HelperAlive {
+		return RestoreSessionActive
+	}
+	if !e.SetupBackup {
+		return RestoreNoBackup
+	}
+	if e.SteamRunning {
+		return RestoreSteamRunning
+	}
+	return RestoreAvailable
 }
 
 func restoreState(e Evidence, restorable bool) RestoreState {
