@@ -24,6 +24,10 @@
   ancho completo con `aspect-ratio: 5 / 2`; no volver a fijar una altura.
 - Los fixtures de `testdata/steam/` son entradas de prueba versionadas; los
   scripts de `testdata/steam/` los materializan en directorios temporales.
+- Los snapshots de Playwright en `frontend/e2e/visual.spec.ts-snapshots/` se
+  versionan: son las baselines de `toHaveScreenshot` y sin ellos los tests
+  visuales fallan en un clon limpio. Los artefactos de ejecución
+  (`test-results/`, `playwright-report/`) sí están ignorados.
 - De `.codegraph/` solo se versiona su `.gitignore`; el índice (`codegraph.db`)
   es local de cada máquina y nunca debe entrar al repositorio.
 - La versión publicada se define en `Makefile` (`VERSION`) y en
