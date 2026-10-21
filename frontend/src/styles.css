@@ -1787,7 +1787,7 @@ button {
 
 .diagnostics-heading-main {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
   min-width: 0;
 }
