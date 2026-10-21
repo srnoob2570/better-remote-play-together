@@ -29,6 +29,9 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   y parseo de `localconfig.vdf`, y el refresco de la interfaz hace una sola
   llamada al bridge. En una configuración de 91 KB, el trabajo de configuración
   baja de ~147 µs a ~76 µs y de ~61 KB a ~21 KB por refresco.
+- El diagnóstico de la aplicación tiene un límite global de 20 s y comandos
+  externos con timeout de 5 s. Los grupos de sistema y Steam se ejecutan en
+  paralelo y el informe conserva el orden original de los checks.
 
 ## [0.2.2] - 2026-10-21 (efe5aea)
 

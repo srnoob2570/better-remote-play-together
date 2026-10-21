@@ -37,7 +37,7 @@ func (e *evaluator) checkDependencies(ctx context.Context) {
 		e.add(CheckELF, StatusSkip, "diag.deps.elf.skip", nil, evidence, "")
 		return
 	}
-	output, err := e.deps.LDD(ctx, e.executable)
+	output, err := e.runLDD(ctx, e.executable)
 	text := string(output)
 	if strings.Contains(strings.ToLower(text), "not a dynamic executable") {
 		e.add(CheckELF, StatusOK, "diag.deps.elf.static", nil, evidence, "")

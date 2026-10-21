@@ -149,11 +149,11 @@ func (e *evaluator) checkGlibc(ctx context.Context) Status {
 	var output []byte
 	var err error
 	if e.deps.Run != nil {
-		output, err = e.deps.Run(ctx, "ldd", "--version")
+		output, err = e.runCommand(ctx, "ldd", "--version")
 	}
 	if err != nil || len(output) == 0 {
 		if e.deps.Run != nil {
-			output, err = e.deps.Run(ctx, "getconf", "GNU_LIBC_VERSION")
+			output, err = e.runCommand(ctx, "getconf", "GNU_LIBC_VERSION")
 		}
 	}
 	if err != nil || len(output) == 0 {
