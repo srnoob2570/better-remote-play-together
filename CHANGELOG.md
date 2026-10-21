@@ -54,6 +54,9 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Fixed
 
+- Los controles inferiores usan el mismo margen inferior que el lateral de la
+  página, también en ventanas estrechas, y dejan un pequeño respiro respecto al
+  contenido para no quedar pegados al borde.
 - La interfaz mantiene las acciones principales junto al título, adapta la
   cabecera y los wizards a ventanas estrechas, mejora la jerarquía de
   encabezados y devuelve el foco al control de origen al cerrar los diálogos.

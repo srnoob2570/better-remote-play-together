@@ -127,7 +127,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 clamp(20px, 3.4vw, 44px);
+  padding: 0 var(--size-page-gutter);
   height: clamp(72px, 4.8vw, 92px);
   border-bottom: 1px solid var(--color-line-soft);
   flex: 0 0 auto;
@@ -185,7 +185,7 @@ button {
 .library-pane {
   min-width: 0;
   padding: 24px clamp(13px, 2vw, 36px) calc(var(--size-dock-height) + 12px)
-    clamp(20px, 3.4vw, 44px);
+    var(--size-page-gutter);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -947,16 +947,16 @@ button {
 }
 
 @media (max-width: 900px) {
+  :root {
+    --size-page-gutter: 16px;
+  }
+
   .app-header {
     height: auto;
     min-height: 72px;
     flex-wrap: nowrap;
     gap: 12px;
     padding: 8px 16px;
-  }
-
-  .app-dock {
-    padding-inline: 16px;
   }
 
   .diagnostic-docs a {
@@ -983,7 +983,7 @@ button {
   .app-main {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(0, 42%) minmax(0, 1fr);
-    padding-bottom: var(--size-dock-height);
+    padding-bottom: calc(var(--size-dock-height) + 8px);
   }
 
   .library-pane,
@@ -1199,7 +1199,7 @@ button {
   justify-content: space-between;
   gap: 16px;
   height: var(--size-dock-height);
-  padding: 10px clamp(20px, 3.4vw, 44px);
+  padding: 0 var(--size-page-gutter) var(--size-page-gutter);
   pointer-events: none;
 }
 
@@ -2145,7 +2145,7 @@ button {
   height: 100%;
   min-height: 0;
   margin: 0 auto;
-  padding: 0 0 var(--size-dock-height);
+  padding: 0 0 calc(var(--size-dock-height) + 12px);
   display: flex;
   flex-direction: column;
   overflow: hidden;

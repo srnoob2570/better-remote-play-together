@@ -12,9 +12,9 @@ acciones y textos del MVP. El flujo de cerrar Steam ya no existe.
 - Controles globales flotantes en las esquinas inferiores: versión y
   actualización a la izquierda; selector de idioma a la derecha. El botón de
   actualización es solo un icono y comunica su estado con iconos, tooltip y un
-  diálogo de progreso. En ventanas de hasta 900 px, la franja inferior reserva
-  la altura de los controles y los paneles se desvanecen en el borde como pista
-  de desplazamiento.
+  diálogo de progreso. El margen inferior coincide con el lateral de la página.
+  En ventanas de hasta 900 px, la franja inferior reserva la altura de los
+  controles y los paneles se desvanecen en el borde como pista de desplazamiento.
 - Cuerpo en dos columnas: biblioteca (≈60 %) y panel lateral (≈40 %, mínimo
   400 px).
 - La biblioteca y la sesión son dos campos de color distintos: tinta para la
