@@ -200,6 +200,15 @@ func TestOpenCorruptAppInfoRecordIsolation(t *testing.T) {
 		filepath.Join(fixtures, "primary", "appcache", "appinfo_bad_key.vdf"),
 		filepath.Join(fixtures, "primary", "appcache", "appinfo.vdf"),
 	)
+	apps := filepath.Join(fixtures, "primary", "steamapps")
+	installDir := filepath.Join(apps, "common", "Corrupt Game")
+	if err := os.MkdirAll(installDir, 0o700); err != nil {
+		t.Fatalf("create corrupt game dir: %v", err)
+	}
+	manifest := `"AppState" { "appid" "900013" "name" "Corrupt Game" "installdir" "Corrupt Game" "StateFlags" "4" "SizeOnDisk" "42" }`
+	if err := os.WriteFile(filepath.Join(apps, "appmanifest_900013.acf"), []byte(manifest), 0o600); err != nil {
+		t.Fatalf("write corrupt app manifest: %v", err)
+	}
 	homeWithSteam(t, filepath.Join(fixtures, "primary"))
 
 	catalog, err := Open(context.Background())
@@ -212,8 +221,29 @@ func TestOpenCorruptAppInfoRecordIsolation(t *testing.T) {
 	if _, ok := findGame(catalog.Games, 900001); !ok {
 		t.Fatal("valid apps disappeared with one corrupt appinfo record")
 	}
-	if game, ok := findGame(catalog.Games, 900013); ok {
-		t.Fatalf("corrupt app appeared in catalog: %+v", game)
+	game, ok := findGame(catalog.Games, 900013)
+	if !ok || game.Status != domain.StatusIncompatible || !errors.Is(game.Problem, appinfo.ErrAppNotFound) {
+		t.Fatalf("corrupt app = %+v, ok=%v; want incompatible with ErrAppNotFound", game, ok)
+	}
+}
+
+func TestOpenUninstalledCorruptAppInfoRecordIgnored(t *testing.T) {
+	fixtures := materializeFixtures(t)
+	copyFile(t,
+		filepath.Join(fixtures, "primary", "appcache", "appinfo_bad_key.vdf"),
+		filepath.Join(fixtures, "primary", "appcache", "appinfo.vdf"),
+	)
+	homeWithSteam(t, filepath.Join(fixtures, "primary"))
+
+	catalog, err := Open(context.Background())
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	if len(catalog.Warnings) != 0 {
+		t.Fatalf("warnings = %v, want none for an uninstalled corrupt record", catalog.Warnings)
+	}
+	if _, ok := findGame(catalog.Games, 900001); !ok {
+		t.Fatal("valid apps disappeared with an uninstalled corrupt appinfo record")
 	}
 }
 

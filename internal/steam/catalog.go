@@ -86,9 +86,6 @@ func Load(ctx context.Context, installation Installation) (Catalog, error) {
 		return Catalog{}, err
 	}
 	catalog := Catalog{Installation: Installation{Root: root, Variant: VariantNative}}
-	for _, warning := range appInfo.Warnings() {
-		catalog.Warnings = append(catalog.Warnings, Warning{Path: appInfoPath, Err: warning})
-	}
 	roots, warnings := discoverRoots(root)
 	catalog.Warnings = append(catalog.Warnings, warnings...)
 	resolver := compat.NewResolver(root, roots)
@@ -112,6 +109,9 @@ func Load(ctx context.Context, installation Installation) (Catalog, error) {
 		catalog.Warnings = append(catalog.Warnings, warnings...)
 		catalog.Libraries = append(catalog.Libraries, *lib)
 		catalog.Games = append(catalog.Games, games...)
+	}
+	for _, warning := range appInfo.Warnings() {
+		catalog.Warnings = append(catalog.Warnings, Warning{Path: appInfoPath, Err: warning})
 	}
 	catalog.Games = dedupeGames(catalog.Games)
 	return catalog, nil

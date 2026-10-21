@@ -18,6 +18,10 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   sesión lo pidan a la vez, y se entrega una sola vez a React. El reloj de la
   sesión activa ya no re-renderiza toda la aplicación cada segundo y se pausa
   con la ventana oculta.
+- `appinfo.vdf` se indexa al abrirlo y cada registro se decodifica solo cuando
+  el catálogo lo consulta, de modo que los juegos no instalados ya no se
+  parsean. En una caché real de 1,5 MB, la apertura baja de ~13,8 ms a ~0,7 ms
+  y de ~18,2 MB a ~1,8 MB por refresco.
 
 ## [0.2.2] - 2026-10-21 (efe5aea)
 
