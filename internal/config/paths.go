@@ -60,6 +60,11 @@ func (p Paths) DiagnosticsDir() string {
 	return filepath.Join(p.DataDir, "diagnostics")
 }
 
+// UpdateFile is the cached result of the last successful release check.
+func (p Paths) UpdateFile() string {
+	return filepath.Join(p.ConfigDir, "update.json")
+}
+
 // Ensure creates the private user directories.
 func (p Paths) Ensure() error {
 	for _, dir := range []string{p.ConfigDir, p.DataDir, p.RuntimeDir} {

@@ -45,6 +45,10 @@ vi.mock("./bridge/wails", () => ({
     SessionState: vi.fn(),
     RunDiagnostics: vi.fn(),
     SaveDiagnostics: vi.fn(),
+    CheckForUpdate: vi.fn(),
+    CheckForUpdateOnStartup: vi.fn(),
+    InstallUpdate: vi.fn(),
+    RestartToUpdate: vi.fn(),
   },
 }));
 
@@ -195,6 +199,19 @@ describe("library UI", () => {
     mocked.RestoreSession.mockResolvedValue();
     mocked.RunDiagnostics.mockResolvedValue(diagnosticsResult());
     mocked.SaveDiagnostics.mockResolvedValue("/tmp/better-rpt-diagnostic.md");
+    mocked.CheckForUpdateOnStartup.mockResolvedValue({
+      currentVersion: "0.2.0",
+      latestVersion: "0.2.0",
+      tag: "v0.2.0",
+      releaseUrl:
+        "https://github.com/srnoob2570/better-remote-play-together/releases/tag/v0.2.0",
+      available: false,
+      canInstall: false,
+      installKind: "appimage",
+      development: false,
+      checkedAt: "2026-10-20T12:00:00Z",
+      cached: true,
+    });
   });
 
   it("opens the setup wizard once when the integration is missing", async () => {
@@ -302,9 +319,9 @@ describe("library UI", () => {
 
     expect(await screen.findByText("Preparando la sesión")).toBeInTheDocument();
     expect(screen.getByText("Paso 1 de 5")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Acepta «¿Permitir iniciar el juego?»",
-    );
+    expect(
+      within(screen.getByRole("complementary", { name: "Sesión" })).getByRole("status"),
+    ).toHaveTextContent("Acepta «¿Permitir iniciar el juego?»");
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
     expect(mocked.CancelSession).toHaveBeenCalled();
   });
@@ -337,9 +354,9 @@ describe("library UI", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Continuar" }));
 
     expect(await screen.findByRole("button", { name: "Lanzando…" })).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Acepta «¿Permitir iniciar el juego?»",
-    );
+    expect(
+      within(screen.getByRole("complementary", { name: "Sesión" })).getByRole("status"),
+    ).toHaveTextContent("Acepta «¿Permitir iniciar el juego?»");
   });
 
   it("renders the active session timer and guide", async () => {

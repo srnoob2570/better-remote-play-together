@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/srnoob2570/better-rpt/internal/config"
 	"github.com/srnoob2570/better-rpt/internal/domain"
@@ -26,6 +27,28 @@ func testPaths(t *testing.T) config.Paths {
 
 func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
+
+func TestInstanceLockWaitsForRestart(t *testing.T) {
+	paths := testPaths(t)
+	first, err := NewWithPaths(paths, testLogger())
+	if err != nil {
+		t.Fatalf("first service: %v", err)
+	}
+	defer first.Close()
+	t.Setenv(waitForInstanceLockEnv, "1")
+	go func() {
+		time.Sleep(150 * time.Millisecond)
+		_ = first.Close()
+	}()
+
+	second, err := NewWithPaths(paths, testLogger())
+	if err != nil {
+		t.Fatalf("restart service: %v", err)
+	}
+	if err := second.Close(); err != nil {
+		t.Fatalf("close: %v", err)
+	}
 }
 
 func TestInstanceLock(t *testing.T) {

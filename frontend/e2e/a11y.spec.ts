@@ -11,6 +11,15 @@ test("library has no WCAG A/AA violations", async ({ page }) => {
   expect(results.violations).toEqual([]);
 });
 
+test("update dialog has no WCAG A/AA violations", async ({ page }) => {
+  await page.goto("/e2e.html?e2e=update-available&lang=es");
+  await page.getByRole("button", { name: "Actualización 0.2.1 disponible" }).click();
+  await expect(page.getByRole("dialog", { name: "Actualización de Better RPT" })).toBeVisible();
+
+  const results = await new AxeBuilder({ page }).withTags(wcag).analyze();
+  expect(results.violations).toEqual([]);
+});
+
 test("unknown-compatibility dialog has no WCAG A/AA violations", async ({ page }) => {
   await page.goto("/e2e.html?e2e=dialog-unknown&lang=es");
   await page.getByRole("button", { name: "Jugar" }).click();

@@ -147,6 +147,36 @@ export interface SetupSnapshot {
   currentValue?: string;
 }
 
+export type UpdateInstallKind = "appimage" | "deb" | "development";
+export type UpdateStage = "downloading" | "verifying" | "installing";
+
+export interface UpdateCheck {
+  currentVersion: string;
+  latestVersion: string;
+  tag: string;
+  releaseUrl: string;
+  available: boolean;
+  canInstall: boolean;
+  installKind: UpdateInstallKind;
+  development: boolean;
+  checkedAt: string;
+  cached: boolean;
+}
+
+export interface UpdateProgress {
+  stage: UpdateStage;
+  downloaded: number;
+  total: number;
+  percent: number;
+}
+
+export interface UpdateInstallResult {
+  status: "replaced" | "installed" | "saved";
+  installKind: UpdateInstallKind;
+  path?: string;
+  restart: boolean;
+}
+
 export type DiagnosticStatus = "ok" | "warn" | "fail" | "skip";
 
 export interface DiagnosticCheck {

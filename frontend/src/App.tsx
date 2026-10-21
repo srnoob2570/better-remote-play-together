@@ -23,6 +23,7 @@ import { translate, type Language, type MessageKey } from "./i18n";
 import { SessionPanel } from "./components/SessionPanel";
 import { DiagnosticsPane } from "./components/DiagnosticsPane";
 import { SetupIndicator } from "./components/SetupIndicator";
+import { UpdateControl } from "./components/UpdateControl";
 import { problemText } from "./session/problem";
 import { useSession } from "./session/useSession";
 import { RepairWizard } from "./wizards/RepairWizard";
@@ -325,6 +326,7 @@ export default function App() {
           <span className="app-version">
             {t("app.version")} {snapshot?.version ?? ""}
           </span>
+          <UpdateControl lang={lang} version={snapshot?.version ?? ""} />
           <nav className="language-switch" aria-label={t("app.language")}>
             {(["es", "en"] as const).map((code) => (
               <Button

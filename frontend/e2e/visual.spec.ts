@@ -14,6 +14,7 @@ const scenarios = [
   "details",
   "dialog-unknown",
   "session-error",
+  "update-available",
 ] as const;
 
 type Scenario = (typeof scenarios)[number];
@@ -28,6 +29,14 @@ async function prepare(page: Page, scenario: Scenario, lang: "es" | "en" = "es")
   }
   if (scenario === "dialog-unknown") {
     await page.getByRole("button", { name: lang === "es" ? "Jugar" : "Play" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+  }
+  if (scenario === "update-available") {
+    await page
+      .getByRole("button", {
+        name: lang === "es" ? "Actualización 0.2.1 disponible" : "Update 0.2.1 available",
+      })
+      .click();
     await expect(page.getByRole("dialog")).toBeVisible();
   }
 }
@@ -61,6 +70,8 @@ const expected = (scenario: Scenario, lang: "es" | "en"): RegExp | string => {
       return es ? "Compatibilidad desconocida" : "Unknown compatibility";
     case "session-error":
       return es ? "No se pudo completar la operación" : "The operation could not be completed";
+    case "update-available":
+      return es ? "Actualización de Better RPT" : "Better RPT update";
   }
 };
 

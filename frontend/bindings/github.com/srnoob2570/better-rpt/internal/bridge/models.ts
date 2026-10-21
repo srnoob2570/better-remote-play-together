@@ -173,6 +173,32 @@ export interface StartSessionInput {
 }
 
 /**
+ * UpdateCheck is the result of comparing the running version with GitHub.
+ */
+export interface UpdateCheck {
+    "currentVersion": string;
+    "latestVersion": string;
+    "tag": string;
+    "releaseUrl": string;
+    "available": boolean;
+    "canInstall": boolean;
+    "installKind": string;
+    "development": boolean;
+    "checkedAt": string;
+    "cached": boolean;
+}
+
+/**
+ * UpdateInstallResult describes the verified update and whether it can restart.
+ */
+export interface UpdateInstallResult {
+    "status": string;
+    "installKind": string;
+    "path"?: string;
+    "restart": boolean;
+}
+
+/**
  * Warning is a non-fatal catalog problem tied to a path.
  */
 export interface Warning {

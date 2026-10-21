@@ -34,6 +34,11 @@
   `packaging/nfpm.yaml`; al preparar una versión nueva, mueve las entradas de
   `[Unreleased]` a la sección de la versión con su fecha y actualiza los enlaces
   de comparación del final de `CHANGELOG.md`.
+- El updater vive en `internal/update`: el frontend nunca llama a la API de
+  GitHub. La caché se guarda en `$XDG_CONFIG_HOME/better-rpt/update.json`
+  (24 h). Al reiniciar tras actualizar, el proceso nuevo recibe
+  `BETTER_RPT_WAIT_FOR_INSTANCE_LOCK=1` y espera a que el anterior libere el
+  lock de instancia.
 - El shell Wails requiere el CLI `wails3` instalado con `-tags gtk3`; `make build`
   lo busca en `PATH` y en `$(go env GOPATH)/bin`.
 - `go test ./...` compila `cmd/better-rpt/main_stub.go` por defecto; para compilar

@@ -141,6 +141,12 @@ func (e *wailsEmitter) Emit(name string, data any) {
 	}
 }
 
+func (e *wailsEmitter) Quit() {
+	if e.app != nil {
+		e.app.Quit()
+	}
+}
+
 func fatal(err error) {
 	tr := i18n.New(string(i18n.Detect()))
 	key := "error.generic"

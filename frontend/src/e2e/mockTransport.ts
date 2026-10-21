@@ -14,6 +14,7 @@ import type {
   SetupSnapshot,
   Situation,
   Snapshot,
+  UpdateCheck,
 } from "../bridge/types";
 
 type Scenario =
@@ -30,7 +31,8 @@ type Scenario =
   | "details"
   | "dialog-unknown"
   | "session-error"
-  | "setup-missing";
+  | "setup-missing"
+  | "update-available";
 
 const NOW = new Date("2026-10-20T12:00:00Z");
 
@@ -101,6 +103,23 @@ function last(overrides: Partial<LastSession> = {}): LastSession {
 
 function catalog(overrides: Partial<Catalog> = {}): Catalog {
   return { games, warnings: [], ...overrides };
+}
+
+function updateCheck(available: boolean): UpdateCheck {
+  return {
+    currentVersion: "0.2.0",
+    latestVersion: available ? "0.2.1" : "0.2.0",
+    tag: available ? "v0.2.1" : "v0.2.0",
+    releaseUrl: `https://github.com/srnoob2570/better-remote-play-together/releases/tag/${
+      available ? "v0.2.1" : "v0.2.0"
+    }`,
+    available,
+    canInstall: available,
+    installKind: "appimage",
+    development: false,
+    checkedAt: NOW.toISOString(),
+    cached: true,
+  };
 }
 
 function diagnostics(lang: "es" | "en"): DiagnosticsResult {
@@ -198,6 +217,7 @@ function scenarioData(name: Scenario, lang: "es" | "en") {
   let setup = baseSetup();
   let situation = baseSituation();
   let lastValue: LastSession | undefined;
+  let updateValue = updateCheck(false);
 
   switch (name) {
     case "loading":
@@ -273,6 +293,9 @@ function scenarioData(name: Scenario, lang: "es" | "en") {
       snapshotCatalog = undefined;
       recoveryValue = recovery({ situation: undefined, setup: undefined });
       break;
+    case "update-available":
+      updateValue = updateCheck(true);
+      break;
     default:
       break;
   }
@@ -319,6 +342,7 @@ function scenarioData(name: Scenario, lang: "es" | "en") {
       lang = next;
     },
     getLanguage: () => lang,
+    getUpdate: () => updateValue,
   };
 }
 
@@ -373,6 +397,18 @@ export function installMockTransport(scenarioName: string, language: "es" | "en"
           return diagnostics(data.getLanguage());
         case 1614206993:
           return "/home/tester/.local/share/better-rpt/diagnostics/better-rpt-diagnostic-2026-10-20T12-00-00Z.md";
+        case 1725841076:
+        case 1746319122:
+          return data.getUpdate();
+        case 1967629556:
+          return {
+            status: "replaced",
+            installKind: "appimage",
+            path: "/home/tester/Apps/BetterRPT-0.2.0-x86_64.AppImage",
+            restart: true,
+          };
+        case 2374902849:
+          return;
         default:
           throw new Error(`unmocked bridge call ${String(call?.methodID)}`);
       }
@@ -445,4 +481,5 @@ const SCENARIOS: Record<Scenario, true> = {
   "dialog-unknown": true,
   "session-error": true,
   "setup-missing": true,
+  "update-available": true,
 };

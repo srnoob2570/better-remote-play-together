@@ -12,6 +12,7 @@ import (
 	"github.com/srnoob2570/better-rpt/internal/session"
 	"github.com/srnoob2570/better-rpt/internal/steam/appinfo"
 	"github.com/srnoob2570/better-rpt/internal/steam/compat"
+	"github.com/srnoob2570/better-rpt/internal/update"
 )
 
 // ProblemError carries a stable bridge code. The wrapped error, when present,
@@ -137,6 +138,23 @@ var errorMessages = map[string]string{
 	"setup_missing":       "The SpaceWar setup is missing.",
 	"setup_conflict":      "The SpaceWar setup conflicts with Steam.",
 	"setup_invalid":       "The SpaceWar setup record is invalid.",
+	"update_network":      "GitHub could not be reached.",
+	"update_timeout":      "The update request timed out.",
+	"update_rate_limited": "GitHub rate limit reached. Try again later.",
+	"update_invalid":      "GitHub returned an invalid release response.",
+	"update_no_asset":     "The release lacks an asset for this installation.",
+	"update_checksum":     "The update checksum verification failed.",
+	"update_download":     "The update could not be downloaded.",
+	"update_too_large":    "The update exceeds the download limit.",
+	"update_install":      "The update could not be installed.",
+	"update_no_pkexec":    "pkexec is not available for installing the package.",
+	"update_canceled":     "The update was canceled.",
+	"update_busy":         "Another update operation is already running.",
+	"update_not_checked":  "Check for updates before installing.",
+	"update_no_update":    "No update is available.",
+	"update_unsupported":  "This installation does not support automatic updates.",
+	"update_no_restart":   "There is no update pending a restart.",
+	"update_restart":      "Better RPT could not restart automatically.",
 	"internal":            "An unexpected error occurred.",
 }
 
@@ -202,6 +220,24 @@ var errorCodes = []struct {
 	{helper.ErrSourceInvalid, "helper_source_invalid"},
 	{helper.ErrInstall, "helper_install"},
 	{helper.ErrActiveSession, "session_active"},
+
+	{update.ErrNetwork, "update_network"},
+	{update.ErrTimeout, "update_timeout"},
+	{update.ErrRateLimited, "update_rate_limited"},
+	{update.ErrInvalidResponse, "update_invalid"},
+	{update.ErrNoAsset, "update_no_asset"},
+	{update.ErrChecksum, "update_checksum"},
+	{update.ErrDownload, "update_download"},
+	{update.ErrTooLarge, "update_too_large"},
+	{update.ErrInstall, "update_install"},
+	{update.ErrNoPkexec, "update_no_pkexec"},
+	{update.ErrCanceled, "update_canceled"},
+	{update.ErrBusy, "update_busy"},
+	{update.ErrNotChecked, "update_not_checked"},
+	{update.ErrNoUpdate, "update_no_update"},
+	{update.ErrUnsupported, "update_unsupported"},
+	{update.ErrNoRestart, "update_no_restart"},
+	{update.ErrRestart, "update_restart"},
 
 	{launch.ErrNotGame, "not_game"},
 	{launch.ErrInfoState, "info_state"},

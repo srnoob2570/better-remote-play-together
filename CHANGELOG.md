@@ -7,6 +7,21 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- La aplicación comprueba GitHub Releases al arrancar sin bloquear la interfaz
+  y añade un botón **Buscar actualizaciones** junto a la versión. La caché
+  reutiliza el último resultado correcto durante 24 h y el botón consulta
+  siempre la red. Avisa de las versiones nuevas con un indicador discreto y
+  muestra versión actual, versión nueva, notas del release y progreso en ES/EN.
+- Actualización interna para AppImage y `.deb`: descarga HTTPS con límite de
+  200 MB, verificación SHA-256 obligatoria contra `SHA256SUMS`, reemplazo
+  atómico del AppImage, instalación Debian mediante `pkexec dpkg -i` y reinicio
+  asistido. Si el AppImage no es escribible, guarda el archivo verificado en
+  `~/Descargas`. Las compilaciones de desarrollo no ofrecen autoinstalación.
+- Los fallos de red, rate limit, checksum, asset ausente o autorización polkit
+  se muestran con reintento y enlace al release sin modificar la versión actual.
+
 ## [0.2.1] - 2026-10-20 (5c7d8eb)
 
 ### Fixed

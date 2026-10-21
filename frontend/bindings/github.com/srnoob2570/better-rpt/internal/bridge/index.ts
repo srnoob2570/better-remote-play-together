@@ -22,5 +22,7 @@ export type {
     Snapshot,
     Stale,
     StartSessionInput,
+    UpdateCheck,
+    UpdateInstallResult,
     Warning
 } from "./models.js";

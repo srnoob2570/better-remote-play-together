@@ -23,6 +23,20 @@ export function CancelSession(): $CancellablePromise<boolean> {
 }
 
 /**
+ * CheckForUpdate always queries GitHub for the latest release.
+ */
+export function CheckForUpdate(): $CancellablePromise<$models.UpdateCheck> {
+    return $Call.ByID(1725841076);
+}
+
+/**
+ * CheckForUpdateOnStartup reuses the cached result for up to 24 hours.
+ */
+export function CheckForUpdateOnStartup(): $CancellablePromise<$models.UpdateCheck> {
+    return $Call.ByID(1746319122);
+}
+
+/**
  * DispatcherCommand returns the exact SpaceWar launch option.
  */
 export function DispatcherCommand(): $CancellablePromise<string> {
@@ -42,6 +56,15 @@ export function EnsureHelper(): $CancellablePromise<void> {
  */
 export function InstallSetup(): $CancellablePromise<$models.Setup> {
     return $Call.ByID(2513448886);
+}
+
+/**
+ * InstallUpdate downloads, verifies and installs the release found by the
+ * last check. The Wails call context is ignored so closing a dialog does not
+ * cancel an in-flight download; Shutdown owns cancellation.
+ */
+export function InstallUpdate(): $CancellablePromise<$models.UpdateInstallResult> {
+    return $Call.ByID(1967629556);
 }
 
 /**
@@ -86,6 +109,13 @@ export function RefreshCatalog(): $CancellablePromise<$models.Catalog> {
  */
 export function ReplaySession(): $CancellablePromise<$models.Active> {
     return $Call.ByID(2503687275);
+}
+
+/**
+ * RestartToUpdate launches the verified binary and asks Wails to quit.
+ */
+export function RestartToUpdate(): $CancellablePromise<void> {
+    return $Call.ByID(2374902849);
 }
 
 /**

@@ -91,6 +91,45 @@ ambos a la vez. El AppImage se probó con FUSE directo y con
 Arch con las bibliotecas gráficas del sistema, pero no se declara soporte de GUI
 fuera de Ubuntu 22.04 en esta versión.
 
+## Actualizaciones
+
+Better RPT comprueba GitHub Releases al arrancar sin bloquear la interfaz y
+ofrece un botón **Buscar actualizaciones** junto a la versión. La comprobación
+de arranque reutiliza el último resultado correcto durante 24 horas; el botón
+consulta siempre la red. No requiere cuenta, token ni configuración.
+
+La actualización solo se ofrece para instalaciones Linux amd64:
+
+- **AppImage:** usa la variable `APPIMAGE` para localizar el archivo en uso,
+  descarga el asset `BetterRPT-<versión>-x86_64.AppImage`, verifica su SHA-256
+  contra `SHA256SUMS`, le aplica `0755` y lo reemplaza con un `rename` atómico.
+  Si el directorio del AppImage no es escribible, guarda el archivo verificado
+  en `~/Descargas` con un nombre versionado y explica la ruta; no intenta elevar
+  privilegios. Si la sustitución fue posible, **Reiniciar ahora** lanza la nueva
+  versión y cierra la actual.
+- **Paquete `.deb`:** comprueba que `/usr/bin/better-rpt` pertenece al paquete
+  `better-rpt` con `dpkg -S`, descarga el `.deb` en un directorio temporal
+  privado, verifica el SHA-256 e instala con `pkexec dpkg -i` usando argumentos
+  separados. Si falta `pkexec`, no hay agente polkit o cancelas la autorización,
+  la versión actual no se toca y se ofrece el enlace al release para instalarla
+  a mano. Si `dpkg` falla, se muestra el error y el enlace para resolverlo
+  manualmente; Better RPT no ejecuta `apt-get -f install` automáticamente. Tras
+  instalar, **Reiniciar ahora** abre la versión nueva.
+- **Compilación de desarrollo:** si la versión es `dev` o el binario no se
+  detecta como AppImage ni como paquete Debian, no se ofrece autoinstalación;
+  el diálogo indica que es una compilación de desarrollo y enlaza al release.
+
+La descarga tiene un límite de 200 MB y un tiempo máximo de cinco minutos; la
+consulta de metadatos tiene un timeout de 10 segundos. La verificación del
+checksum es obligatoria y fail-closed: si el asset o `SHA256SUMS` falta, o el
+hash no coincide, se aborta sin tocar el binario actual y se eliminan los
+temporales. Un fallo de red, un rate limit de GitHub o una respuesta inválida
+no interrumpen la aplicación; la comprobación de arranque falla en silencio y
+el botón muestra un error con reintento y enlace al release.
+
+El updater no se ofrece en Flatpak/Snap, otras arquitecturas ni instalaciones
+manuales en rutas distintas de `/usr/bin/better-rpt`.
+
 ## Uso
 
 1. Abre Steam e inicia sesión. Comprueba que SpaceWar aparece en tu
@@ -201,10 +240,14 @@ toca opciones de lanzamiento de otras aplicaciones.
 
 ## Datos y privacidad
 
-Better RPT no descarga código ni envía datos por red. Todo queda en el equipo:
+Better RPT consulta GitHub Releases sin autenticación y solo descarga una
+actualización cuando el usuario lo pide. No envía telemetría ni guarda tokens.
+El resto de los datos queda en el equipo:
 
 - Configuración: `$XDG_CONFIG_HOME/better-rpt/config.json`
   (por defecto `~/.config/better-rpt/config.json`).
+- Última comprobación de versión: `$XDG_CONFIG_HOME/better-rpt/update.json`
+  (fecha y tag del último resultado correcto, `0600`; se reutiliza 24 h).
 - Helper estable: `$XDG_DATA_HOME/better-rpt/bin/better-rpt-helper`
   (por defecto `~/.local/share/better-rpt/bin/better-rpt-helper`).
 - Copias de `localconfig.vdf`: `$XDG_DATA_HOME/better-rpt/backups/`

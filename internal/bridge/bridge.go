@@ -13,6 +13,7 @@ import (
 	"github.com/srnoob2570/better-rpt/internal/i18n"
 	"github.com/srnoob2570/better-rpt/internal/session"
 	"github.com/srnoob2570/better-rpt/internal/steam"
+	"github.com/srnoob2570/better-rpt/internal/update"
 )
 
 const (
@@ -20,6 +21,8 @@ const (
 	EventCatalogUpdated = "catalog.updated"
 	// EventSessionUpdated carries a SessionState on every observed phase.
 	EventSessionUpdated = "session.updated"
+	// EventUpdateProgress carries download and installation progress.
+	EventUpdateProgress = "update.progress"
 )
 
 // Emitter is the Wails event adapter. The bridge stays free of Wails imports
@@ -57,6 +60,7 @@ type Bridge struct {
 	version string
 	emitter Emitter
 	openURL func(string) error
+	updater updater
 	mu      sync.Mutex
 	run     *runState
 }
@@ -74,6 +78,7 @@ func New(app App, version string, emitter Emitter) *Bridge {
 		version: version,
 		emitter: emitter,
 		openURL: defaultOpenURL,
+		updater: update.New(version, app.Paths().UpdateFile()),
 	}
 }
 
@@ -148,11 +153,13 @@ func (b *Bridge) Shutdown() {
 	b.mu.Lock()
 	run := b.run
 	b.mu.Unlock()
-	if run == nil {
-		return
+	if run != nil {
+		run.cancel()
+		<-run.done
 	}
-	run.cancel()
-	<-run.done
+	if b.updater != nil {
+		b.updater.Close()
+	}
 }
 
 // RestoreSession restores one legacy or persistent configuration.

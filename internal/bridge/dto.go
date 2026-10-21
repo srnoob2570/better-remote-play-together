@@ -7,6 +7,7 @@ import (
 	"github.com/srnoob2570/better-rpt/internal/domain"
 	"github.com/srnoob2570/better-rpt/internal/session"
 	"github.com/srnoob2570/better-rpt/internal/steam"
+	"github.com/srnoob2570/better-rpt/internal/update"
 )
 
 // SchemaVersion is bumped whenever a DTO or event changes incompatibly.
@@ -146,6 +147,36 @@ type SetupSnapshot struct {
 	OriginalValue string `json:"originalValue,omitempty"`
 	HasBackup     bool   `json:"hasBackup"`
 	CurrentValue  string `json:"currentValue,omitempty"`
+}
+
+// UpdateCheck is the result of comparing the running version with GitHub.
+type UpdateCheck struct {
+	CurrentVersion string `json:"currentVersion"`
+	LatestVersion  string `json:"latestVersion"`
+	Tag            string `json:"tag"`
+	ReleaseURL     string `json:"releaseUrl"`
+	Available      bool   `json:"available"`
+	CanInstall     bool   `json:"canInstall"`
+	InstallKind    string `json:"installKind"`
+	Development    bool   `json:"development"`
+	CheckedAt      string `json:"checkedAt"`
+	Cached         bool   `json:"cached"`
+}
+
+// UpdateProgress is one download or installation stage.
+type UpdateProgress struct {
+	Stage      string `json:"stage"`
+	Downloaded int64  `json:"downloaded"`
+	Total      int64  `json:"total"`
+	Percent    int    `json:"percent"`
+}
+
+// UpdateInstallResult describes the verified update and whether it can restart.
+type UpdateInstallResult struct {
+	Status      string `json:"status"`
+	InstallKind string `json:"installKind"`
+	Path        string `json:"path,omitempty"`
+	Restart     bool   `json:"restart"`
 }
 
 func mapCatalog(catalog steam.Catalog) Catalog {
@@ -311,6 +342,39 @@ func mapSetupSnapshot(snapshot config.SetupSnapshot) SetupSnapshot {
 		out.HasBackup = snapshot.Setup.Backup.Path != ""
 	}
 	return out
+}
+
+func mapUpdateCheck(check update.Check) UpdateCheck {
+	return UpdateCheck{
+		CurrentVersion: check.CurrentVersion,
+		LatestVersion:  check.LatestVersion,
+		Tag:            check.Tag,
+		ReleaseURL:     check.ReleaseURL,
+		Available:      check.Available,
+		CanInstall:     check.CanInstall,
+		InstallKind:    string(check.InstallKind),
+		Development:    check.Development,
+		CheckedAt:      formatTime(check.CheckedAt),
+		Cached:         check.Cached,
+	}
+}
+
+func mapUpdateProgress(progress update.Progress) UpdateProgress {
+	return UpdateProgress{
+		Stage:      progress.Stage,
+		Downloaded: progress.Downloaded,
+		Total:      progress.Total,
+		Percent:    progress.Percent,
+	}
+}
+
+func mapUpdateInstallResult(result update.InstallResult) UpdateInstallResult {
+	return UpdateInstallResult{
+		Status:      result.Status,
+		InstallKind: string(result.InstallKind),
+		Path:        result.Path,
+		Restart:     result.Restart,
+	}
 }
 
 func mapProblem(err error) *Problem {

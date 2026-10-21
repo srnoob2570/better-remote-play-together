@@ -2,6 +2,8 @@ import { Browser } from "@wailsio/runtime";
 
 export const DOCS_BASE =
   "https://github.com/srnoob2570/better-remote-play-together/blob/main/";
+export const RELEASES_URL =
+  "https://github.com/srnoob2570/better-remote-play-together/releases/latest";
 
 export function docsUrl(doc: string): string {
   return `${DOCS_BASE}${doc}`;

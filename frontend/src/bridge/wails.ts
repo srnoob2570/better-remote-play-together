@@ -15,6 +15,9 @@ import type {
   Situation,
   Snapshot,
   StartSessionInput,
+  UpdateCheck,
+  UpdateInstallKind,
+  UpdateInstallResult,
   Warning,
 } from "./types";
 
@@ -106,4 +109,28 @@ export const bridge: Bridge = {
   Version(): Promise<string> {
     return generated.Version();
   },
+  async CheckForUpdate(): Promise<UpdateCheck> {
+    return toUpdateCheck(await generated.CheckForUpdate());
+  },
+  async CheckForUpdateOnStartup(): Promise<UpdateCheck> {
+    return toUpdateCheck(await generated.CheckForUpdateOnStartup());
+  },
+  async InstallUpdate(): Promise<UpdateInstallResult> {
+    const value = await generated.InstallUpdate();
+    return {
+      ...value,
+      status: value.status as UpdateInstallResult["status"],
+      installKind: value.installKind as UpdateInstallKind,
+    };
+  },
+  RestartToUpdate(): Promise<void> {
+    return generated.RestartToUpdate();
+  },
 };
+
+function toUpdateCheck(value: generatedModels.UpdateCheck): UpdateCheck {
+  return {
+    ...value,
+    installKind: value.installKind as UpdateInstallKind,
+  };
+}

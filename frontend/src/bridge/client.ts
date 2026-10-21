@@ -11,6 +11,8 @@ import type {
   Situation,
   Snapshot,
   StartSessionInput,
+  UpdateCheck,
+  UpdateInstallResult,
 } from "./types";
 
 /**
@@ -39,6 +41,10 @@ export interface Bridge {
   RunDiagnostics(): Promise<DiagnosticsResult>;
   SaveDiagnostics(markdown: string): Promise<string>;
   Version(): Promise<string>;
+  CheckForUpdate(): Promise<UpdateCheck>;
+  CheckForUpdateOnStartup(): Promise<UpdateCheck>;
+  InstallUpdate(): Promise<UpdateInstallResult>;
+  RestartToUpdate(): Promise<void>;
 }
 
 export interface BridgeError {
