@@ -1,6 +1,6 @@
 FROM ubuntu:22.04
 
-ARG GO_VERSION=1.27.2
+ARG GO_VERSION=1.27.3
 
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \

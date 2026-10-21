@@ -6,7 +6,7 @@ commit, tag, rama, push y subida) queda en un solo comando.
 
 ## Requisitos
 
-- Go 1.27.2, Docker y `nfpm` v2.48.0 (los usa `make deb`).
+- Go 1.27.3, Docker y `nfpm` v2.48.0 (los usa `make deb`).
 - `gh` con una sesión para el owner del remoto. El script detecta el owner y,
   si la cuenta activa no coincide, usa `gh auth token --user <owner>`.
 - `appimagetool` y `runtime-x86_64` en

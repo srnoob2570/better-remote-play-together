@@ -54,11 +54,11 @@ make build VERSION=0.2.2
 La compilación manual equivalente, una vez existen los assets web, es:
 
 ```bash
-CGO_ENABLED=1 GOTOOLCHAIN=go1.27.2 go build -tags "gtk3 production" \
+CGO_ENABLED=1 GOTOOLCHAIN=go1.27.3 go build -tags "gtk3 production" \
   -trimpath -buildvcs=false \
   -ldflags '-s -w -X main.version=0.2.2' -o dist/better-rpt ./cmd/better-rpt
 
-CGO_ENABLED=0 GOTOOLCHAIN=go1.27.2 go build -trimpath -buildvcs=false \
+CGO_ENABLED=0 GOTOOLCHAIN=go1.27.3 go build -trimpath -buildvcs=false \
   -ldflags '-s -w -X main.version=0.2.2' -o dist/better-rpt-helper ./cmd/better-rpt-helper
 ```
 

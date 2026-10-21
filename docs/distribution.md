@@ -29,7 +29,7 @@ binario usa como máximo `GLIBC_2.34`; `dpkg-shlibdeps` pidió `libc6 (>= 2.34)`
 El paquete declara `libc6 (>= 2.35)` como mínimo soportado. La receta está
 en `docs/build.md`.
 
-- Go 1.27.2, Wails v3.0.0-beta.33, GTK3/WebKit2GTK 4.1, CGO,
+- Go 1.27.3, Wails v3.0.0-beta.33, GTK3/WebKit2GTK 4.1, CGO,
   `-trimpath -buildvcs=false`, `-ldflags '-s -w'`.
 - nfpm v2.48.0 y `SOURCE_DATE_EPOCH=1700000000`.
 - El AppImage se construye aparte sobre la misma base Ubuntu 22.04 y con el

@@ -2,7 +2,7 @@
 
 Receta verificada para la versión 0.2.0. El `.deb` final se construye en un
 contenedor **Ubuntu 22.04** (amd64), con Wails v3.0.0-beta.33/GTK3/WebKit2GTK
-4.1, Go 1.27.2 y nfpm v2.48.0. El paquete declara `libc6 >= 2.35` como mínimo
+4.1, Go 1.27.3 y nfpm v2.48.0. El paquete declara `libc6 >= 2.35` como mínimo
 soportado. Se probó una instalación limpia del `.deb` en Ubuntu 22.04, el
 arranque GUI como usuario no root en X11 y Wayland, el rechazo de root y
 `dpkg-shlibdeps`. El AppImage se construye sobre la misma base Ubuntu 22.04; su
@@ -80,7 +80,7 @@ sudo make install
 `make all` antes de `sudo make install` para que la compilación se haga como tu
 usuario.
 
-Los targets de compilación fijan `GOTOOLCHAIN=go1.27.2` y no usan `sudo`; solo
+Los targets de compilación fijan `GOTOOLCHAIN=go1.27.3` y no usan `sudo`; solo
 `make setup` lo requiere para instalar paquetes del sistema. `make dev` usa el
 `HOME`/XDG reales; para una prueba aislada con los fixtures sintéticos, consulta
 la sección «Desarrollo local» del [`README.md`](../README.md). La build de
@@ -89,21 +89,21 @@ release **no** es `make build`: se hace en el contenedor 22.04 descrito abajo.
 ## Go 1.27
 
 Ubuntu 22.04 empaqueta Go 1.18; Ubuntu 26.04, Go 1.26. El proyecto declara
-`go 1.27.2` y usa Go 1.27.2:
+`go 1.27.3` y usa Go 1.27.3:
 
 ```bash
-GOTOOLCHAIN=go1.27.2 go version
+GOTOOLCHAIN=go1.27.3 go version
 ```
 
-Go 1.26 puede descargar Go 1.27.2 automáticamente si `GOTOOLCHAIN` está en
-`auto`. Para compilar sin conexión, instala Go 1.27.2 desde go.dev o copia esa
+Go 1.26 puede descargar Go 1.27.3 automáticamente si `GOTOOLCHAIN` está en
+`auto`. Para compilar sin conexión, instala Go 1.27.3 desde go.dev o copia esa
 versión al repositorio. El usuario final no compila: solo instala el `.deb`.
 
 ## Contenedor Ubuntu 22.04
 
 El `.deb` final no se construye en Ubuntu 26.04: se usa una imagen limpia de
 Ubuntu 22.04 para que el binario enlace contra glibc 2.35. Ubuntu 22.04 trae
-Go 1.18; instala el tarball oficial de Go 1.27.2.
+Go 1.18; instala el tarball oficial de Go 1.27.3.
 
 `make deb` automatiza esta receta con `packaging/Dockerfile.build`: compila
 ambos binarios dentro de Ubuntu 22.04, los copia a `dist/` y empaqueta con nfpm
@@ -128,7 +128,7 @@ docker run --rm -v "$PWD:/src" -w /src ubuntu:22.04 bash -c '
     libgl1-mesa-dev libwayland-dev libxkbcommon-dev \
     libx11-dev libxext-dev libxrender-dev libxfixes-dev \
     libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
-  curl -fsSL https://go.dev/dl/go1.27.2.linux-amd64.tar.gz -o /tmp/go.tgz
+  curl -fsSL https://go.dev/dl/go1.27.3.linux-amd64.tar.gz -o /tmp/go.tgz
   tar -C /usr/local -xzf /tmp/go.tgz
   export PATH=/usr/local/go/bin:$PATH
   export GOTOOLCHAIN=local
@@ -152,12 +152,12 @@ Ubuntu 22.04 se completó; no fue necesario usar Ubuntu 24.04 como alternativa.
 
 ```bash
 mkdir -p dist
-CGO_ENABLED=1 GOTOOLCHAIN=go1.27.2 \
+CGO_ENABLED=1 GOTOOLCHAIN=go1.27.3 \
   go build -tags "gtk3 production" -trimpath -buildvcs=false \
   -ldflags "-s -w -X main.version=${VERSION}" \
   -o dist/better-rpt ./cmd/better-rpt
 
-CGO_ENABLED=0 GOTOOLCHAIN=go1.27.2 \
+CGO_ENABLED=0 GOTOOLCHAIN=go1.27.3 \
   go build -trimpath -buildvcs=false \
   -ldflags "-s -w -X main.version=${VERSION}" \
   -o dist/better-rpt-helper ./cmd/better-rpt-helper
@@ -174,7 +174,7 @@ la reproducibilidad; `-s -w` reduce el binario. El binario Wails final mide
 ## nfpm
 
 ```bash
-GOTOOLCHAIN=go1.27.2 go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
+GOTOOLCHAIN=go1.27.3 go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
 VERSION=0.2.2 SOURCE_DATE_EPOCH=1700000000 \
   "$HOME/go/bin/nfpm" package --config packaging/nfpm.yaml --packager deb \
   --target dist/
@@ -374,7 +374,7 @@ no mete fixtures en el bundle de producción. Los snapshots viven en
 npm run test:e2e:update
 ```
 
-No hay workflow de CI todavía: el gate es local y requiere Go 1.27.2, Node,
+No hay workflow de CI todavía: el gate es local y requiere Go 1.27.3, Node,
 GTK3/WebKit2GTK 4.1, Xvfb y Chrome. Un CI futuro necesitará esa matriz; no se
 añadió en esta versión para no duplicar el entorno de escritorio.
 

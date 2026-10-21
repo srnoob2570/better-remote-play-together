@@ -1,6 +1,6 @@
 module github.com/srnoob2570/better-rpt
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/andygrunwald/vdf v1.1.0

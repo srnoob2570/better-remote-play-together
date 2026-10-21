@@ -7,14 +7,11 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-### Fixed
+### Added
 
-- La etiqueta **Veredicto** del resumen de diagnóstico se centra con el
-  veredicto y comparte la línea base de los recuentos, en lugar de quedar
-  desplazada hacia abajo.
-- El botón de volver del diagnóstico queda a la izquierda del título, centrado
-  verticalmente, como un icono grande con tooltip, sin texto visible ni fila
-  propia; el encabezado recupera ese espacio vertical.
+- La barra superior incorpora una navegación principal con **Inicio** y
+  **Diagnóstico**, con la vista actual subrayada. En ventanas estrechas la
+  navegación vive dentro del menú y desaparece el botón suelto de Diagnóstico.
 
 ### Changed
 
@@ -75,6 +72,12 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Fixed
 
+- La etiqueta **Veredicto** del resumen de diagnóstico se centra con el
+  veredicto y comparte la línea base de los recuentos, en lugar de quedar
+  desplazada hacia abajo.
+- El botón de volver del diagnóstico queda a la izquierda del título, centrado
+  verticalmente, como un icono grande con tooltip, sin texto visible ni fila
+  propia; el encabezado recupera ese espacio vertical.
 - El dock inferior usa un margen de 8 a 16 px en sus tres bordes, también en
   ventanas estrechas, y deja un pequeño respiro respecto al contenido para no
   quedar pegado al borde.
@@ -92,11 +95,10 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Los avisos de error no se duplican al cambiar de idioma y los avisos se
   muestran por encima de los diálogos abiertos.
 
-### Added
+### Security
 
-- La barra superior incorpora una navegación principal con **Inicio** y
-  **Diagnóstico**, con la vista actual subrayada. En ventanas estrechas la
-  navegación vive dentro del menú y desaparece el botón suelto de Diagnóstico.
+- El build usa Go 1.27.3, que corrige GO-2026-6809 en `crypto/x509` y evita
+  confiar en certificados intermedios comprometidos.
 
 ## [0.2.2] - 2026-10-21 (efe5aea)
 

@@ -433,7 +433,7 @@ cd frontend && npm ci && cd ..
 make dev
 ```
 
-Los targets de compilación usan `GOTOOLCHAIN=go1.27.2` y no necesitan `sudo`;
+Los targets de compilación usan `GOTOOLCHAIN=go1.27.3` y no necesitan `sudo`;
 solo `sudo make setup` eleva privilegios para instalar paquetes del sistema.
 La versión en desarrollo se muestra como `dev`; la versión publicada (`0.2.2`)
 se inyecta con `-ldflags` al compilar. `make dev` recarga Go y el frontend;
@@ -523,7 +523,7 @@ XDG_RUNTIME_DIR="$base/run" \
 make dev
 ```
 
-La primera ejecución puede descargar Go 1.27.2, los módulos de Wails y las
+La primera ejecución puede descargar Go 1.27.3, los módulos de Wails y las
 dependencias npm; después reutiliza esas cachés.
 
 Esta prueba no toca `~/.local/share/Steam` ni lanza Steam o juegos reales. El
@@ -544,7 +544,7 @@ better-rpt
 
 La receta completa está en [`docs/build.md`](docs/build.md) y
 [`docs/appimage.md`](docs/appimage.md). Los artefactos se construyen en un
-contenedor Ubuntu 22.04 con Go 1.27.2, Wails v3.0.0-beta.33/GTK3/WebKit2GTK 4.1,
+contenedor Ubuntu 22.04 con Go 1.27.3, Wails v3.0.0-beta.33/GTK3/WebKit2GTK 4.1,
 CGO, `-trimpath`, `-buildvcs=false`, `-ldflags '-s -w'`, nfpm 2.48.0 y
 `SOURCE_DATE_EPOCH=1700000000`. El AppImage usa el runtime type2 fijado y
 `appimagetool` con hash publicado. La instalación limpia del `.deb`, el arranque
@@ -555,9 +555,9 @@ y AppImage 6,6 MB.
 Pruebas automatizadas:
 
 ```bash
-GOTOOLCHAIN=go1.27.2 go test ./...
-GOTOOLCHAIN=go1.27.2 go vet ./...
-GOTOOLCHAIN=go1.27.2 go test -race ./internal/...
+GOTOOLCHAIN=go1.27.3 go test ./...
+GOTOOLCHAIN=go1.27.3 go vet ./...
+GOTOOLCHAIN=go1.27.3 go test -race ./internal/...
 ```
 
 Las pruebas usan datos de Steam simulados y dobles de prueba; nunca lanzan

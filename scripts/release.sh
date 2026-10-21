@@ -734,7 +734,8 @@ if [ -z "$release_commit" ]; then
 
 	git add -- Makefile scripts/build-deb.sh build/config.yml README.md docs/appimage.md docs/build.md \
 		docs/distribution.md CHANGELOG.md .release/config.json .release/conventions.md
-	git commit --message "chore(release): $tag"
+	# El commit de release va a main por diseño; el resto de hooks sigue activo.
+	SKIP=no-commit-to-branch git commit --message "chore(release): $tag"
 	release_commit="$(git rev-parse HEAD)"
 	timing "commit"
 fi

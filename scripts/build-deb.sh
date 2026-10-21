@@ -19,7 +19,7 @@ if [ ! -f cmd/better-rpt/dist/index.html ]; then
 	exit 1
 fi
 
-docker build --build-arg GO_VERSION=1.27.2 -t "$image" \
+docker build --build-arg GO_VERSION=1.27.3 -t "$image" \
 	-f packaging/Dockerfile.build packaging
 
 container="better-rpt-build-$$"
@@ -61,7 +61,7 @@ if [ ! -x "$nfpm" ]; then
 		nfpm="$(command -v nfpm)"
 	else
 		echo "error: nfpm v2.48.0 not found at $nfpm or in PATH" >&2
-		echo "install it with: GOTOOLCHAIN=go1.27.2 go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0" >&2
+		echo "install it with: GOTOOLCHAIN=go1.27.3 go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0" >&2
 		exit 1
 	fi
 fi

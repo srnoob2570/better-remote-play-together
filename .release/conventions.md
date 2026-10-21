@@ -80,6 +80,17 @@
 - El aviso alto de Dependabot sobre `braces` llega por la CLI de `shadcn`
   (`fast-glob`), una dependencia de compilación; no entra en el bundle ni en
   los artefactos publicados. Al publicar 0.2.0 no había versión parcheada.
+- El toolchain del build se fija en `go.mod`, `Makefile`,
+  `packaging/Dockerfile.build` y `scripts/build-deb.sh`, y se repite en
+  `README.md` y `docs/`; debe coincidir con el que escanea `govulncheck`. En
+  0.2.3 se subió a Go 1.27.3 por GO-2026-6809 (`crypto/x509`).
+- `govulncheck` no está instalado en el host: instálalo en un directorio
+  temporal con `go install golang.org/x/vuln/cmd/govulncheck@latest` y añade ese
+  directorio al `PATH` al ejecutar `scripts/release.sh`; si falta, el script
+  omite el escaneo.
+- El hook `no-commit-to-branch` bloquea los commits directos a `main`; el commit
+  de release es la excepción y `scripts/release.sh` lo hace con
+  `SKIP=no-commit-to-branch` para que el resto de hooks siga ejecutándose.
 
 ## Preferencias
 
