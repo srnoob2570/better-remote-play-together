@@ -66,6 +66,9 @@ test.describe("parity states", () => {
     await open(page, "preparing");
     await expect(page.getByText("Preparando la sesión")).toBeVisible();
     await expect(page.getByText("Paso 1 de 5")).toBeVisible();
+    await expect(
+      page.getByText("Steam puede pedirte que confirmes la ejecución.", { exact: false }),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Cancelar" }).click();
     await expect(page.getByRole("button", { name: "Jugar" })).toBeVisible();
   });

@@ -12,6 +12,9 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - El diagnóstico ya no marca como fallo el montaje FUSE normal de un AppImage
   (`nosuid`/`nodev`); solo `noexec` indica un problema real. La reparación deja
   de ofrecer «Copiar comando» cuando la comprobación no tiene un comando seguro.
+- Al lanzar, el botón muestra **Lanzando…** y el panel recuerda aceptar el aviso
+  de Steam. La app pide a Steam que traiga su ventana al frente después de
+  solicitar el lanzamiento, sin fallar si el compositor deniega el foco.
 
 ## [0.2.0] - 2026-10-20 (370a955)
 

@@ -2,6 +2,7 @@ package steam
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -107,7 +108,10 @@ func TestAppLaunchURLUsesSteamHandlerWithSessionArgument(t *testing.T) {
 	if err := lifecycle.AppLaunchSession(context.Background(), 480, token); err != nil {
 		t.Fatalf("applaunch session: %v", err)
 	}
-	want := [][]string{{"/usr/bin/steam", "steam://run/480//--better-rpt-session=" + token}}
+	want := [][]string{
+		{"/usr/bin/steam", "steam://run/480//--better-rpt-session=" + token},
+		{"/usr/bin/steam", "steam://open/main"},
+	}
 	if !reflect.DeepEqual(started, want) {
 		t.Fatalf("started = %+v, want %+v", started, want)
 	}
@@ -116,5 +120,30 @@ func TestAppLaunchURLUsesSteamHandlerWithSessionArgument(t *testing.T) {
 	}
 	if err := lifecycle.AppLaunchURL(context.Background(), 480, "bad\narg"); err == nil {
 		t.Fatal("control character accepted")
+	}
+}
+
+func TestAppLaunchSessionKeepsLaunchWhenFocusFails(t *testing.T) {
+	var started [][]string
+	lifecycle := &Lifecycle{
+		SteamBinary: "/usr/bin/steam",
+		StartCommand: func(name string, args ...string) error {
+			started = append(started, append([]string{name}, args...))
+			if len(args) > 0 && args[0] == "steam://open/main" {
+				return errors.New("window manager denied activation")
+			}
+			return nil
+		},
+	}
+	token := "0123456789abcdef0123456789abcdef"
+	if err := lifecycle.AppLaunchSession(context.Background(), 480, token); err != nil {
+		t.Fatalf("applaunch session with failed focus: %v", err)
+	}
+	want := [][]string{
+		{"/usr/bin/steam", "steam://run/480//--better-rpt-session=" + token},
+		{"/usr/bin/steam", "steam://open/main"},
+	}
+	if !reflect.DeepEqual(started, want) {
+		t.Fatalf("started = %+v, want %+v", started, want)
 	}
 }

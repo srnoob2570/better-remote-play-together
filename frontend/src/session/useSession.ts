@@ -32,6 +32,8 @@ export interface SessionController {
   problem: Problem | null;
   notice: SessionNotice | null;
   busy: boolean;
+  /** App ID whose launch is waiting for the backend or Steam confirmation. */
+  launching: number | null;
   ready: boolean;
   now: number;
   dialog: SessionDialog;
@@ -58,6 +60,7 @@ export function useSession(): SessionController {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [notice, setNotice] = useState<SessionNotice | null>(null);
   const [busy, setBusy] = useState(false);
+  const [launching, setLaunching] = useState<number | null>(null);
   const [ready, setReady] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [dialog, setDialog] = useState<SessionDialog>(null);
@@ -140,15 +143,18 @@ export function useSession(): SessionController {
   const startNow = useCallback(
     async (game: Game) => {
       setBusy(true);
+      setLaunching(game.appId);
       setProblem(null);
       setNotice(null);
       try {
         const active = await bridge.StartSession({ targetAppId: game.appId, closeSteam: false });
         setState(active.state);
+        setLaunching(null);
         await refreshContext();
       } catch (reason: unknown) {
         setProblem(toBridgeError(reason).problem);
       } finally {
+        setLaunching(null);
         setBusy(false);
       }
     },
@@ -218,17 +224,20 @@ export function useSession(): SessionController {
 
   const replay = useCallback(async () => {
     setBusy(true);
+    setLaunching(last?.appId ?? state?.targetAppId ?? null);
     setProblem(null);
     try {
       const active = await bridge.ReplaySession();
       setState(active.state);
+      setLaunching(null);
       await refreshContext();
     } catch (reason: unknown) {
       setProblem(toBridgeError(reason).problem);
     } finally {
+      setLaunching(null);
       setBusy(false);
     }
-  }, [refreshContext]);
+  }, [last?.appId, refreshContext, state?.targetAppId]);
 
   const installSetup = useCallback(async () => {
     setBusy(true);
@@ -322,6 +331,7 @@ export function useSession(): SessionController {
       problem,
       notice,
       busy,
+      launching,
       ready,
       now,
       dialog,
@@ -347,6 +357,7 @@ export function useSession(): SessionController {
       ensureHelper,
       installSetup,
       last,
+      launching,
       notice,
       now,
       openSpaceWarInstall,

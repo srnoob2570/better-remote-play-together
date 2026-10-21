@@ -143,12 +143,32 @@ func isSteamProcess(name string) bool {
 
 // AppLaunchSession asks Steam to launch the donor with an unguessable session
 // argument. Steam shows its "Allow game launch?" confirmation for this URL
-// form; the dispatcher helper consumes the argument.
+// form; the dispatcher helper consumes the argument. After the launch request,
+// Steam is asked to show its main window because the confirmation can appear
+// without taking focus. The activation is best-effort: a denied focus request
+// never fails a launch that Steam already accepted.
 func (l *Lifecycle) AppLaunchSession(ctx context.Context, appID uint32, token string) error {
 	if !domain.ValidSessionToken(token) {
 		return fmt.Errorf("%w: invalid session token", domain.ErrInvalidSession)
 	}
-	return l.AppLaunchURL(ctx, appID, "--better-rpt-session="+token)
+	if err := l.AppLaunchURL(ctx, appID, "--better-rpt-session="+token); err != nil {
+		return err
+	}
+	_ = l.focus(ctx)
+	return nil
+}
+
+func (l *Lifecycle) focus(ctx context.Context) error {
+	if l.SteamBinary == "" {
+		return domain.ErrSteamNotFound
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return l.start(l.SteamBinary, "steam://open/main")
 }
 
 // AppLaunchURL asks Steam to launch an AppID with extra arguments through the

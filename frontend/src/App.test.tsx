@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
+  Active,
   Catalog,
   DiagnosticsResult,
   Game,
@@ -301,8 +302,44 @@ describe("library UI", () => {
 
     expect(await screen.findByText("Preparando la sesión")).toBeInTheDocument();
     expect(screen.getByText("Paso 1 de 5")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Acepta «¿Permitir iniciar el juego?»",
+    );
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
     expect(mocked.CancelSession).toHaveBeenCalled();
+  });
+
+  it("shows the launching label and Steam prompt while the start is pending", async () => {
+    const donor: Game = {
+      appId: 480,
+      name: "SpaceWar",
+      installDir: "/steam/spacewar",
+      libraryPath: "/steam",
+      sizeBytes: 1,
+      kind: "native",
+      status: "ready",
+    };
+    mocked.Snapshot.mockResolvedValue(
+      snapshot({ ...catalog, games: [donor, ...catalog.games] }),
+    );
+    mocked.RecoverSession.mockResolvedValue(
+      recovery({
+        setup: { status: "installed", hasBackup: true },
+        situation: situation({ kind: "idle", setup: "installed", restore: "available" }),
+      }),
+    );
+    mocked.SetupSnapshot.mockResolvedValue({ status: "installed", hasBackup: true });
+    mocked.StartSession.mockImplementation(() => new Promise<Active>(() => {}));
+    render(<App />);
+    await screen.findAllByText("HELLDIVERS™ 2");
+
+    fireEvent.click(screen.getByRole("button", { name: "Jugar" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Continuar" }));
+
+    expect(await screen.findByRole("button", { name: "Lanzando…" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Acepta «¿Permitir iniciar el juego?»",
+    );
   });
 
   it("renders the active session timer and guide", async () => {

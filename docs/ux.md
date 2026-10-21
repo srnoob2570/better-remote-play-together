@@ -119,7 +119,7 @@ selección ni el estado de la biblioteca.
 
 | Estado | Acción principal | Notas |
 |---|---|---|
-| Listo | Jugar (si el dispatcher está instalado) o Ver guía | Sin aviso adicional |
+| Listo | Jugar (si el dispatcher está instalado) o Ver guía | Muestra Lanzando… y el aviso de Steam mientras prepara |
 | Desconocido | Jugar o Ver guía | Aviso de compatibilidad no confirmada, una vez por juego/ejecución |
 | No compatible | Deshabilitada | Motivo en **Detalles** |
 | No instalado | Deshabilitada | «Actualizar biblioteca» |
@@ -226,6 +226,17 @@ La guía es el flujo principal y debe poder consultarse con Steam abierto:
 - **Restauración manual** es un bloque plegable al final, después de los pasos,
   y solo aparece si hay backup. Contiene el valor original de `LaunchOptions` y
   cómo restaurarlo; no interrumpe el flujo de la guía.
+
+## Lanzamiento
+
+- Al pulsar **Jugar**, **Jugar de nuevo** o **Reintentar**, el botón pasa a
+  **Lanzando…** y se deshabilita mientras se prepara la sesión.
+- Mientras la fase es `preparing`, el panel avisa de que Steam puede pedir
+  confirmación: «¿Permitir iniciar el juego?». La app pide a Steam que traiga su
+  ventana al frente justo después de solicitar el lanzamiento.
+- La activación es best-effort: si el compositor la bloquea, el aviso sigue
+  visible y el usuario puede cambiar manualmente a Steam. La sesión no falla por
+  no conseguir el foco.
 
 ## Sesión activa
 

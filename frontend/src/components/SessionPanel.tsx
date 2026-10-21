@@ -361,7 +361,7 @@ function SelectionPanel({
             onClick={() => session.requestStart(game)}
             disabled={session.busy}
           >
-            {t("action.play")}
+            {session.launching === game.appId ? t("action.launching") : t("action.play")}
           </Button>
         ) : (
           <Button className="primary-button" onClick={onOpenSetup}>
@@ -369,6 +369,8 @@ function SelectionPanel({
           </Button>
         )}
       </div>
+
+      {session.launching === game.appId && <LaunchPrompt lang={lang} />}
 
       {showCompactLast && last && (
         <LastCompact
@@ -450,7 +452,7 @@ function LastFull({
           onClick={() => void session.replay()}
           disabled={session.busy}
         >
-          {t("action.playAgain")}
+          {session.launching === last.appId ? t("action.launching") : t("action.playAgain")}
         </Button>
         <Button
           variant="outline"
@@ -461,6 +463,7 @@ function LastFull({
         </Button>
         <RestoreAction lang={lang} session={session} />
       </div>
+      {session.launching === last.appId && <LaunchPrompt lang={lang} />}
     </>
   );
 }
@@ -529,7 +532,11 @@ function PreparingPanel({
           </li>
         ))}
       </ol>
-      <p className="hint">{t("prep.cancelHint")}</p>
+      {state.phase === "preparing" ? (
+        <LaunchPrompt lang={lang} />
+      ) : (
+        <p className="hint">{t("prep.cancelHint")}</p>
+      )}
       <div className="session-actions">
         <Button
           className="primary-button"
@@ -666,7 +673,9 @@ function EndedPanel({
             onClick={() => void session.replay()}
             disabled={session.busy}
           >
-            {t("action.playAgain")}
+            {session.launching === state.targetAppId
+              ? t("action.launching")
+              : t("action.playAgain")}
           </Button>
         )}
         {error && (
@@ -675,7 +684,7 @@ function EndedPanel({
             onClick={() => game && session.requestStart(game)}
             disabled={!game || session.busy}
           >
-            {t("action.retry")}
+            {session.launching === state.targetAppId ? t("action.launching") : t("action.retry")}
           </Button>
         )}
         {error && (
@@ -691,6 +700,7 @@ function EndedPanel({
           {t("action.viewGuide")}
         </Button>
       </div>
+      {session.launching === state.targetAppId && <LaunchPrompt lang={lang} />}
     </>
   );
 }
@@ -834,6 +844,14 @@ function SessionDialog({ lang, session }: { lang: Language; session: SessionCont
         </UIDialogFooter>
       </UIDialogContent>
     </UIDialog>
+  );
+}
+
+function LaunchPrompt({ lang }: { lang: Language }) {
+  return (
+    <p className="hint-amber" role="status">
+      {translate(lang, "launch.steamPrompt")}
+    </p>
   );
 }
 

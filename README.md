@@ -112,10 +112,11 @@ fuera de Ubuntu 22.04 en esta versión.
      **Instalar automáticamente**. Better RPT nunca cierra Steam por ti.
    - Si el juego usa Proton, aparece un aviso de compatibilidad desconocida la
      primera vez en cada ejecución.
-6. Cuando el setup aparezca como **Instalado**, pulsa **Jugar**. Better RPT
-   arma la intención y pide a Steam que arranque SpaceWar con los parámetros de
-   la sesión. Acepta el popup de Steam («Allow game launch?» / «¿Permitir
-   iniciar el juego?»).
+6. Cuando el setup aparezca como **Instalado**, pulsa **Jugar**. El botón pasa a
+   **Lanzando…** y Better RPT arma la intención, pide a Steam que arranque
+   SpaceWar con los parámetros de la sesión y trae Steam al frente. Acepta el
+   popup de Steam («Allow game launch?» / «¿Permitir iniciar el juego?»). Si
+   Steam no aparece, cambia manualmente a su ventana; el aviso sigue visible.
 7. Cuando la sesión esté activa, abre el overlay de Steam con **Shift+Tab** y
    usa **Remote Play Together** para invitar a tus amigos. Better RPT no envía
    invitaciones por APIs internas.
