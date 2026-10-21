@@ -10,6 +10,7 @@
 /.agents/
 /.feedback/
 /.unlazy/
+.code-health-state.json
 
 # Copias de referencia de terceros
 /references/

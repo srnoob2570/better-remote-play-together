@@ -74,3 +74,5 @@
   host.
 - Los ledgers de gates de las tareas de `unlazy` viven en `.unlazy/<tarea>/GATES.md`,
   que está ignorado; no se versiona ningún `GATES*.md` en la raíz.
+- `.code-health-state.json` es estado local de las auditorías de `code-health`; está
+  ignorado y no se versiona.
