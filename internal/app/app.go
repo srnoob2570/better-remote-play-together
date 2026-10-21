@@ -112,9 +112,9 @@ func (s *Service) Paths() config.Paths {
 // path. It never uses root, never closes Steam, and leaves an in-use helper
 // alone while a session is active.
 func (s *Service) EnsureHelper() error {
-	active := false
-	if state, err := session.NewStore(s.paths.DataDir).ActiveState(); err == nil && state != nil {
-		active = true
+	active, err := session.NewStore(s.paths.DataDir).Locked()
+	if err != nil {
+		return fmt.Errorf("ensure helper: %w", err)
 	}
 	if _, err := helper.NewInstaller(s.paths).Install(active); err != nil {
 		return fmt.Errorf("ensure helper: %w", err)

@@ -311,6 +311,26 @@ func TestManagerStartRefusesActiveSession(t *testing.T) {
 	}
 }
 
+func TestManagerStartRefusesHelperCleanup(t *testing.T) {
+	manager := testManager(t)
+	lock, err := manager.Store.TryLock()
+	if err != nil {
+		t.Fatalf("lock: %v", err)
+	}
+	defer func() { _ = lock.Close() }()
+	launched := false
+	manager.LaunchSession = func(context.Context, uint32, string) error {
+		launched = true
+		return nil
+	}
+	if _, err := manager.Start(context.Background(), StartOptions{TargetAppID: 900001}); !errors.Is(err, ErrSessionBusy) {
+		t.Fatalf("error = %v, want ErrSessionBusy", err)
+	}
+	if launched {
+		t.Fatal("donor launched while helper still held the session lock")
+	}
+}
+
 func TestManagerReplayUsesLastApp(t *testing.T) {
 	manager := testManager(t)
 	if _, err := manager.Start(context.Background(), StartOptions{TargetAppID: 900001}); err != nil {

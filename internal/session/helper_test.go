@@ -71,6 +71,73 @@ func TestHelperRunsTargetToCompletion(t *testing.T) {
 	}
 }
 
+func TestHelperPersistsTerminalStateBeforeGroupCleanup(t *testing.T) {
+	store := sessionStore(t)
+	now := time.Now().UTC()
+	writeTestPlan(t, store, 900001, now)
+	options := helperOptions(&store, 900001)
+	options.EarlyExit = time.Millisecond
+	options.BuildCommand = commandBuilder(exec.Command("sleep", "0.05"))
+	cleanupStarted := make(chan struct{})
+	releaseCleanup := make(chan struct{})
+	options.WaitGroup = func(ctx context.Context, _ int, _ time.Duration) error {
+		close(cleanupStarted)
+		select {
+		case <-releaseCleanup:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	helper, err := NewHelper(options)
+	if err != nil {
+		t.Fatalf("new helper: %v", err)
+	}
+
+	type result struct {
+		state State
+		err   error
+	}
+	done := make(chan result, 1)
+	go func() {
+		state, runErr := helper.Run(context.Background())
+		done <- result{state: state, err: runErr}
+	}()
+
+	select {
+	case <-cleanupStarted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("helper did not start process-group cleanup")
+	}
+	persisted, err := store.ReadState(testToken)
+	if err != nil {
+		t.Fatalf("read persisted state: %v", err)
+	}
+	if persisted.Phase != domain.PhaseEnded || persisted.Outcome != "ok" {
+		t.Fatalf("state before cleanup = %+v", persisted)
+	}
+	locked, err := store.Locked()
+	if err != nil {
+		t.Fatalf("check lock: %v", err)
+	}
+	if !locked {
+		t.Fatal("session lock released before process-group cleanup")
+	}
+
+	close(releaseCleanup)
+	select {
+	case got := <-done:
+		if got.err != nil {
+			t.Fatalf("run: %v", got.err)
+		}
+		if got.state.Phase != domain.PhaseEnded {
+			t.Fatalf("final state = %+v", got.state)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("helper did not finish")
+	}
+}
+
 func TestHelperEarlyExitIsError(t *testing.T) {
 	store := sessionStore(t)
 	now := time.Now().UTC()

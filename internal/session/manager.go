@@ -140,11 +140,17 @@ func (m *Manager) Start(ctx context.Context, options StartOptions) (Active, erro
 	if err := m.Store.Ensure(); err != nil {
 		return Active{}, err
 	}
+	if locked, err := m.Store.Locked(); err != nil {
+		return Active{}, err
+	} else if locked {
+		return Active{}, ErrSessionBusy
+	}
 	if active, err := m.Store.ActiveState(); err != nil {
 		return Active{}, err
 	} else if active != nil {
 		return Active{}, fmt.Errorf("%w: %s", ErrSessionBusy, active.Token)
 	}
+	_, _ = m.Store.PruneStates(maxRetainedStates)
 	if m.Installer == nil {
 		m.Installer = helper.NewInstaller(m.Paths)
 	}
@@ -528,6 +534,7 @@ func (m *Manager) Recover(ctx context.Context) (*Recovery, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	_, _ = m.Store.PruneStates(maxRetainedStates)
 	active, err := m.Store.ActiveState()
 	if err != nil {
 		return nil, err

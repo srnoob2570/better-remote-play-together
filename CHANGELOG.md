@@ -32,6 +32,17 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - El diagnóstico de la aplicación tiene un límite global de 20 s y comandos
   externos con timeout de 5 s. Los grupos de sistema y Steam se ejecutan en
   paralelo y el informe conserva el orden original de los checks.
+- El helper guarda el estado terminal en cuanto termina el juego y deja la
+  espera del grupo de procesos para después, sin retrasar el fin visible de la
+  sesión. El historial se limita a los 20 estados terminales más recientes y el
+  arranque comprueba el bloqueo de sesión en lugar de recorrer todo el historial.
+- La instalación del helper reutiliza una huella de tamaño, fechas y SHA-256
+  para no releer ni hashear los binarios cuando no han cambiado. Una instalación
+  sin cambios baja de milisegundos a ~77 µs; cualquier cambio de contenido o
+  metadatos vuelve a verificar el archivo completo.
+- El toast usa Radix y se elimina `@base-ui/react`, la segunda librería de
+  primitivas headless. El bundle de producción baja de 548 kB a 522 kB
+  (~10 kB gzip).
 
 ## [0.2.2] - 2026-10-21 (efe5aea)
 

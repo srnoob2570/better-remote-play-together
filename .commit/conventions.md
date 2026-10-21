@@ -52,6 +52,8 @@
   hay que actualizar ambos lados.
 - En Vitest/jsdom, Radix Tabs cambia de pestaña con `fireEvent.mouseDown`; un
   `click` simple no dispara el cambio.
+- El toast de `frontend/src/components/ui/toast.tsx` usa Radix (`radix-ui`);
+  no reintroducir `@base-ui/react` para una sola primitiva.
 - El wizard de setup se deriva de `setup.json`, `SetupSnapshot`, `Situation` y
   el informe de diagnóstico; no se añade un flag de primera vez ni un archivo
   de estado del wizard. `installed` y `restored` no lo abren automáticamente.

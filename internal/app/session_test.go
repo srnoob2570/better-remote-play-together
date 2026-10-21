@@ -10,6 +10,7 @@ import (
 
 	"github.com/srnoob2570/better-rpt/internal/config"
 	"github.com/srnoob2570/better-rpt/internal/domain"
+	"github.com/srnoob2570/better-rpt/internal/helper"
 	"github.com/srnoob2570/better-rpt/internal/session"
 )
 
@@ -180,5 +181,41 @@ func TestEnsureHelperInstallsAndRefreshes(t *testing.T) {
 	}
 	if err := service.EnsureHelper(); err != nil {
 		t.Fatalf("ensure helper again: %v", err)
+	}
+}
+
+func TestEnsureHelperLeavesHelperInUse(t *testing.T) {
+	root := t.TempDir()
+	appDir := filepath.Join(root, "appdir")
+	source := filepath.Join(appDir, "usr", "lib", "better-rpt", "better-rpt-helper")
+	if err := os.MkdirAll(filepath.Dir(source), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(source, []byte("helper-binary"), 0o755); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	t.Setenv("APPDIR", appDir)
+
+	paths := config.Paths{DataDir: filepath.Join(root, "data")}
+	service := &Service{paths: paths}
+	if err := service.EnsureHelper(); err != nil {
+		t.Fatalf("ensure helper: %v", err)
+	}
+	if err := os.WriteFile(source, []byte("helper-binary-updated"), 0o755); err != nil {
+		t.Fatalf("update source: %v", err)
+	}
+	lock, err := session.NewStore(paths.DataDir).TryLock()
+	if err != nil {
+		t.Fatalf("lock: %v", err)
+	}
+	if err := service.EnsureHelper(); !errors.Is(err, helper.ErrActiveSession) {
+		_ = lock.Close()
+		t.Fatalf("error = %v, want ErrActiveSession", err)
+	}
+	if err := lock.Close(); err != nil {
+		t.Fatalf("unlock: %v", err)
+	}
+	if err := service.EnsureHelper(); err != nil {
+		t.Fatalf("ensure helper after cleanup: %v", err)
 	}
 }

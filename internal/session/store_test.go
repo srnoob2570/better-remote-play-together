@@ -140,6 +140,44 @@ func TestStoreRejectsSymlinkPlan(t *testing.T) {
 	}
 }
 
+func TestStorePruneStatesKeepsActiveAndNewestHistory(t *testing.T) {
+	store := sessionStore(t)
+	now := time.Now().UTC()
+	active := testState(fmt.Sprintf("%032x", 1), domain.PhaseActive, now)
+	if err := store.WriteState(active); err != nil {
+		t.Fatalf("write active: %v", err)
+	}
+	const terminal = 30
+	for index := 0; index < terminal; index++ {
+		token := fmt.Sprintf("%032x", index+2)
+		state := testState(token, domain.PhaseEnded, now.Add(time.Duration(index+1)*time.Minute))
+		if err := store.WriteState(state); err != nil {
+			t.Fatalf("write %s: %v", token, err)
+		}
+	}
+
+	removed, err := store.PruneStates(maxRetainedStates)
+	if err != nil {
+		t.Fatalf("prune: %v", err)
+	}
+	if removed != terminal-maxRetainedStates {
+		t.Fatalf("removed = %d, want %d", removed, terminal-maxRetainedStates)
+	}
+	if _, err := store.ReadState(active.Token); err != nil {
+		t.Fatalf("active state pruned: %v", err)
+	}
+	states, err := store.ListStates()
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(states) != maxRetainedStates+1 {
+		t.Fatalf("states = %d, want %d", len(states), maxRetainedStates+1)
+	}
+	if _, err := store.ReadState(fmt.Sprintf("%032x", 2)); !errors.Is(err, ErrStateMissing) {
+		t.Fatalf("oldest terminal state error = %v, want ErrStateMissing", err)
+	}
+}
+
 func TestStoreListAndActiveState(t *testing.T) {
 	store := sessionStore(t)
 	now := time.Now().UTC()

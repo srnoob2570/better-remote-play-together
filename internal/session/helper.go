@@ -26,6 +26,7 @@ type HelperOptions struct {
 	Environ      func() ([]string, error)
 	BuildCommand func(context.Context, domain.LaunchSpec, []string) (*exec.Cmd, error)
 	SignalGroup  func(int, syscall.Signal) error
+	WaitGroup    func(context.Context, int, time.Duration) error
 	EarlyExit    time.Duration
 	GroupGrace   time.Duration
 }
@@ -81,6 +82,9 @@ func normalizeHelperOptions(options *HelperOptions) error {
 	}
 	if options.SignalGroup == nil {
 		options.SignalGroup = SignalProcessGroup
+	}
+	if options.WaitGroup == nil {
+		options.WaitGroup = WaitProcessGroupGone
 	}
 	if options.EarlyExit <= 0 {
 		options.EarlyExit = EarlyExit
@@ -178,47 +182,46 @@ func (h *Helper) runPlan(ctx context.Context, plan Plan, env []string) (State, e
 	}
 
 	elapsed := h.now().Sub(startedAt)
-	_ = WaitProcessGroupGone(context.Background(), targetPID, h.options.GroupGrace)
 	exitCode := exitCode(waitErr)
 	state.ExitCode = exitCode
 	state.UpdatedAt = h.now().UTC()
 	state.EndedAt = state.UpdatedAt
-	if interrupted {
+
+	var resultErr error
+	switch {
+	case interrupted:
 		state.Phase = domain.PhaseEnded
 		state.Outcome = "interrupted"
 		state.ErrorCode = "helper_stopped"
 		state.Error = "helper stopped by signal"
-		if err := h.options.Store.WriteState(state); err != nil {
-			return state, err
-		}
-		return state, nil
-	}
-	if elapsed < h.options.EarlyExit {
+	case elapsed < h.options.EarlyExit:
 		state.Phase = domain.PhaseError
 		state.Outcome = "error"
 		state.ErrorCode = "target_exited_early"
 		state.Error = fmt.Sprintf("target exited after %s", elapsed.Round(time.Millisecond))
-		if err := h.options.Store.WriteState(state); err != nil {
-			return state, err
-		}
-		return state, fmt.Errorf("%w: after %s", ErrTargetExited, elapsed.Round(time.Millisecond))
-	}
-	if waitErr != nil {
+		resultErr = fmt.Errorf("%w: after %s", ErrTargetExited, elapsed.Round(time.Millisecond))
+	case waitErr != nil:
 		state.Phase = domain.PhaseError
 		state.Outcome = "error"
 		state.ErrorCode = "target_exited"
 		state.Error = waitErr.Error()
-		if err := h.options.Store.WriteState(state); err != nil {
-			return state, err
-		}
-		return state, fmt.Errorf("%w: %v", ErrTargetExited, waitErr)
+		resultErr = fmt.Errorf("%w: %v", ErrTargetExited, waitErr)
+	default:
+		state.Phase = domain.PhaseEnded
+		state.Outcome = "ok"
 	}
-	state.Phase = domain.PhaseEnded
-	state.Outcome = "ok"
-	if err := h.options.Store.WriteState(state); err != nil {
-		return state, err
+
+	// Persist the terminal state before draining lingering process-group
+	// children. The session lock still covers the cleanup, but the UI no longer
+	// waits for it to report that the game ended.
+	writeErr := h.options.Store.WriteState(state)
+	cleanupCtx, cancel := context.WithTimeout(context.Background(), h.options.GroupGrace)
+	defer cancel()
+	_ = h.options.WaitGroup(cleanupCtx, targetPID, h.options.GroupGrace)
+	if writeErr != nil {
+		return state, writeErr
 	}
-	return state, nil
+	return state, resultErr
 }
 
 func (h *Helper) newState(plan *Plan, phase domain.Phase, now time.Time) State {
