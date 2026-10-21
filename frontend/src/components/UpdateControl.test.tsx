@@ -304,10 +304,13 @@ describe("update control", () => {
 
   it("moves focus into the dialog and supports Escape", async () => {
     render(<UpdateControl lang="es" version="0.2.0" />);
-    fireEvent.click(screen.getByRole("button", { name: "Buscar actualizaciones" }));
+    const trigger = screen.getByRole("button", { name: "Buscar actualizaciones" });
+    trigger.focus();
+    fireEvent.click(trigger);
     const dialog = await screen.findByRole("dialog", { name: "Actualización de Better RPT" });
     await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
     fireEvent.keyDown(dialog, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() => expect(trigger).toHaveFocus());
   });
 });

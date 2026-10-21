@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -7,8 +8,10 @@ import {
   type RefObject,
 } from "react";
 
+import { LibraryIcon, MenuIcon, SearchXIcon, XIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import { Empty } from "@/components/ui/empty";
+import { Empty, EmptyMedia } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster, toast } from "@/components/ui/toast";
@@ -20,6 +23,7 @@ import { bridge } from "./bridge/wails";
 import type { Catalog, Game, Problem, Snapshot } from "./bridge/types";
 import { translate, type Language, type MessageKey } from "./i18n";
 import { SessionPanel } from "./components/SessionPanel";
+import { SessionDialog } from "./components/SessionDialog";
 import { DiagnosticsPane } from "./components/DiagnosticsPane";
 import { SetupIndicator } from "./components/SetupIndicator";
 import { UpdateControl } from "./components/UpdateControl";
@@ -32,7 +36,9 @@ import { setupAutoOpen } from "./wizards/readiness";
 
 type Filter = "all" | "ready" | "unknown" | "incompatible";
 type LibraryMode = "loading" | "ready" | "empty" | "no-results" | "error";
-type View = "library" | "diagnostics";
+type View = "library" | "diagnostics" | "setup" | "repair";
+type SetupReturn = "library" | "diagnostics" | "repair";
+type RepairReturn = "library" | "diagnostics" | "setup";
 
 const FILTERS: Filter[] = ["all", "ready", "unknown", "incompatible"];
 const ROW_HEIGHT = 42;
@@ -48,15 +54,21 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(0);
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<View>("library");
-  const [setupOpen, setSetupOpen] = useState(false);
-  const [repairOpen, setRepairOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [setupReturn, setSetupReturn] = useState<SetupReturn>("library");
+  const [repairReturn, setRepairReturn] = useState<RepairReturn>("library");
   const [repairCheckId, setRepairCheckId] = useState<string | undefined>();
   const [guideRequest, setGuideRequest] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
   const autoSetup = useRef(false);
+  const lastView = useRef<View>(view);
+  const headerMenu = useRef<HTMLDivElement>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const compact = useCompactLayout();
   const session = useSession();
   const t = (key: MessageKey, ...args: Array<string | number>) =>
     translate(lang, key, ...args);
+  const clearGuideRequest = useCallback(() => setGuideRequest(0), []);
 
   useEffect(() => {
     if (!session.notice) return;
@@ -135,14 +147,48 @@ export default function App() {
   }, [catalog]);
 
   useEffect(() => {
+    if (view !== "library") return;
     if (autoSetup.current || !session.ready || !catalog || status !== "ready") {
       return;
     }
     if (setupAutoOpen(session.setup?.status)) {
       autoSetup.current = true;
-      setSetupOpen(true);
+      setSetupReturn("library");
+      setView("setup");
     }
-  }, [catalog, session.ready, session.setup?.status, status]);
+  }, [catalog, session.ready, session.setup?.status, status, view]);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [compact, view]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(event: PointerEvent) {
+      if (headerMenu.current?.contains(event.target as Node)) return;
+      setMenuOpen(false);
+      menuButton.current?.focus();
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      menuButton.current?.focus();
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (lastView.current === view) return;
+    lastView.current = view;
+    if (view === "setup" || view === "repair") return;
+    const id = view === "library" ? "library-title" : "diagnostics-title";
+    document.getElementById(id)?.focus({ preventScroll: true });
+  }, [view]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -256,22 +302,62 @@ export default function App() {
   }
 
   function openSetup() {
-    setRepairOpen(false);
-    setSetupOpen(true);
+    setSetupReturn(
+      view === "diagnostics" ? "diagnostics" : view === "repair" ? "repair" : "library",
+    );
+    setMenuOpen(false);
+    setView("setup");
   }
 
-  function openRepair(checkId?: string) {
-    setSetupOpen(false);
+  function openRepair(checkId?: string, origin: RepairReturn = "library") {
+    setRepairReturn(origin);
+    setMenuOpen(false);
     setRepairCheckId(checkId);
-    setRepairOpen(true);
+    setView("repair");
   }
 
   function openGuide() {
-    setSetupOpen(false);
-    setRepairOpen(false);
     setView("library");
     setGuideRequest((value) => value + 1);
   }
+
+  const headerActions = (
+    <>
+      {view !== "setup" && (
+        <SetupIndicator
+          lang={lang}
+          status={session.setup?.status}
+          ready={session.ready}
+          onOpen={openSetup}
+        />
+      )}
+      <Button
+        variant="ghost"
+        className="diagnostics-button"
+        data-active={view === "diagnostics"}
+        onClick={() => setView("diagnostics")}
+      >
+        {t("diagnostics.open")}
+      </Button>
+      <span className="app-version">
+        {t("app.version")} {snapshot?.version ?? ""}
+      </span>
+      <UpdateControl lang={lang} version={snapshot?.version ?? ""} />
+      <nav className="language-switch" aria-label={t("app.language")}>
+        {(["es", "en"] as const).map((code) => (
+          <Button
+            key={code}
+            variant="ghost"
+            className="language-button"
+            data-active={lang === code}
+            onClick={() => void changeLanguage(code)}
+          >
+            {t(`language.${code}`)}
+          </Button>
+        ))}
+      </nav>
+    </>
+  );
 
   return (
     <div className="app-window">
@@ -279,51 +365,68 @@ export default function App() {
         <div className="brand">
           <img className="brand-mark" src="/brand/icon.png" alt="" />
           <div>
-            <h1 className="brand-title">{t("app.title")}</h1>
+            <p className="brand-title">{t("app.title")}</p>
             <p className="brand-subtitle">{t("app.subtitle")}</p>
           </div>
         </div>
-        <div className="header-right">
-          <SetupIndicator
-            lang={lang}
-            status={session.setup?.status}
-            ready={session.ready}
-            onOpen={openSetup}
-          />
-          <Button
-            variant="ghost"
-            className="diagnostics-button"
-            data-active={view === "diagnostics"}
-            onClick={() => setView("diagnostics")}
+        <div className="header-actions" ref={headerMenu}>
+          <button
+            type="button"
+            ref={menuButton}
+            className="compact-menu-button"
+            aria-label={t("app.menu")}
+            aria-expanded={menuOpen}
+            aria-controls="app-header-menu"
+            onClick={() => setMenuOpen((open) => !open)}
           >
-            {t("diagnostics.open")}
-          </Button>
-          <span className="app-version">
-            {t("app.version")} {snapshot?.version ?? ""}
-          </span>
-          <UpdateControl lang={lang} version={snapshot?.version ?? ""} />
-          <nav className="language-switch" aria-label={t("app.language")}>
-            {(["es", "en"] as const).map((code) => (
-              <Button
-                key={code}
-                variant="ghost"
-                className="language-button"
-                data-active={lang === code}
-                onClick={() => void changeLanguage(code)}
-              >
-                {t(`language.${code}`)}
-              </Button>
-            ))}
-          </nav>
+            {menuOpen ? <XIcon aria-hidden="true" /> : <MenuIcon aria-hidden="true" />}
+          </button>
+          <div
+            id="app-header-menu"
+            className={compact ? "header-right header-menu-panel" : "header-right"}
+            role={compact ? "group" : undefined}
+            aria-label={compact ? t("app.menu") : undefined}
+            hidden={compact && !menuOpen}
+            onClick={(event) => {
+              if ((event.target as HTMLElement).closest("button, a")) setMenuOpen(false);
+            }}
+          >
+            {headerActions}
+          </div>
         </div>
       </header>
 
-      <main className={view === "diagnostics" ? "app-main diagnostics-main" : "app-main"}>
+      <main
+        className={
+          view === "library"
+            ? "app-main"
+            : view === "diagnostics"
+              ? "app-main diagnostics-main"
+              : "app-main app-main-single"
+        }
+      >
         {view === "diagnostics" ? (
           <DiagnosticsPane
             lang={lang}
             onBack={() => setView("library")}
-            onRepair={openRepair}
+            onRepair={(checkId) => openRepair(checkId, "diagnostics")}
+          />
+        ) : view === "setup" ? (
+          <SetupWizard
+            lang={lang}
+            session={session}
+            onClose={() => setView(setupReturn)}
+            onOpenGuide={openGuide}
+            onOpenRepair={() => openRepair(undefined, "setup")}
+          />
+        ) : view === "repair" ? (
+          <RepairWizard
+            lang={lang}
+            session={session}
+            initialCheckId={repairCheckId}
+            onClose={() => setView(repairReturn)}
+            onOpenGuide={openGuide}
+            onOpenSetup={openSetup}
           />
         ) : (
           <>
@@ -352,35 +455,42 @@ export default function App() {
               session={session}
               onSelectLast={setSelectedId}
               guideRequest={guideRequest}
+              onGuideRequestHandled={clearGuideRequest}
               onOpenSetup={openSetup}
               onOpenRepair={openRepair}
             />
           </>
         )}
       </main>
-      <SetupWizard
-        open={setupOpen}
-        lang={lang}
-        session={session}
-        onClose={() => setSetupOpen(false)}
-        onOpenGuide={openGuide}
-        onOpenRepair={() => openRepair()}
-      />
-      <RepairWizard
-        open={repairOpen}
-        lang={lang}
-        session={session}
-        initialCheckId={repairCheckId}
-        onClose={() => setRepairOpen(false)}
-        onOpenGuide={openGuide}
-        onOpenSetup={openSetup}
-      />
+      <SessionDialog lang={lang} session={session} />
       <Toaster
         closeLabel={t("common.close")}
         viewportLabel={t("common.notifications")}
       />
     </div>
   );
+}
+
+function useCompactLayout(): boolean {
+  const [compact, setCompact] = useState(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return false;
+    return window.matchMedia("(max-width: 900px)").matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const query = window.matchMedia("(max-width: 900px)");
+    const update = () => setCompact(query.matches);
+    update();
+    if (query.addEventListener) {
+      query.addEventListener("change", update);
+      return () => query.removeEventListener("change", update);
+    }
+    query.addListener(update);
+    return () => query.removeListener(update);
+  }, []);
+
+  return compact;
 }
 
 function LibraryPane({
@@ -419,16 +529,18 @@ function LibraryPane({
   const t = (key: MessageKey, ...args: Array<string | number>) =>
     translate(lang, key, ...args);
   const countLabel =
-    games.length === 1
-      ? t("library.countOne")
-      : t("library.count", games.length);
+    mode === "loading"
+      ? "—"
+      : games.length === 1
+        ? t("library.countOne")
+        : t("library.count", games.length);
 
   return (
     <section className="library-pane" aria-labelledby="library-title">
       <div className="library-heading">
-        <h2 className="library-title" id="library-title">
+        <h1 className="library-title" id="library-title" tabIndex={-1}>
           {t("library.title")}
-        </h2>
+        </h1>
         <span className="library-count">{countLabel}</span>
       </div>
 
@@ -488,14 +600,21 @@ function LibraryPane({
 
       {mode === "empty" && (
         <Empty className="library-empty">
+          <EmptyMedia variant="icon">
+            <LibraryIcon aria-hidden="true" />
+          </EmptyMedia>
           <h2>{t("library.empty")}</h2>
           <p>{t("library.emptyHint")}</p>
           <div className="inline-actions">
-            <Button variant="ghost" className="refresh-button" onClick={onRefresh}>
-              {t("action.refresh")}
-            </Button>
-            <Button variant="ghost" className="refresh-button" onClick={onOpenSteam}>
+            <Button className="primary-button empty-cta" onClick={onOpenSteam}>
               {t("action.openSteam")}
+            </Button>
+            <Button
+              variant="outline"
+              className="secondary-button empty-cta"
+              onClick={onRefresh}
+            >
+              {t("action.refresh")}
             </Button>
           </div>
         </Empty>
@@ -503,9 +622,12 @@ function LibraryPane({
 
       {mode === "no-results" && (
         <Empty className="library-empty">
+          <EmptyMedia variant="icon">
+            <SearchXIcon aria-hidden="true" />
+          </EmptyMedia>
           <h2>{t("search.empty")}</h2>
           <div className="inline-actions">
-            <Button variant="ghost" className="refresh-button" onClick={onReset}>
+            <Button className="primary-button empty-cta" onClick={onReset}>
               {t("action.resetFilters")}
             </Button>
           </div>

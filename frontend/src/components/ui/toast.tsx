@@ -180,7 +180,6 @@ function ToastRow({ item, closeLabel }: { item: ToastItem; closeLabel: string })
         <ToastPrimitive.Close
           data-slot="toast-close"
           aria-label={closeLabel}
-          aria-hidden={!active}
           className={cn(
             "relative shrink-0 text-[var(--color-muted-ink)] transition-opacity after:absolute after:-inset-2 after:content-[''] hover:text-[var(--color-cream)]",
             active ? "opacity-100" : "opacity-0",

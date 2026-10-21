@@ -43,7 +43,9 @@ test("guide refresh action shares the command heading row", async ({ page }) => 
   await openGuide(page);
 
   const heading = page.getByRole("heading", { name: "Comando para SpaceWar" });
-  const refresh = page.getByRole("button", { name: "Verificar de nuevo" });
+  const refresh = page
+    .locator(".guide-command-block")
+    .getByRole("button", { name: "Actualizar" });
   const copy = page.getByRole("button", { name: "Copiar comando" });
   const [headingBox, refreshBox, copyBox] = await Promise.all([
     box(heading),
@@ -57,24 +59,24 @@ test("guide refresh action shares the command heading row", async ({ page }) => 
   ).toBeLessThanOrEqual(1);
 });
 
-test("repair wizard stays centered inside the viewport", async ({ page }) => {
+test("repair wizard fills the main view without overflowing it", async ({ page }) => {
   const viewport = { width: 1280, height: 800 };
   await page.setViewportSize(viewport);
   await page.goto("/e2e.html?e2e=library&lang=es");
   await page.getByRole("button", { name: "Diagnóstico" }).click();
   await page.getByRole("button", { name: "Revisar" }).click();
 
-  const dialog = page.locator('[data-slot="dialog-content"]');
-  await expect(dialog).toBeVisible();
+  const main = page.locator("main");
+  const view = page.getByRole("region", { name: "Diagnóstico y reparación" });
+  await expect(view).toBeVisible();
   await page.waitForTimeout(250);
 
-  const dialogBox = await box(dialog);
-  expect(Math.abs(dialogBox.x + dialogBox.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(1);
-  expect(Math.abs(dialogBox.y + dialogBox.height / 2 - viewport.height / 2)).toBeLessThanOrEqual(1);
-  expect(dialogBox.x).toBeGreaterThanOrEqual(0);
-  expect(dialogBox.y).toBeGreaterThanOrEqual(0);
-  expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(viewport.width);
-  expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(viewport.height);
+  const [mainBox, viewBox] = await Promise.all([box(main), box(view)]);
+  expect(viewBox.x).toBeGreaterThanOrEqual(mainBox.x);
+  expect(viewBox.y).toBeGreaterThanOrEqual(mainBox.y);
+  expect(viewBox.x + viewBox.width).toBeLessThanOrEqual(mainBox.x + mainBox.width + 1);
+  expect(viewBox.y + viewBox.height).toBeLessThanOrEqual(mainBox.y + mainBox.height + 1);
+  expect(viewBox.width).toBeGreaterThanOrEqual(viewport.width - 1);
 });
 
 test("library search and filter toolbar keep breathing room", async ({ page }) => {
@@ -95,22 +97,85 @@ test("library search and filter toolbar keep breathing room", async ({ page }) =
   expect(toolbarBox.y - (searchBox.y + searchBox.height)).toBeGreaterThanOrEqual(4);
 });
 
-test("selection privacy and play action stay close", async ({ page }) => {
+test("selection play action sits in the title block above privacy guidance", async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto("/e2e.html?e2e=library&lang=es");
 
+  const title = page.locator(".session-body .game-title");
+  const meta = page.locator(".session-body .game-meta");
   const privacy = page.locator(".session-body > .hint").filter({ hasText: "Privacidad:" });
   const play = page.getByRole("button", { name: "Jugar" });
+  await expect(title).toBeVisible();
+  await expect(meta).toBeVisible();
   await expect(privacy).toBeVisible();
   await expect(play).toBeVisible();
 
-  const [privacyBox, playBox] = await Promise.all([box(privacy), box(play)]);
-  const gap = playBox.y - (privacyBox.y + privacyBox.height);
-  expect(gap).toBeGreaterThanOrEqual(12);
-  expect(gap).toBeLessThanOrEqual(24);
+  const [titleBox, metaBox, privacyBox, playBox] = await Promise.all([
+    box(title),
+    box(meta),
+    box(privacy),
+    box(play),
+  ]);
+  expect(playBox.y).toBeGreaterThan(titleBox.y + titleBox.height);
+  expect(playBox.y - (metaBox.y + metaBox.height)).toBeLessThanOrEqual(24);
+  expect(playBox.y + playBox.height).toBeLessThanOrEqual(privacyBox.y);
 });
 
-test("selection last session stays close to play action", async ({ page }) => {
+test("selection play action is visible without scrolling at 390px", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/e2e.html?e2e=library&lang=es");
+
+  const play = page.getByRole("button", { name: "Jugar" });
+  await expect(play).toBeVisible();
+  await expect(play).toBeInViewport();
+});
+
+test("compact controls meet the 44px touch target", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/e2e.html?e2e=library&lang=es");
+  await page.locator(".compact-menu-button").click();
+
+  const controls = [
+    ".compact-menu-button",
+    ".setup-indicator",
+    ".diagnostics-button",
+    ".update-button",
+    ".language-button",
+    ".search-field",
+    ".refresh-button",
+    ".session-tab",
+  ];
+  for (const selector of controls) {
+    const control = page.locator(selector).first();
+    await expect(control).toBeVisible();
+    expect((await box(control)).height).toBeGreaterThanOrEqual(44);
+  }
+  for (const filter of await page.locator(".filter-button").all()) {
+    expect((await box(filter)).height).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test("diagnostics controls meet the 44px touch target at 390px", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/e2e.html?e2e=library&lang=es");
+  await page.locator(".compact-menu-button").click();
+  await page.getByRole("button", { name: "Diagnóstico" }).click();
+  await expect(page.getByRole("heading", { name: "Diagnóstico", exact: true })).toBeVisible();
+
+  const controls = [
+    ".diagnostics-back",
+    ".diagnostic-repair",
+    ".diagnostic-docs a",
+    ".diagnostics-actions .refresh-button",
+  ];
+  for (const selector of controls) {
+    const control = page.locator(selector).first();
+    await expect(control).toBeVisible();
+    expect((await box(control)).height).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test("selection last session remains visible below the primary action", async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto("/e2e.html?e2e=stale&lang=es");
   await page.getByRole("row", { name: /Resident Evil 2/ }).click();
@@ -120,14 +185,8 @@ test("selection last session stays close to play action", async ({ page }) => {
   await expect(play).toBeVisible();
   await expect(last).toBeVisible();
 
-  const [playBox, lastBox, labelBox] = await Promise.all([
-    box(play),
-    box(last),
-    box(last.locator(".last-compact-label")),
-  ]);
-  const playBottom = playBox.y + playBox.height;
-  expect(lastBox.y - playBottom).toBeLessThanOrEqual(20);
-  expect(labelBox.y - playBottom).toBeLessThanOrEqual(36);
+  const [playBox, lastBox] = await Promise.all([box(play), box(last)]);
+  expect(playBox.y).toBeLessThan(lastBox.y);
 });
 
 test("toast text and icons share one vertical center", async ({ page }) => {

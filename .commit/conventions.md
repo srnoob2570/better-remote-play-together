@@ -28,6 +28,9 @@
   versionan: son las baselines de `toHaveScreenshot` y sin ellos los tests
   visuales fallan en un clon limpio. Los artefactos de ejecución
   (`test-results/`, `playwright-report/`) sí están ignorados.
+- Los worktrees de OpenCode pueden quedar en `HEAD` detached. Antes de
+  commitear, confirmar con el usuario y crear una rama local (`fix/...`) en
+  lugar de commitear sobre el detached.
 - De `.codegraph/` solo se versiona su `.gitignore`; el índice (`codegraph.db`)
   es local de cada máquina y nunca debe entrar al repositorio.
 - La versión publicada se define en `Makefile` (`VERSION`) y en

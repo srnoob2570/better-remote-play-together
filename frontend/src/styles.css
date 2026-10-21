@@ -123,6 +123,7 @@ button {
 }
 
 .app-header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -177,6 +178,7 @@ button {
   background: transparent;
   color: var(--color-muted-ink);
   font-size: var(--size-small);
+  min-height: 44px;
   height: auto;
   padding: 6px 0;
   border-bottom: 2px solid transparent;
@@ -196,6 +198,11 @@ button {
   grid-template-columns: minmax(0, 1fr) minmax(400px, 40%);
   flex: 1 1 auto;
   min-height: 0;
+  overflow: hidden;
+}
+
+.app-main-single {
+  display: block;
   overflow: hidden;
 }
 
@@ -222,6 +229,10 @@ button {
   letter-spacing: -0.02em;
 }
 
+.library-title:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .library-count {
   color: var(--color-muted-ink);
   font-size: var(--size-caption);
@@ -232,6 +243,7 @@ button {
   margin-top: 12px;
   height: 44px;
   width: 100%;
+  flex-shrink: 0;
   border: 1px solid var(--color-line);
   border-radius: 2px;
   background: var(--color-ink);
@@ -274,10 +286,12 @@ button {
   font-size: var(--size-control);
   font-weight: 400;
   height: auto;
+  min-height: 44px;
   line-height: 1;
   padding: 19px 0 17px;
   border-bottom: 2px solid transparent;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .filter-button:hover {
@@ -299,6 +313,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 44px;
   font-size: var(--size-small);
   font-weight: 600;
   height: auto;
@@ -442,6 +457,26 @@ button {
   align-items: center;
 }
 
+.library-empty [data-slot="empty-icon"] {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 2px;
+  border: 1px solid var(--color-line-soft);
+  border-radius: 2px;
+  background: var(--color-raised);
+  color: var(--color-amber);
+}
+
+.library-empty [data-slot="empty-icon"] svg {
+  width: 22px;
+  height: 22px;
+}
+
+.library-empty .empty-cta {
+  width: auto;
+  padding: 0 18px;
+}
+
 .warning-panel {
   margin-top: 16px;
   border-top: 1px solid var(--color-line-soft);
@@ -492,6 +527,7 @@ button {
   color: var(--color-muted-ink);
   flex: 0 0 auto;
   font-size: var(--size-control);
+  min-height: 44px;
   height: auto;
   padding: 0 0 12px;
   border-bottom: 2px solid transparent;
@@ -514,8 +550,9 @@ button {
 
 .setup-indicator {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
+  min-height: 44px;
   font-size: var(--size-caption);
   line-height: 1.25;
   white-space: nowrap;
@@ -581,7 +618,7 @@ button {
 
 .game-title {
   margin: 0;
-  font-size: var(--size-game-title);
+  font-size: var(--size-game-title-compact);
   line-height: 1.1;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -658,7 +695,7 @@ button {
 
 .secondary-button {
   width: 100%;
-  min-height: 40px;
+  min-height: 44px;
   border: 1px solid var(--color-line);
   border-radius: 2px;
   background: transparent;
@@ -672,11 +709,11 @@ button {
 }
 
 .session-actions {
-  margin-top: auto;
+  margin-top: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-top: 34px;
+  padding-top: 0;
 }
 
 .selection-actions {
@@ -693,7 +730,7 @@ button {
 
 .section-title {
   margin: 0;
-  font-size: var(--size-subheading);
+  font-size: var(--size-section-title);
   font-weight: 600;
 }
 
@@ -882,7 +919,7 @@ button {
 }
 
 .dialog-button {
-  min-height: 38px;
+  min-height: 44px;
   border: 1px solid var(--color-line);
   background: transparent;
   color: var(--color-cream);
@@ -892,6 +929,7 @@ button {
 }
 
 .dialog-button[data-primary="true"] {
+  min-height: 48px;
   border-color: var(--color-amber);
   background: var(--color-amber);
   color: #101416;
@@ -932,6 +970,35 @@ button {
 }
 
 @media (max-width: 900px) {
+  .app-header {
+    height: auto;
+    min-height: 72px;
+    flex-wrap: nowrap;
+    gap: 12px;
+    padding: 8px 16px;
+  }
+
+  .diagnostic-docs a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 8px 0;
+  }
+
+  .brand {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .brand-title,
+  .brand-subtitle {
+    max-width: 100%;
+  }
+
+  .app-header .compact-menu-button {
+    display: inline-flex;
+  }
+
   .app-main {
     grid-template-columns: 1fr;
   }
@@ -939,6 +1006,29 @@ button {
   .session-pane {
     border-left: 0;
     border-top: 1px solid var(--color-seam);
+  }
+}
+
+@media (max-width: 600px) {
+  .library-toolbar {
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-tabs {
+    flex-wrap: wrap;
+    overflow: visible;
+    gap: 12px 20px;
+    padding: 6px 0;
+  }
+
+  .filter-button {
+    flex-shrink: 0;
+    padding: 12px 0 10px;
+  }
+
+  .refresh-button {
+    margin-left: auto;
   }
 }
 
@@ -1037,6 +1127,100 @@ button {
   gap: 18px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.compact-menu-button {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--color-line-soft);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--color-cream);
+}
+
+.compact-menu-button:hover,
+.compact-menu-button[aria-expanded="true"] {
+  border-color: var(--color-amber);
+  color: var(--color-amber);
+  background: var(--color-raised);
+}
+
+.compact-menu-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.header-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  width: min(320px, calc(100vw - 32px));
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--color-line);
+  border-radius: 2px;
+  background: var(--color-surface);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+.header-menu-panel[hidden] {
+  display: none;
+}
+
+.header-menu-panel .setup-indicator,
+.header-menu-panel .diagnostics-button,
+.header-menu-panel .update-control,
+.header-menu-panel .update-button,
+.header-menu-panel .language-switch {
+  width: 100%;
+}
+
+.header-menu-panel .setup-indicator {
+  justify-content: flex-start;
+  padding: 8px;
+  border-bottom: 1px solid var(--color-line-soft);
+  white-space: normal;
+}
+
+.header-menu-panel .diagnostics-button {
+  justify-content: flex-start;
+  text-align: left;
+  padding: 0 8px;
+}
+
+.header-menu-panel .app-version {
+  padding: 4px 8px;
+}
+
+.header-menu-panel .language-switch {
+  justify-content: flex-start;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.header-menu-panel .update-button {
+  min-width: 0;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 0 8px;
+}
+
 .app-version {
   color: var(--color-muted-ink);
   font-size: var(--size-caption);
@@ -1052,7 +1236,7 @@ button {
 
 .update-button {
   min-width: 170px;
-  height: 32px;
+  height: 44px;
   border: 1px solid var(--color-line-soft);
   border-radius: 2px;
   background: transparent;
@@ -1300,7 +1484,7 @@ button {
   border-top: 1px solid var(--color-line-soft);
 }
 
-.guide-step h4 {
+.guide-step h3 {
   margin-bottom: 6px;
 }
 
@@ -1326,7 +1510,7 @@ button {
 .guide-restore-trigger {
   width: 100%;
   height: auto;
-  min-height: 24px;
+  min-height: 44px;
   justify-content: flex-start;
   gap: 6px;
   padding: 0;
@@ -1386,7 +1570,7 @@ button {
   }
   .session-actions {
     gap: 8px;
-    padding-top: 14px;
+    padding-top: 0;
   }
 }
 
@@ -1396,7 +1580,7 @@ button {
   border-radius: 2px;
   color: var(--color-cream);
   font-size: var(--size-small);
-  height: 32px;
+  height: 44px;
   padding: 0 10px;
   white-space: nowrap;
 }
@@ -1417,6 +1601,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 44px;
   height: auto;
   margin: 0 0 10px;
   padding: 2px 0;
@@ -1462,6 +1647,10 @@ button {
   letter-spacing: -0.02em;
 }
 
+.diagnostics-title:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .diagnostics-actions {
   display: flex;
   align-items: center;
@@ -1471,7 +1660,6 @@ button {
   flex: 0 0 auto;
 }
 
-.diagnostics-loading,
 .diagnostics-error {
   margin-top: 24px;
   color: var(--color-muted-ink);
@@ -1560,7 +1748,7 @@ button {
 .diagnostic-group-title {
   margin: 0 0 12px;
   color: var(--color-gold);
-  font-size: var(--size-small);
+  font-size: var(--size-section-title);
   font-weight: 600;
 }
 
@@ -1573,6 +1761,15 @@ button {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr));
   gap: 14px;
   align-items: start;
+}
+
+.diagnostic-skeletons {
+  margin-top: 24px;
+}
+
+.diagnostic-card-skeleton {
+  min-height: 148px;
+  border-radius: 2px;
 }
 
 .diagnostic-card {
@@ -1858,22 +2055,20 @@ button {
   text-underline-offset: 2px;
 }
 
-.wizard-dialog {
-  left: 50%;
-  top: 50%;
-  width: min(980px, calc(100vw - 32px));
-  height: min(760px, calc(100dvh - 32px));
-  max-width: none;
-  max-height: none;
+.wizard-view {
+  width: 100%;
+  max-width: 1280px;
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
   padding: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--color-line);
-  border-radius: 2px;
+  border-left: 1px solid var(--color-line);
+  border-right: 1px solid var(--color-line);
   background: var(--color-surface);
   color: var(--color-cream);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
 }
 
 .wizard-header {
@@ -1899,6 +2094,10 @@ button {
   letter-spacing: -0.02em;
 }
 
+.wizard-title:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .wizard-intro {
   margin: 0;
   max-width: 72ch;
@@ -1920,7 +2119,7 @@ button {
 .wizard-secondary {
   width: auto;
   height: auto;
-  min-height: 32px;
+  min-height: 44px;
   border: 1px solid transparent;
   border-radius: 2px;
   background: transparent;
@@ -1939,7 +2138,7 @@ button {
 .wizard-primary {
   width: auto;
   height: auto;
-  min-height: 38px;
+  min-height: 48px;
   border: 1px solid var(--color-amber);
   border-radius: 2px;
   background: var(--color-amber);
@@ -2068,7 +2267,7 @@ button {
 .wizard-section-title {
   margin: 0;
   color: var(--color-cream);
-  font-size: var(--size-lead);
+  font-size: var(--size-section-title);
   line-height: 1.2;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -2279,7 +2478,18 @@ button {
   border-top: 1px solid var(--color-line-soft);
 }
 
-.wizard-loading {
+.wizard-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.repair-skeleton {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   padding: 22px 24px;
 }
 
@@ -2418,7 +2628,7 @@ button {
 .diagnostic-repair {
   width: auto;
   height: auto;
-  min-height: 28px;
+  min-height: 44px;
   margin-top: 10px;
   padding: 3px 0;
   border: 0;
@@ -2473,11 +2683,6 @@ button {
 }
 
 @media (max-width: 840px) {
-  .wizard-dialog {
-    width: calc(100vw - 20px);
-    height: calc(100dvh - 20px);
-  }
-
   .wizard-body {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);

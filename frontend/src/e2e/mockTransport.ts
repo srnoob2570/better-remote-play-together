@@ -322,7 +322,7 @@ function scenarioData(name: Scenario, lang: "es" | "en") {
       return Promise.resolve(snapshotCatalog ?? catalog());
     },
     getRecovery: () => recoveryValue,
-    getSituation: () => situation,
+    getSituation: () => ({ ...situation, setupSnapshot: setup }),
     getSetup: () => setup,
     getState: () => sessionState,
     getLast: () => lastValue,

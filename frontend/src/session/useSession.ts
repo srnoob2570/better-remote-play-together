@@ -3,6 +3,7 @@ import { Events } from "@wailsio/runtime";
 
 import { toBridgeError } from "../bridge/client";
 import { bridge } from "../bridge/wails";
+import { focusInvoker } from "../lib/focus";
 import type {
   Game,
   LastSession,
@@ -36,6 +37,7 @@ export interface SessionController {
   launching: number | null;
   ready: boolean;
   dialog: SessionDialog;
+  restoreDialogFocus: () => void;
   requestStart: (game: Game) => void;
   confirmDialog: () => Promise<void>;
   closeDialog: () => void;
@@ -63,6 +65,17 @@ export function useSession(): SessionController {
   const [ready, setReady] = useState(false);
   const [dialog, setDialog] = useState<SessionDialog>(null);
   const warned = useRef(new Set<number>());
+  const dialogInvoker = useRef<HTMLElement | null>(null);
+
+  const openDialog = useCallback((next: Exclude<SessionDialog, null>) => {
+    const active = document.activeElement;
+    dialogInvoker.current = active instanceof HTMLElement ? active : null;
+    setDialog(next);
+  }, []);
+
+  const restoreDialogFocus = useCallback(() => {
+    focusInvoker(dialogInvoker.current);
+  }, []);
 
   const refreshContext = useCallback(async () => {
     const next = await bridge.Situation();
@@ -160,12 +173,12 @@ export function useSession(): SessionController {
   const requestStart = useCallback(
     (game: Game) => {
       if (game.status === "unknown" && !warned.current.has(game.appId)) {
-        setDialog({ kind: "unknown", game });
+        openDialog({ kind: "unknown", game });
         return;
       }
       void startNow(game);
     },
-    [startNow],
+    [openDialog, startNow],
   );
 
   const confirmDialog = useCallback(async () => {
@@ -202,8 +215,8 @@ export function useSession(): SessionController {
       setNotice({ key: restoreReasonKey(situation.restore), tone: "amber" });
       return;
     }
-    setDialog({ kind: "restore" });
-  }, [situation]);
+    openDialog({ kind: "restore" });
+  }, [openDialog, situation]);
 
   const cancel = useCallback(async () => {
     if (!state || state.phase !== "preparing") return;
@@ -330,6 +343,7 @@ export function useSession(): SessionController {
       launching,
       ready,
       dialog,
+      restoreDialogFocus,
       requestStart,
       confirmDialog,
       closeDialog: () => setDialog(null),
@@ -364,6 +378,7 @@ export function useSession(): SessionController {
       replay,
       requestStart,
       restore,
+      restoreDialogFocus,
       setup,
       situation,
       state,

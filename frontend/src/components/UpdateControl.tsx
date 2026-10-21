@@ -13,6 +13,7 @@ import {
 
 import { toBridgeError } from "../bridge/client";
 import { bridge } from "../bridge/wails";
+import { focusInvoker } from "../lib/focus";
 import type {
   Problem,
   UpdateCheck,
@@ -65,6 +66,7 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
   const [restartFailed, setRestartFailed] = useState(false);
   const startupChecked = useRef(false);
   const manualCheck = useRef(false);
+  const dialogInvoker = useRef<HTMLElement | null>(null);
 
   const t = (key: MessageKey, ...args: Array<string | number>) =>
     translate(lang, key, ...args);
@@ -169,6 +171,8 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
   }
 
   function onButtonClick() {
+    const active = document.activeElement;
+    dialogInvoker.current = active instanceof HTMLElement ? active : null;
     if (phase === "restartPending" || phase === "saved") {
       setDialogOpen(true);
       return;
@@ -259,6 +263,10 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
           className="dialog-content update-dialog"
           showCloseButton={false}
           aria-describedby="update-dialog-description"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            focusInvoker(dialogInvoker.current);
+          }}
         >
           <DialogHeader className="dialog-header">
             <DialogTitle className="dialog-title">{t("update.dialogTitle")}</DialogTitle>

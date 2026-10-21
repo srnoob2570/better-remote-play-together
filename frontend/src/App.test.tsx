@@ -214,7 +214,7 @@ describe("library UI", () => {
     });
   });
 
-  it("opens the setup wizard once when the integration is missing", async () => {
+  it("opens the setup view once when the integration is missing", async () => {
     mocked.RecoverSession.mockResolvedValue(
       recovery({
         setup: undefined,
@@ -224,10 +224,15 @@ describe("library UI", () => {
     mocked.SetupSnapshot.mockResolvedValue({ status: "missing", hasBackup: false });
     render(<App />);
 
-    const dialog = await screen.findByRole("dialog", { name: "Configuración inicial" });
-    expect(within(dialog).getAllByText("Steam y SpaceWar").length).toBeGreaterThan(0);
-    fireEvent.click(within(dialog).getByRole("button", { name: "Cerrar" }));
-    expect(screen.queryByRole("dialog", { name: "Configuración inicial" })).not.toBeInTheDocument();
+    const view = await screen.findByRole("region", { name: "Configuración inicial" });
+    expect(within(view).getAllByText("Steam y SpaceWar").length).toBeGreaterThan(0);
+    fireEvent.click(within(view).getByRole("button", { name: "Cerrar" }));
+    expect(
+      screen.queryByRole("region", { name: "Configuración inicial" }),
+    ).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Biblioteca" }),
+    ).toBeInTheDocument();
   });
 
   it("renders the catalog, count and lazy artwork", async () => {
@@ -445,8 +450,9 @@ describe("library UI", () => {
       }),
     );
     render(<App />);
+    const setup = await screen.findByRole("region", { name: "Configuración inicial" });
+    fireEvent.click(within(setup).getByRole("button", { name: "Cerrar" }));
     await screen.findAllByText("HELLDIVERS™ 2");
-    fireEvent.click(await screen.findByRole("button", { name: "Cerrar" }));
 
     fireEvent.mouseDown(screen.getByRole("tab", { name: "Guía" }));
     expect(await screen.findByText("Comando para SpaceWar")).toBeInTheDocument();
@@ -471,7 +477,12 @@ describe("library UI", () => {
     await screen.findAllByText("HELLDIVERS™ 2");
 
     fireEvent.mouseDown(screen.getByRole("tab", { name: "Guía" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Verificar de nuevo" }));
+    const commandBlock = screen
+      .getByText("Comando para SpaceWar")
+      .closest(".guide-command-block");
+    fireEvent.click(
+      within(commandBlock as HTMLElement).getByRole("button", { name: "Actualizar" }),
+    );
 
     const description = await screen.findByText(
       "No se pudo leer la configuración de SpaceWar.",
@@ -481,7 +492,7 @@ describe("library UI", () => {
     const close = toast?.querySelector('[data-slot="toast-close"]');
     expect(close).toHaveAttribute("aria-label", "Cerrar");
     fireEvent.focus(toast as HTMLElement);
-    expect(close).toHaveAttribute("aria-hidden", "false");
+    expect(close).not.toHaveAttribute("aria-hidden");
   });
 
   it("renders a stale configuration notice with a restore action", async () => {
@@ -607,22 +618,22 @@ describe("library UI", () => {
       await screen.findByRole("button", { name: "Diagnóstico y reparación" }),
     );
 
-    const dialog = await screen.findByRole("dialog", {
+    const view = await screen.findByRole("region", {
       name: "Diagnóstico y reparación",
     });
     expect(
-      within(dialog).getByRole("heading", { name: "SELinux/AppArmor" }),
+      within(view).getByRole("heading", { name: "SELinux/AppArmor" }),
     ).toBeInTheDocument();
     expect(
-      within(dialog).getByText("Este problema no tiene una acción automática segura."),
+      within(view).getByText("Este problema no tiene una acción automática segura."),
     ).toBeInTheDocument();
     expect(
-      within(dialog).queryByText(
+      within(view).queryByText(
         "Copia el comando y ejecútalo en tu terminal. Better RPT no usa root.",
       ),
     ).not.toBeInTheDocument();
     expect(
-      within(dialog).queryByRole("button", { name: "Copiar comando" }),
+      within(view).queryByRole("button", { name: "Copiar comando" }),
     ).not.toBeInTheDocument();
   });
 });

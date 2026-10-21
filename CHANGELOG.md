@@ -44,6 +44,13 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   primitivas headless. El bundle de producción baja de 548 kB a 522 kB
   (~10 kB gzip).
 
+### Fixed
+
+- La interfaz mantiene las acciones principales junto al título, adapta la
+  cabecera y los wizards a ventanas estrechas, mejora la jerarquía de
+  encabezados y devuelve el foco al control de origen al cerrar los diálogos.
+  Las vistas de carga y vacío usan indicadores y acciones consistentes.
+
 ## [0.2.2] - 2026-10-21 (efe5aea)
 
 ### Added

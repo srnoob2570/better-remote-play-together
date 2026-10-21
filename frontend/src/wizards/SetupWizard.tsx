@@ -1,12 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  Dialog as UIDialog,
-  DialogContent as UIDialogContent,
-  DialogDescription as UIDialogDescription,
-  DialogTitle as UIDialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 
 import { toBridgeError } from "../bridge/client";
@@ -37,14 +32,12 @@ import {
 } from "./readiness";
 
 export function SetupWizard({
-  open,
   lang,
   session,
   onClose,
   onOpenGuide,
   onOpenRepair,
 }: {
-  open: boolean;
   lang: Language;
   session: SessionController;
   onClose: () => void;
@@ -53,11 +46,12 @@ export function SetupWizard({
 }) {
   const t = (key: MessageKey, ...args: Array<string | number>) =>
     translate(lang, key, ...args);
-  const diagnostics = useDiagnostics(lang, open);
+  const diagnostics = useDiagnostics(lang);
   const [step, setStep] = useState(0);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const initialized = useRef(false);
+  const titleRef = useRef<HTMLHeadingElement>(null);
 
   const assessment = useMemo(
     () =>
@@ -70,17 +64,15 @@ export function SetupWizard({
   );
 
   useEffect(() => {
-    if (!open) {
-      initialized.current = false;
-      setStep(0);
-      setError(null);
-      return;
-    }
     if (diagnostics.mode === "ready" && !initialized.current) {
       initialized.current = true;
       setStep(firstPendingStep(assessment.steps));
     }
-  }, [assessment, diagnostics.mode, open]);
+  }, [assessment, diagnostics.mode]);
+
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
 
   const current = assessment.steps[step] ?? assessment.steps[0];
   const currentId = current?.id ?? "welcome";
@@ -111,140 +103,146 @@ export function SetupWizard({
   }
 
   return (
-    <UIDialog open={open} onOpenChange={(value) => !value && onClose()}>
-      <UIDialogContent
-        className="dialog-content wizard-dialog"
-        showCloseButton={false}
-      >
-        <header className="wizard-header">
-          <div className="wizard-heading">
-            <UIDialogTitle className="wizard-title">
-              {t("wizard.setup.title")}
-            </UIDialogTitle>
-            <UIDialogDescription className="wizard-intro">
-              {t("wizard.setup.intro")}
-            </UIDialogDescription>
-          </div>
+    <section className="wizard-view" aria-labelledby="setup-wizard-title">
+      <header className="wizard-header">
+        <div className="wizard-heading">
+          <h1
+            ref={titleRef}
+            id="setup-wizard-title"
+            className="wizard-title"
+            tabIndex={-1}
+          >
+            {t("wizard.setup.title")}
+          </h1>
+          <p className="wizard-intro">{t("wizard.setup.intro")}</p>
+        </div>
+        <Button
+          variant="ghost"
+          className="wizard-close"
+          onClick={onClose}
+          aria-label={t("common.close")}
+        >
+          {t("common.close")}
+        </Button>
+      </header>
+
+      <div className="wizard-body">
+        <nav className="wizard-rail" aria-label={t("wizard.setup.steps")}>
+          <ol className="wizard-step-list">
+            {assessment.steps.map((item, index) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className="wizard-step-button"
+                  data-active={index === step}
+                  data-status={item.status}
+                  aria-current={index === step ? "step" : undefined}
+                  onClick={() => setStep(index)}
+                >
+                  <span className="wizard-step-number">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="wizard-step-copy">
+                    <span className="wizard-step-label">
+                      {t(SETUP_STEP_LABEL[item.id])}
+                    </span>
+                    <span className="wizard-step-state">
+                      {statusLabel(t, item.status)}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </nav>
+
+        <div className="wizard-content" aria-live="polite">
+          {diagnostics.mode === "loading" && (
+            <div
+              className="wizard-skeleton"
+              role="status"
+              aria-busy="true"
+              aria-label={t("wizard.checking")}
+            >
+              <Skeleton className="h-5 w-56" />
+              <Skeleton className="h-4 w-full max-w-xl" />
+              <Skeleton className="h-4 w-full max-w-lg" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          )}
+          {diagnostics.mode === "error" && (
+            <div className="wizard-error" role="alert">
+              <p>{t("diagnostics.error")}</p>
+              {diagnostics.problem && (
+                <p className="mono">{diagnostics.problem.message}</p>
+              )}
+              <Button
+                variant="outline"
+                className="secondary-button"
+                onClick={() => void diagnostics.refresh()}
+              >
+                {t("action.retry")}
+              </Button>
+            </div>
+          )}
+          {error && (
+            <p className="wizard-error" role="alert">
+              {error}
+            </p>
+          )}
+          {diagnostics.mode === "ready" && current && (
+            <StepBody
+              id={currentId}
+              assessment={assessment}
+              report={diagnostics.result?.report ?? null}
+              current={current}
+              lang={lang}
+              session={session}
+              checking={checking}
+              onRecheck={recheck}
+              onEnsureHelper={ensureHelper}
+              onOpenGuide={onOpenGuide}
+              onOpenRepair={onOpenRepair}
+            />
+          )}
+        </div>
+      </div>
+
+      <footer className="wizard-footer">
+        <span className="wizard-progress">
+          {t(
+            "wizard.setup.stepOf",
+            step + 1,
+            SETUP_STEP_COUNT,
+          )}
+        </span>
+        <div className="wizard-footer-actions">
           <Button
             variant="ghost"
-            className="wizard-close"
-            onClick={onClose}
-            aria-label={t("common.close")}
+            className="wizard-secondary"
+            onClick={back}
+            disabled={step === 0}
           >
-            {t("common.close")}
+            {t("wizard.back")}
           </Button>
-        </header>
-
-        <div className="wizard-body">
-          <nav className="wizard-rail" aria-label={t("wizard.setup.steps")}>
-            <ol className="wizard-step-list">
-              {assessment.steps.map((item, index) => (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    className="wizard-step-button"
-                    data-active={index === step}
-                    data-status={item.status}
-                    aria-current={index === step ? "step" : undefined}
-                    onClick={() => setStep(index)}
-                  >
-                    <span className="wizard-step-number">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <span className="wizard-step-copy">
-                      <span className="wizard-step-label">
-                        {t(SETUP_STEP_LABEL[item.id])}
-                      </span>
-                      <span className="wizard-step-state">
-                        {statusLabel(t, item.status)}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </nav>
-
-          <div className="wizard-content" aria-live="polite">
-            {diagnostics.mode === "loading" && (
-              <p className="hint" aria-busy="true">
-                {t("wizard.checking")}
-              </p>
-            )}
-            {diagnostics.mode === "error" && (
-              <div className="wizard-error" role="alert">
-                <p>{t("diagnostics.error")}</p>
-                {diagnostics.problem && (
-                  <p className="mono">{diagnostics.problem.message}</p>
-                )}
-                <Button
-                  variant="outline"
-                  className="secondary-button"
-                  onClick={() => void diagnostics.refresh()}
-                >
-                  {t("action.retry")}
-                </Button>
-              </div>
-            )}
-            {error && (
-              <p className="wizard-error" role="alert">
-                {error}
-              </p>
-            )}
-            {diagnostics.mode === "ready" && current && (
-              <StepBody
-                id={currentId}
-                assessment={assessment}
-                report={diagnostics.result?.report ?? null}
-                current={current}
-                lang={lang}
-                session={session}
-                checking={checking}
-                onRecheck={recheck}
-                onEnsureHelper={ensureHelper}
-                onOpenGuide={onOpenGuide}
-                onOpenRepair={onOpenRepair}
-              />
-            )}
-          </div>
-        </div>
-
-        <footer className="wizard-footer">
-          <span className="wizard-progress">
-            {t(
-              "wizard.setup.stepOf",
-              step + 1,
-              SETUP_STEP_COUNT,
-            )}
-          </span>
-          <div className="wizard-footer-actions">
-            <Button
-              variant="ghost"
-              className="wizard-secondary"
-              onClick={back}
-              disabled={step === 0}
-            >
-              {t("wizard.back")}
+          {step < SETUP_STEP_COUNT - 1 ? (
+            <Button className="wizard-primary" onClick={next}>
+              {t("wizard.next")}
             </Button>
-            {step < SETUP_STEP_COUNT - 1 ? (
-              <Button className="wizard-primary" onClick={next}>
-                {t("wizard.next")}
-              </Button>
-            ) : (
-              <Button
-                className="wizard-primary"
-                onClick={onClose}
-                disabled={checking}
-              >
-                {assessment.complete
-                  ? t("wizard.verify.finish")
-                  : t("wizard.verify.finishGuide")}
-              </Button>
-            )}
-          </div>
-        </footer>
-      </UIDialogContent>
-    </UIDialog>
+          ) : (
+            <Button
+              className="wizard-primary"
+              onClick={onClose}
+              disabled={checking}
+            >
+              {assessment.complete
+                ? t("wizard.verify.finish")
+                : t("wizard.verify.finishGuide")}
+            </Button>
+          )}
+        </div>
+      </footer>
+    </section>
   );
 }
 

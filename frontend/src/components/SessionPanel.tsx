@@ -1,13 +1,5 @@
 import { useEffect, useState } from "react";
 
-import {
-  Dialog as UIDialog,
-  DialogContent as UIDialogContent,
-  DialogDescription as UIDialogDescription,
-  DialogFooter as UIDialogFooter,
-  DialogHeader as UIDialogHeader,
-  DialogTitle as UIDialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -74,6 +66,7 @@ export function SessionPanel({
   session,
   onSelectLast,
   guideRequest = 0,
+  onGuideRequestHandled,
   onOpenSetup,
   onOpenRepair,
 }: {
@@ -84,13 +77,17 @@ export function SessionPanel({
   session: SessionController;
   onSelectLast: (appId: number) => void;
   guideRequest?: number;
+  onGuideRequestHandled?: () => void;
   onOpenSetup: () => void;
   onOpenRepair: (checkId?: string) => void;
 }) {
   const [tab, setTab] = useState<Tab>("session");
   useEffect(() => {
-    if (guideRequest > 0) setTab("guide");
-  }, [guideRequest]);
+    if (guideRequest > 0) {
+      setTab("guide");
+      onGuideRequestHandled?.();
+    }
+  }, [guideRequest, onGuideRequestHandled]);
   const t = (key: MessageKey, ...args: Array<string | number>) =>
     translate(lang, key, ...args);
   const state = session.state;
@@ -191,7 +188,6 @@ export function SessionPanel({
           <GuidePanel lang={lang} session={session} />
         </UITabsContent>
       </UITabs>
-      <SessionDialog lang={lang} session={session} />
     </aside>
   );
 }
@@ -335,13 +331,6 @@ function SelectionPanel({
         </div>
       </div>
 
-      {game.problem && <p className="hint">{problemText(lang, game.problem)}</p>}
-      {!donorInstalled && <p className="hint-amber">{t("selection.donorHint")}</p>}
-      {donorInstalled && !installed && (
-        <p className="hint-amber">{t(`setup.${setupStatus}` as MessageKey)}</p>
-      )}
-      <p className="hint">{t("selection.privacy")}</p>
-
       <div className="session-actions selection-actions">
         {!donorInstalled ? (
           <Button
@@ -369,6 +358,13 @@ function SelectionPanel({
           </Button>
         )}
       </div>
+
+      {game.problem && <p className="hint">{problemText(lang, game.problem)}</p>}
+      {!donorInstalled && <p className="hint-amber">{t("selection.donorHint")}</p>}
+      {donorInstalled && !installed && (
+        <p className="hint-amber">{t(`setup.${setupStatus}` as MessageKey)}</p>
+      )}
+      <p className="hint">{t("selection.privacy")}</p>
 
       {session.launching === game.appId && <LaunchPrompt lang={lang} />}
 
@@ -445,7 +441,6 @@ function LastFull({
           <Meta label={t("last.ended")} value={formatDate(last.endedAt, lang)} />
         </div>
       </div>
-      <p className="hint">{t(SOURCE_KEY[last.source])}</p>
       <div className="session-actions">
         <Button
           className="primary-button"
@@ -463,6 +458,7 @@ function LastFull({
         </Button>
         <RestoreAction lang={lang} session={session} />
       </div>
+      <p className="hint">{t(SOURCE_KEY[last.source])}</p>
       {session.launching === last.appId && <LaunchPrompt lang={lang} />}
     </>
   );
@@ -520,6 +516,15 @@ function PreparingPanel({
         <h2 className="section-title">{t("prep.title")}</h2>
         <p className="hint">{t("prep.step", index + 1, PREP_STEPS.length)}</p>
       </div>
+      <div className="session-actions">
+        <Button
+          className="primary-button"
+          onClick={() => void session.cancel()}
+          disabled={!cancelable || session.busy}
+        >
+          {cancelable ? t("action.cancel") : t("session.starting")}
+        </Button>
+      </div>
       <ol className="steps">
         {PREP_STEPS.map((key, step) => (
           <li
@@ -537,15 +542,6 @@ function PreparingPanel({
       ) : (
         <p className="hint">{t("prep.cancelHint")}</p>
       )}
-      <div className="session-actions">
-        <Button
-          className="primary-button"
-          onClick={() => void session.cancel()}
-          disabled={!cancelable || session.busy}
-        >
-          {cancelable ? t("action.cancel") : t("session.starting")}
-        </Button>
-      </div>
     </>
   );
 }
@@ -587,6 +583,11 @@ function ActivePanel({
           <Meta label={t("session.elapsed")} value={clock(now - started)} />
         </div>
       </div>
+      <div className="session-actions">
+        <Button className="primary-button" disabled>
+          {t("status.active")}
+        </Button>
+      </div>
       <section>
         <h3 className="section-title">{t("session.guide")}</h3>
         <ol className="steps">
@@ -602,11 +603,6 @@ function ActivePanel({
       </section>
       <p className="hint">{t("session.locked")}</p>
       <p className="hint-amber">{t("session.actionHint")}</p>
-      <div className="session-actions">
-        <Button className="primary-button" disabled>
-          {t("status.active")}
-        </Button>
-      </div>
     </>
   );
 }
@@ -653,22 +649,6 @@ function EndedPanel({
           </div>
         )}
       </div>
-      {error && (
-        <div className="callout" data-tone="coral">
-          <p className="callout-body">{problemText(lang, error)}</p>
-          {error.detail && (
-            <details className="error-detail">
-              <summary>{t("error.detail")}</summary>
-              <pre>{error.detail}</pre>
-            </details>
-          )}
-        </div>
-      )}
-      {!error && session.situation?.restore !== "available" && (
-        <p className="hint-amber">
-          {t(restoreReasonKey(session.situation?.restore ?? "not_needed"))}
-        </p>
-      )}
       <div className="session-actions">
         {restoreAvailable && (
           <Button
@@ -713,6 +693,22 @@ function EndedPanel({
           {t("action.viewGuide")}
         </Button>
       </div>
+      {error && (
+        <div className="callout" data-tone="coral">
+          <p className="callout-body">{problemText(lang, error)}</p>
+          {error.detail && (
+            <details className="error-detail">
+              <summary>{t("error.detail")}</summary>
+              <pre>{error.detail}</pre>
+            </details>
+          )}
+        </div>
+      )}
+      {!error && session.situation?.restore !== "available" && (
+        <p className="hint-amber">
+          {t(restoreReasonKey(session.situation?.restore ?? "not_needed"))}
+        </p>
+      )}
       {session.launching === state.targetAppId && <LaunchPrompt lang={lang} />}
     </>
   );
@@ -730,7 +726,8 @@ function DetailsPanel({ lang, selected }: { lang: Language; selected?: Game }) {
   }
   return (
     <div className="session-body">
-      <h2 className="section-title">{selected.name}</h2>
+      <h2 className="section-title">{t("details.title")}</h2>
+      <h3 className="game-title">{selected.name}</h3>
       <div className="details-list">
         <DetailRow label={t("details.appid")} value={String(selected.appId)} />
         <DetailRow label={t("details.kind")} value={gameKindLabel(lang, selected.kind)} />
@@ -780,7 +777,7 @@ function GuidePanel({ lang, session }: { lang: Language; session: SessionControl
           <li className="guide-step" key={step.title}>
             <span className="step-index">{String(index + 1).padStart(2, "0")}</span>
             <div>
-              <h4 className="section-title">{t(step.title)}</h4>
+              <h3 className="section-title">{t(step.title)}</h3>
               <p className="hint">{t(step.body)}</p>
               {step.image && step.alt && (
                 <img
@@ -814,49 +811,6 @@ function GuidePanel({ lang, session }: { lang: Language; session: SessionControl
         </Collapsible>
       )}
     </div>
-  );
-}
-
-function SessionDialog({ lang, session }: { lang: Language; session: SessionController }) {
-  const t = (key: MessageKey) => translate(lang, key);
-  const dialog = session.dialog;
-  const unknown = dialog?.kind === "unknown";
-
-  return (
-    <UIDialog
-      open={dialog !== null}
-      onOpenChange={(open) => {
-        if (!open) session.closeDialog();
-      }}
-    >
-      <UIDialogContent className="dialog-content" showCloseButton={false}>
-        <UIDialogHeader className="dialog-header">
-          <UIDialogTitle className="dialog-title">
-            {t(unknown ? "dialog.unknown.title" : "dialog.restore.title")}
-          </UIDialogTitle>
-          <UIDialogDescription className="dialog-body">
-            {t(unknown ? "dialog.unknown.body" : "dialog.restore.body")}
-          </UIDialogDescription>
-        </UIDialogHeader>
-        <UIDialogFooter className="dialog-actions">
-          <Button
-            variant="outline"
-            className="dialog-button"
-            onClick={() => session.closeDialog()}
-          >
-            {t("common.cancel")}
-          </Button>
-          <Button
-            className="dialog-button"
-            data-primary="true"
-            onClick={() => void session.confirmDialog()}
-            disabled={session.busy}
-          >
-            {t(unknown ? "common.continue" : "action.restore")}
-          </Button>
-        </UIDialogFooter>
-      </UIDialogContent>
-    </UIDialog>
   );
 }
 

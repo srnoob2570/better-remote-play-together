@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 import { bridge } from "../bridge/wails";
 import { copyText } from "../clipboard";
@@ -92,9 +93,9 @@ export function DiagnosticsPane({
 
       <div className="diagnostics-heading">
         <div className="diagnostics-intro">
-          <h2 id="diagnostics-title" className="diagnostics-title">
+          <h1 id="diagnostics-title" className="diagnostics-title" tabIndex={-1}>
             {t("diagnostics.title")}
-          </h2>
+          </h1>
           <p className="hint">{t("diagnostics.intro")}</p>
         </div>
         <div className="diagnostics-actions">
@@ -134,9 +135,16 @@ export function DiagnosticsPane({
       </div>
 
       {mode === "loading" && (
-        <p className="diagnostics-loading" aria-busy="true">
-          {t("diagnostics.loading")}
-        </p>
+        <div
+          className="diagnostic-list diagnostic-skeletons"
+          role="status"
+          aria-busy="true"
+          aria-label={t("diagnostics.loading")}
+        >
+          {[0, 1, 2, 3].map((index) => (
+            <Skeleton key={index} className="diagnostic-card-skeleton" />
+          ))}
+        </div>
       )}
 
       {mode === "error" && (
@@ -182,13 +190,13 @@ export function DiagnosticsPane({
             <>
               {problems.length > 0 ? (
                 <section className="diagnostic-group" aria-labelledby="diagnostics-attention">
-                  <h3
+                  <h2
                     id="diagnostics-attention"
                     className="diagnostic-group-title"
                     data-verdict={attentionTone}
                   >
                     {t("diagnostics.attentionCount", problems.length)}
-                  </h3>
+                  </h2>
                   <div className="diagnostic-list">
                     {problems.map((check) => (
                       <DiagnosticCard
@@ -245,7 +253,7 @@ function DiagnosticCard({
     <article className="diagnostic-card" data-status={check.status}>
       <div className="diagnostic-card-head">
         <span className="diagnostic-status">{diagnosticStatusLabel(t, check.status)}</span>
-        <h4 className="diagnostic-card-title">{check.title}</h4>
+        <h3 className="diagnostic-card-title">{check.title}</h3>
         <span className="diagnostic-id mono">{check.id}</span>
       </div>
       <p className="diagnostic-message">{check.message}</p>
@@ -292,7 +300,7 @@ function DiagnosticRow({
       <span className="diagnostic-row-status">{diagnosticStatusLabel(t, check.status)}</span>
       <div className="diagnostic-row-main">
         <div className="diagnostic-row-head">
-          <h4 className="diagnostic-row-title">{check.title}</h4>
+          <h3 className="diagnostic-row-title">{check.title}</h3>
           <span className="diagnostic-id mono">{check.id}</span>
         </div>
         <p className="diagnostic-row-message">{check.message}</p>
