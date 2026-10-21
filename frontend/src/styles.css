@@ -140,6 +140,10 @@ button {
   min-width: 0;
 }
 
+.brand > div {
+  min-width: 0;
+}
+
 .brand-mark {
   width: 28px;
   height: 28px;
@@ -979,6 +983,12 @@ button {
   .app-main {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(0, 42%) minmax(0, 1fr);
+    padding-bottom: var(--size-dock-height);
+  }
+
+  .library-pane,
+  .session-pane {
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent);
   }
 
   .session-pane {
@@ -1198,8 +1208,15 @@ button {
 }
 
 .app-version {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-right: 1px solid var(--color-line-soft);
   color: var(--color-muted-ink);
-  font-size: var(--size-caption);
+  font-family: var(--font-code);
+  font-size: 12px;
+  line-height: 44px;
+  letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -1208,8 +1225,29 @@ button {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  height: 44px;
   flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--color-raised);
+  box-shadow:
+    0 0 0 1px var(--color-line),
+    0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.update-control[data-state="available"],
+.update-control[data-state="downloading"],
+.update-control[data-state="installing"],
+.update-control[data-state="restartPending"] {
+  box-shadow:
+    0 0 0 1px var(--color-amber),
+    0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.update-control[data-state="error"] {
+  box-shadow:
+    0 0 0 1px var(--color-coral),
+    0 8px 24px rgba(0, 0, 0, 0.28);
 }
 
 .update-button {
@@ -1217,23 +1255,25 @@ button {
   min-width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid var(--color-line-soft);
-  border-radius: 2px;
-  background: var(--color-ink);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--color-cream);
 }
 
 .update-button:hover:not(:disabled) {
-  border-color: var(--color-amber);
+  background: var(--color-line-soft);
   color: var(--color-amber);
-  background: var(--color-raised);
+}
+
+.update-button:focus-visible {
+  outline-offset: -3px;
 }
 
 .update-button[data-state="available"],
 .update-button[data-state="downloading"],
 .update-button[data-state="installing"],
 .update-button[data-state="restartPending"] {
-  border-color: var(--color-amber);
   color: var(--color-amber);
 }
 
@@ -1247,7 +1287,6 @@ button {
 }
 
 .update-button[data-state="error"] {
-  border-color: var(--color-coral);
   color: var(--color-coral);
 }
 
@@ -1265,25 +1304,6 @@ button {
   flex: 0 0 auto;
 }
 
-.update-dot {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-amber);
-  box-shadow: 0 0 0 2px var(--color-ink);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.update-dot[data-visible="true"] {
-  opacity: 1;
-  visibility: visible;
-}
-
 .language-menu {
   display: inline-flex;
   align-items: center;
@@ -1295,17 +1315,18 @@ button {
   min-width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid var(--color-line-soft);
-  border-radius: 2px;
-  background: var(--color-ink);
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  background: var(--color-raised);
   color: var(--color-cream);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 
 .language-trigger:hover,
 .language-trigger[data-state="open"] {
   border-color: var(--color-amber);
   color: var(--color-amber);
-  background: var(--color-raised);
+  background: var(--color-line-soft);
 }
 
 .language-trigger svg {

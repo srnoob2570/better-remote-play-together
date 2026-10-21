@@ -13,6 +13,10 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   esquina inferior izquierda, con un botón de solo icono, tooltip y estados con
   iconos y spinner. El selector de idioma pasa a un botón flotante con icono y
   menú desplegable en la esquina inferior derecha.
+- Los controles inferiores comparten una superficie flotante, con la versión
+  en monoespaciada, el estado de actualización en el icono y el mismo
+  tratamiento para el selector de idioma. En ventanas estrechas reservan su
+  altura para no tapar el contenido.
 - El arranque y el refresco del catálogo evitan trabajo duplicado: la
   biblioteca principal se recorre una sola vez, la detección del tipo de
   instalación se calcula una vez por proceso, las portadas se resuelven sin

@@ -251,7 +251,7 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
   })();
 
   return (
-    <div className="update-control">
+    <div className="update-control" data-state={phase}>
       {versionText && <span className="app-version">{versionText}</span>}
       <Tooltip>
         <TooltipTrigger asChild>
@@ -266,7 +266,6 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
             onClick={onButtonClick}
           >
             <PhaseIcon phase={phase} />
-            <span className="update-dot" data-visible={showBadge} aria-hidden="true" />
           </Button>
         </TooltipTrigger>
         <TooltipContent side="top" align="start" sideOffset={8} className="app-tooltip">
