@@ -15,18 +15,20 @@ const (
 	controllerConfigRoot    = "controller_config"
 	controllerConfigSetGlob = "configset_controller_"
 	controllerConfigSetExt  = ".vdf"
-	controllerMobileTouch   = "mobile_touch"
 	controllerAppID         = "480"
+	controllerAutosaveKey   = "autosave"
 	controllerTemplateKey   = "template"
 	controllerTemplateTail  = "_gamepad_joystick.vdf"
 )
 
 // ControllerLayoutResult describes the idempotent SpaceWar Steam Input pass.
-// Applied lists configsets that gained a 480 entry; Already lists ones that
-// already pointed at the expected template; Existing lists ones left alone
-// because SpaceWar already had a custom/autosave entry.
+// Applied lists configsets that gained a 480 entry; Replaced lists ones whose
+// automatic autosave selection was switched to the expected template; Already
+// lists ones that already pointed at it; Existing lists ones left alone because
+// SpaceWar already had an explicit custom layout.
 type ControllerLayoutResult struct {
 	Applied  []string
+	Replaced []string
 	Already  []string
 	Existing []string
 	Skipped  []string
@@ -34,9 +36,11 @@ type ControllerLayoutResult struct {
 }
 
 // EnsureGenericControllerLayouts makes SpaceWar use the generic gamepad
-// template for physical controller types. It only adds a missing 480 entry and
-// never overwrites an existing custom layout. Steam may cache the selection
-// while it is running; the entry is still durable for the next reload.
+// template for every known controller type, including touch. It adds a missing
+// 480 entry and switches an automatic autosave selection to the template, but
+// never overwrites an explicit custom layout. The autosave file is left
+// untouched. Steam may cache the selection while it is running; the entry is
+// still durable for the next reload.
 func EnsureGenericControllerLayouts(steamRoot string) (ControllerLayoutResult, error) {
 	var result ControllerLayoutResult
 	if steamRoot == "" {
@@ -67,9 +71,6 @@ func EnsureGenericControllerLayouts(steamRoot string) (ControllerLayoutResult, e
 			continue
 		}
 		controllerType := strings.TrimSuffix(strings.TrimPrefix(name, controllerConfigSetGlob), controllerConfigSetExt)
-		if controllerType == controllerMobileTouch {
-			continue
-		}
 		template := "controller_" + controllerType + controllerTemplateTail
 		if _, err := os.Stat(filepath.Join(templatesDir, template)); err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
@@ -88,6 +89,8 @@ func EnsureGenericControllerLayouts(steamRoot string) (ControllerLayoutResult, e
 		switch outcome {
 		case controllerConfigApplied:
 			result.Applied = append(result.Applied, name)
+		case controllerConfigReplaced:
+			result.Replaced = append(result.Replaced, name)
 		case controllerConfigAlready:
 			result.Already = append(result.Already, name)
 		case controllerConfigExisting:
@@ -101,6 +104,7 @@ type controllerConfigOutcome uint8
 
 const (
 	controllerConfigApplied controllerConfigOutcome = iota
+	controllerConfigReplaced
 	controllerConfigAlready
 	controllerConfigExisting
 )
@@ -122,7 +126,21 @@ func ensureControllerConfigSet(path, template string) (controllerConfigOutcome, 
 		if value, ok := scalarVDFChild(entry, controllerTemplateKey); ok && value == template {
 			return controllerConfigAlready, nil
 		}
-		return controllerConfigExisting, nil
+		autosave, ok := autosaveVDFChild(entry)
+		if !ok {
+			return controllerConfigExisting, nil
+		}
+		updated, err := replaceAutosaveWithTemplate(data, autosave, template)
+		if err != nil {
+			return 0, err
+		}
+		if err := verifyControllerTemplate(updated, template); err != nil {
+			return 0, err
+		}
+		if err := writeLocalConfig(path, updated, mode); err != nil {
+			return 0, err
+		}
+		return controllerConfigReplaced, nil
 	}
 	updated, err := insertControllerTemplate(data, root.Object, template)
 	if err != nil {
@@ -135,6 +153,29 @@ func ensureControllerConfigSet(path, template string) (controllerConfigOutcome, 
 		return 0, err
 	}
 	return controllerConfigApplied, nil
+}
+
+// autosaveVDFChild reports the 480 entry when its only content is Steam's
+// automatic autosave selection. Anything else is an explicit layout and must
+// be preserved.
+func autosaveVDFChild(entry *vdfNode) (*vdfNode, bool) {
+	if entry == nil || entry.Object == nil || len(entry.Object.Children) != 1 {
+		return nil, false
+	}
+	child := entry.Object.Children[0]
+	if child.Key != controllerAutosaveKey || child.Object != nil || child.Conditional {
+		return nil, false
+	}
+	return child, true
+}
+
+func replaceAutosaveWithTemplate(data []byte, autosave *vdfNode, template string) ([]byte, error) {
+	token, err := encodeVDFValue(template)
+	if err != nil {
+		return nil, err
+	}
+	replacement := fmt.Sprintf("%q\t\t%s", controllerTemplateKey, token)
+	return replaceSpan(data, autosave.KeyStart, autosave.End, []byte(replacement)), nil
 }
 
 func controllerConfigObject(document *vdfDocument) (*vdfNode, error) {

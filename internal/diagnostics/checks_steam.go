@@ -252,12 +252,19 @@ func (e *evaluator) checkControllers() {
 	}
 	evidence := []string{
 		fmt.Sprintf("missing=%d", len(inspection.Missing)),
+		fmt.Sprintf("autosave=%d", len(inspection.Autosave)),
 		fmt.Sprintf("already=%d", len(inspection.Already)),
 		fmt.Sprintf("existing=%d", len(inspection.Existing)),
 	}
-	if len(inspection.Missing) > 0 {
-		evidence = append(evidence, "missing_sets="+strings.Join(inspection.Missing, ","))
-		e.add(CheckControls, StatusWarn, "diag.steam.controllers.missing", []any{len(inspection.Missing)},
+	pending := len(inspection.Missing) + len(inspection.Autosave)
+	if pending > 0 {
+		if len(inspection.Missing) > 0 {
+			evidence = append(evidence, "missing_sets="+strings.Join(inspection.Missing, ","))
+		}
+		if len(inspection.Autosave) > 0 {
+			evidence = append(evidence, "autosave_sets="+strings.Join(inspection.Autosave, ","))
+		}
+		e.add(CheckControls, StatusWarn, "diag.steam.controllers.missing", []any{pending},
 			evidence, "diag.steam.controllers.next", "docs/compatibility.md")
 		return
 	}

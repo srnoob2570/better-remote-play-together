@@ -25,6 +25,7 @@ type sessionRunner interface {
 // StartSession validates the target, arms the dispatcher intent and asks Steam
 // to launch SpaceWar. Steam may remain open; Better RPT never closes it.
 func (s *Service) StartSession(ctx context.Context, options session.StartOptions) (session.Active, error) {
+	s.refreshControllerLayouts()
 	runner, err := s.sessionRunner(ctx)
 	if err != nil {
 		return session.Active{}, err
@@ -34,6 +35,7 @@ func (s *Service) StartSession(ctx context.Context, options session.StartOptions
 
 // ReplaySession repeats the durable last launch with the same parameters.
 func (s *Service) ReplaySession(ctx context.Context) (session.Active, error) {
+	s.refreshControllerLayouts()
 	runner, err := s.sessionRunner(ctx)
 	if err != nil {
 		return session.Active{}, err

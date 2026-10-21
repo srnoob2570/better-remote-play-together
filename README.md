@@ -179,8 +179,10 @@ toca opciones de lanzamiento de otras aplicaciones.
   Si el overlay no aparece, revisa la configuración de Steam y el juego. Hay una
   regresión conocida de Steam documentada en `docs/known-issues.md`.
 - **Steam Input:** al conservar la identidad del donante, Steam puede cargar el
-  layout de SpaceWar para el mando del invitado. Better RPT intenta aplicar una
-  plantilla Gamepad genérica al iniciar; si no puede, usa una manualmente. Ver
+  layout de SpaceWar para el mando del invitado. Better RPT cambia la selección
+  automática (`autosave`) de los configsets por una plantilla Gamepad genérica,
+  también en el control táctil, sin tocar layouts personalizados. Si Steam
+  mantiene el layout del juego, desactiva Steam Input para SpaceWar. Ver
   `docs/known-issues.md`.
 - **Actualizaciones de Steam:** el formato de `localconfig.vdf` o `appinfo.vdf`
   puede cambiar. Better RPT muestra un error y no escribe datos dudosos.
@@ -317,12 +319,15 @@ corrige la pérdida de paquetes de la red local. Detalles y enlaces en
 ### El mando del invitado aparece conectado pero no responde
 
 Steam Input está cargando el layout de SpaceWar (App ID 480) para el mando del
-invitado. Better RPT aplica al iniciar una plantilla **Gamepad** genérica a los
-configsets de mandos físicos, sin tocar el control táctil ni sobrescribir un
-layout existente. Si no se aplicó, hazlo manualmente en SpaceWar > Administrar >
-Configuración del controlador. Cierra el overlay antes de comprobar el mando; si
-está en crash-loop, reinicia Steam. Aún falta verificarlo con un invitado real.
-Ver [`docs/known-issues.md`](docs/known-issues.md).
+invitado. Better RPT cambia al iniciar y antes de cada lanzamiento la selección
+automática (`autosave`) de los configsets por una plantilla **Gamepad**
+genérica, incluido `controller_mobile_touch`; no modifica el archivo autosave ni
+sobrescribe un layout personalizado. Si el editor sigue mostrando «Spacewar
+Menu Controls», comprueba que la entrada `480` apunta a
+`controller_<tipo>_gamepad_joystick.vdf` y, como alternativa, desactiva Steam
+Input para SpaceWar en Steam > Administrar > Configuración del controlador.
+Cierra el overlay antes de comprobar el mando; si está en crash-loop, reinicia
+Steam. Ver [`docs/known-issues.md`](docs/known-issues.md).
 
 ## Desinstalación
 

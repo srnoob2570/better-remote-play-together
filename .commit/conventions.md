@@ -51,6 +51,11 @@
   `config.BuildDispatcherLaunchOption`. La pestaña Guía y los wizards comparten
   `frontend/src/components/DispatcherSetup.tsx`; no duplicar el comando ni el
   orden de guardar el original antes de copiar.
+- Steam puede reponer `configset_controller_<tipo>.vdf` con `"autosave" "1"`
+  después de guardar un layout. Better RPT sustituye solo esa selección
+  automática por `controller_<tipo>_gamepad_joystick.vdf`, también en
+  `controller_mobile_touch`; el archivo `config/480/controller_<tipo>.vdf` es el
+  autosave y no se modifica. La reparación se repite antes de cada lanzamiento.
 - `Service.EnsureHelper` se ejecuta al arrancar la GUI y copia el helper
   empaquetado a la ruta XDG estable. La instalación y la restauración del
   dispatcher siguen exigiendo Steam cerrado; ningún wizard lo cierra.

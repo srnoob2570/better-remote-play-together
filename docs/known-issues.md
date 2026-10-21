@@ -1,6 +1,6 @@
 # Problemas conocidos de Steam
 
-Estado: 2026-10-19. Son problemas del cliente de Steam que afectan a Better RPT
+Estado: 2026-10-20. Son problemas del cliente de Steam que afectan a Better RPT
 pero no se originan en su código. Se documentan para no confundirlos con fallos
 del lanzador.
 
@@ -59,27 +59,42 @@ responde. Puede ocurrir con un mando físico o con los controles táctiles.
   al abrir el overlay. Si el overlay se queda colgado, el input puede seguir
   deshabilitado.
 
-**Interpretación.** Las dos hipótesis apuntan al mismo mecanismo: al conservar
-`SteamGameId` y `SteamOverlayGameId` del donante, Steam Input asocia el mando
-del invitado a SpaceWar, carga su preset y mantiene el foco en 480. El juego
-objetivo recibe poco o ningún input. El mando no está desconectado.
+**Evidencia local (2026-10-20, Steam Link móvil).**
 
-**Aplicación automática.** Al refrescar el catálogo, Better RPT añade la
-entrada `"480" { "template" "controller_<tipo>_gamepad_joystick.vdf" }` a los
-`configset_controller_<tipo>.vdf` de mandos físicos que ya existan. No requiere
-tener el mando conectado, no toca `controller_mobile_touch`, no sobrescribe un
-`480` propio o `autosave` y es idempotente. Si Steam está abierto puede mantener
-la selección cacheada; reconecta el mando o reinicia Steam. Better RPT no cierra
-Steam. Los configsets sin plantilla disponible se omiten.
+- Controller 0 era `controller_mobile_touch` (Type 43, serial `MT-…`).
+- Steam cargó `.../config/480/controller_mobile_touch.vdf` para App ID 480.
+- El editor mostró **Spacewar Menu Controls**, **Spacewar Thrust Layer** y
+  **Spacewar Ship Controls**. Ese archivo contiene los action sets
+  `menu_controls`, `thrust_action_layer` y `ship_controls`: es el autosave del
+  layout de SpaceWar, no una plantilla genérica.
+- El configset táctil seguía con `"480" { "autosave" "1" }` y la aplicación
+  excluía explícitamente `controller_mobile_touch`.
+
+**Interpretación.** Al conservar `SteamGameId` y `SteamOverlayGameId` del
+donante, Steam Input asocia el mando del invitado a SpaceWar, carga su preset y
+mantiene el foco en 480. El juego objetivo recibe poco o ningún input. El mando
+no está desconectado.
+
+**Aplicación automática.** Al refrescar el catálogo y antes de cada
+lanzamiento, Better RPT añade la entrada
+`"480" { "template" "controller_<tipo>_gamepad_joystick.vdf" }` a los
+`configset_controller_<tipo>.vdf` que ya existan, o sustituye una selección
+automática `"autosave" "1"` por esa plantilla. Incluye
+`controller_mobile_touch`. No modifica el archivo autosave ni sobrescribe un
+`template` explícito (workshop o personalizado) y es idempotente. Si Steam está
+abierto puede mantener la selección cacheada; reconecta el mando o reinicia
+Steam. Better RPT no cierra Steam. Los configsets sin plantilla disponible se
+omiten.
 
 **Pruebas pendientes.**
 
-1. Verificar con un invitado real que Steam carga la plantilla genérica después
-   de aplicar el cambio. Es la prueba que falta para cerrar la hipótesis.
+1. Verificar con un invitado real, físico y táctil, que Steam carga la plantilla
+   genérica después de aplicar el cambio. Es la prueba que falta para cerrar la
+   hipótesis.
 2. Si no se aplica, revisar el aviso de configuración en la app y comprobar si
    el mando usa un `configset` específico que tenga prioridad.
 3. Si la plantilla no basta, probar con Steam Input desactivado para SpaceWar y
-   confirmar que RPT sigue enviando el mando.
+   confirmar que RPT sigue enviando el mando. Puede afectar al control táctil.
 4. Cerrar el overlay antes de probar el mando. Si está en crash-loop, reiniciar
    Steam.
 5. Comparar con un mando local en el host para separar RPT de Steam Input.

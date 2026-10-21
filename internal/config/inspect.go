@@ -19,9 +19,11 @@ type OverlayInspection struct {
 }
 
 // ControllerLayoutInspection is the read-only result of checking SpaceWar's
-// entry in physical controller configsets. It never writes or repairs them.
+// entry in controller configsets, including touch. It never writes or repairs
+// them.
 type ControllerLayoutInspection struct {
 	Missing  []string
+	Autosave []string
 	Already  []string
 	Existing []string
 	Skipped  []string
@@ -74,9 +76,9 @@ func InspectOverlay(steamRoot string) (OverlayInspection, error) {
 	return OverlayInspection{Exists: true, Enabled: enabled}, nil
 }
 
-// InspectControllerLayouts checks the physical controller configsets for a
-// SpaceWar entry. EnsureGenericControllerLayouts performs the write path; this
-// function shares its VDF parsing and never calls the write path.
+// InspectControllerLayouts checks the controller configsets for a SpaceWar
+// entry. EnsureGenericControllerLayouts performs the write path; this function
+// shares its VDF parsing and never calls the write path.
 func InspectControllerLayouts(steamRoot string) (ControllerLayoutInspection, error) {
 	var result ControllerLayoutInspection
 	if strings.TrimSpace(steamRoot) == "" {
@@ -107,9 +109,6 @@ func InspectControllerLayouts(steamRoot string) (ControllerLayoutInspection, err
 			continue
 		}
 		controllerType := strings.TrimSuffix(strings.TrimPrefix(name, controllerConfigSetGlob), controllerConfigSetExt)
-		if controllerType == controllerMobileTouch {
-			continue
-		}
 		template := "controller_" + controllerType + controllerTemplateTail
 		if _, err := os.Stat(filepath.Join(templatesDir, template)); err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
@@ -143,6 +142,10 @@ func InspectControllerLayouts(steamRoot string) (ControllerLayoutInspection, err
 		value, ok := scalarVDFChild(spaceWar, controllerTemplateKey)
 		if ok && value == template {
 			result.Already = append(result.Already, name)
+			continue
+		}
+		if _, ok := autosaveVDFChild(spaceWar); ok {
+			result.Autosave = append(result.Autosave, name)
 			continue
 		}
 		result.Existing = append(result.Existing, name)

@@ -70,13 +70,17 @@ Política:
 
 - No bloquear el lanzamiento por el mando: es una limitación conocida, no una
   condición verificable antes de jugar.
-- Al refrescar el catálogo, Better RPT añade una referencia a la plantilla
-  **Gamepad** genérica en los `configset_controller_<tipo>.vdf` de mandos
-  físicos cuando falta la entrada `480`. No toca `controller_mobile_touch`, no
-  sobrescribe layouts existentes y no requiere un mando conectado.
+- Al refrescar el catálogo y antes de cada lanzamiento, Better RPT añade la
+  entrada `480` o sustituye una selección automática (`autosave`) por la
+  plantilla **Gamepad** genérica en los `configset_controller_<tipo>.vdf`,
+  incluido `controller_mobile_touch`. No modifica el archivo autosave ni
+  sobrescribe un `template` explícito (workshop o personalizado), y no requiere
+  un mando conectado.
 - Si el invitado ve el mando conectado pero el target no responde, comprobar que
   la entrada se aplicó y cerrar el overlay antes de repetir. Si Steam mantiene
-  la selección cacheada, reconectar el mando o reiniciar Steam.
+  la selección cacheada, reconectar el mando o reiniciar Steam. Como
+  alternativa, desactivar Steam Input para SpaceWar y confirmar que RPT sigue
+  enviando el mando.
 - No cambiar `SteamGameId`/`SteamOverlayGameId` sin una prueba real de RPT;
   conservar la identidad del donante es lo que mantiene la sesión y el overlay
   asociados a SpaceWar.

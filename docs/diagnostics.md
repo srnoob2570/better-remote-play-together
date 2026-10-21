@@ -111,7 +111,7 @@ aplica o que no se puede verificar sin root; no equivale a un fallo.
 | `steam.backups` | Backups disponibles. |
 | `steam.permissions` | Lectura/escritura de `localconfig.vdf` y `config.vdf`; aviso si Steam abierto. |
 | `steam.overlay` | Flag de overlay: `SKIP` si no existe, `WARN` si está desactivado. |
-| `steam.controllers` | Entrada 480 en configsets de mandos físicos. |
+| `steam.controllers` | Entrada 480 en configsets de mando, incluido el táctil. |
 | `steam.warnings` | Advertencias actuales del catálogo (`steam.Warning`). |
 
 ### Aplicación y sesión

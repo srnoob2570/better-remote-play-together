@@ -65,10 +65,10 @@ func TestEnsureGenericControllerLayoutsAddsMissingTemplateOnce(t *testing.T) {
 	touchPath := filepath.Join(configDir, "configset_controller_mobile_touch.vdf")
 	writeControllerTestFile(t, genericPath, "\"controller_config\"\n{\n\t\"123\"\n\t{\n\t\t\"autosave\"\t\t\"1\"\n\t}\n}\n")
 	writeControllerTestFile(t, xboxPath, "\"controller_config\"\n{\n}\n")
-	touchConfig := "\"controller_config\"\n{\n\t\"480\"\n\t{\n\t\t\"autosave\"\t\t\"1\"\n\t}\n}\n"
-	writeControllerTestFile(t, touchPath, touchConfig)
+	writeControllerTestFile(t, touchPath, "\"controller_config\"\n{\n\t\"480\"\n\t{\n\t\t\"autosave\"\t\t\"1\"\n\t}\n}\n")
 	writeControllerTestFile(t, filepath.Join(templatesDir, "controller_generic_gamepad_joystick.vdf"), "\"controller_mappings\"\n{\n}\n")
 	writeControllerTestFile(t, filepath.Join(templatesDir, "controller_xboxone_gamepad_joystick.vdf"), "\"controller_mappings\"\n{\n}\n")
+	writeControllerTestFile(t, filepath.Join(templatesDir, "controller_mobile_touch_gamepad_joystick.vdf"), "\"controller_mappings\"\n{\n}\n")
 
 	result, err := EnsureGenericControllerLayouts(root)
 	if err != nil {
@@ -76,6 +76,9 @@ func TestEnsureGenericControllerLayoutsAddsMissingTemplateOnce(t *testing.T) {
 	}
 	if len(result.Applied) != 2 {
 		t.Fatalf("applied = %v, want generic and xboxone", result.Applied)
+	}
+	if len(result.Replaced) != 1 || result.Replaced[0] != "configset_controller_mobile_touch.vdf" {
+		t.Fatalf("replaced = %v, want mobile touch", result.Replaced)
 	}
 	if got := readControllerTestFile(t, genericPath); !strings.Contains(got, `"480"`) ||
 		!strings.Contains(got, `"controller_generic_gamepad_joystick.vdf"`) ||
@@ -86,8 +89,10 @@ func TestEnsureGenericControllerLayoutsAddsMissingTemplateOnce(t *testing.T) {
 	if got := readControllerTestFile(t, xboxPath); !strings.Contains(got, `"controller_xboxone_gamepad_joystick.vdf"`) {
 		t.Fatalf("xboxone configset missing template:\n%s", got)
 	}
-	if got := readControllerTestFile(t, touchPath); got != touchConfig {
-		t.Fatalf("mobile touch config changed:\n%s", got)
+	if got := readControllerTestFile(t, touchPath); !strings.Contains(got, `"template"`) ||
+		!strings.Contains(got, `"controller_mobile_touch_gamepad_joystick.vdf"`) ||
+		strings.Contains(got, `"autosave"`) {
+		t.Fatalf("mobile touch configset was not switched to the template:\n%s", got)
 	}
 
 	firstGeneric := readControllerTestFile(t, genericPath)
@@ -95,11 +100,11 @@ func TestEnsureGenericControllerLayoutsAddsMissingTemplateOnce(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ensure layouts twice: %v", err)
 	}
-	if len(second.Applied) != 0 {
-		t.Fatalf("second applied = %v, want none", second.Applied)
+	if len(second.Applied) != 0 || len(second.Replaced) != 0 {
+		t.Fatalf("second changed configsets: applied=%v replaced=%v", second.Applied, second.Replaced)
 	}
-	if len(second.Already) != 2 {
-		t.Fatalf("second already = %v, want generic and xboxone", second.Already)
+	if len(second.Already) != 3 {
+		t.Fatalf("second already = %v, want generic, xboxone and mobile touch", second.Already)
 	}
 	if got := readControllerTestFile(t, genericPath); got != firstGeneric {
 		t.Fatalf("idempotent write changed content:\n%s", got)
@@ -126,11 +131,32 @@ func TestEnsureGenericControllerLayoutsPreservesExistingEntry(t *testing.T) {
 	}
 }
 
-func TestEnsureGenericControllerLayoutsPreservesAutosave(t *testing.T) {
+func TestEnsureGenericControllerLayoutsReplacesAutosave(t *testing.T) {
 	root := controllerTestRoot(t)
 	configDir := controllerTestConfigDir(root)
 	path := filepath.Join(configDir, "configset_controller_generic.vdf")
-	original := "\"controller_config\"\n{\n\t\"480\"\n\t{\n\t\t\"autosave\"\t\t\"1\"\n\t}\n}\n"
+	writeControllerTestFile(t, path, "\"controller_config\"\n{\n\t\"480\"\n\t{\n\t\t\"autosave\"\t\t\"1\"\n\t}\n}\n")
+	writeControllerTestFile(t, filepath.Join(controllerTestTemplatesDir(root), "controller_generic_gamepad_joystick.vdf"), "\"controller_mappings\"\n{\n}\n")
+
+	result, err := EnsureGenericControllerLayouts(root)
+	if err != nil {
+		t.Fatalf("ensure layouts: %v", err)
+	}
+	if len(result.Replaced) != 1 {
+		t.Fatalf("replaced = %v, want the autosave entry", result.Replaced)
+	}
+	if got := readControllerTestFile(t, path); !strings.Contains(got, `"template"`) ||
+		!strings.Contains(got, `"controller_generic_gamepad_joystick.vdf"`) ||
+		strings.Contains(got, `"autosave"`) {
+		t.Fatalf("autosave selection was not replaced:\n%s", got)
+	}
+}
+
+func TestEnsureGenericControllerLayoutsPreservesAutosaveWithExtraKeys(t *testing.T) {
+	root := controllerTestRoot(t)
+	configDir := controllerTestConfigDir(root)
+	path := filepath.Join(configDir, "configset_controller_generic.vdf")
+	original := "\"controller_config\"\n{\n\t\"480\"\n\t{\n\t\t\"autosave\"\t\t\"1\"\n\t\t\"custom\"\t\t\"1\"\n\t}\n}\n"
 	writeControllerTestFile(t, path, original)
 	writeControllerTestFile(t, filepath.Join(controllerTestTemplatesDir(root), "controller_generic_gamepad_joystick.vdf"), "\"controller_mappings\"\n{\n}\n")
 
@@ -139,10 +165,10 @@ func TestEnsureGenericControllerLayoutsPreservesAutosave(t *testing.T) {
 		t.Fatalf("ensure layouts: %v", err)
 	}
 	if len(result.Existing) != 1 {
-		t.Fatalf("existing = %v, want the autosave entry", result.Existing)
+		t.Fatalf("existing = %v, want the mixed entry", result.Existing)
 	}
 	if got := readControllerTestFile(t, path); got != original {
-		t.Fatalf("autosave layout was overwritten:\n%s", got)
+		t.Fatalf("mixed layout was overwritten:\n%s", got)
 	}
 }
 
@@ -173,5 +199,40 @@ func TestEnsureGenericControllerLayoutsMissingTemplateSkips(t *testing.T) {
 	}
 	if got := readControllerTestFile(t, path); got != original {
 		t.Fatalf("missing-template config changed:\n%s", got)
+	}
+}
+
+func TestInspectControllerLayoutsClassifiesSelections(t *testing.T) {
+	root := controllerTestRoot(t)
+	configDir := controllerTestConfigDir(root)
+	templatesDir := controllerTestTemplatesDir(root)
+
+	for _, controllerType := range []string{"generic", "xboxone", "switch_pro", "mobile_touch"} {
+		writeControllerTestFile(t, filepath.Join(templatesDir, "controller_"+controllerType+"_gamepad_joystick.vdf"), "\"controller_mappings\"\n{\n}\n")
+	}
+	writeControllerTestFile(t, filepath.Join(configDir, "configset_controller_generic.vdf"),
+		"\"controller_config\"\n{\n\t\"480\"\n\t{\n\t\t\"template\"\t\t\"controller_generic_gamepad_joystick.vdf\"\n\t}\n}\n")
+	writeControllerTestFile(t, filepath.Join(configDir, "configset_controller_xboxone.vdf"),
+		"\"controller_config\"\n{\n\t\"480\"\n\t{\n\t\t\"autosave\"\t\t\"1\"\n\t}\n}\n")
+	writeControllerTestFile(t, filepath.Join(configDir, "configset_controller_switch_pro.vdf"),
+		"\"controller_config\"\n{\n\t\"480\"\n\t{\n\t\t\"template\"\t\t\"custom_gamepad.vdf\"\n\t}\n}\n")
+	writeControllerTestFile(t, filepath.Join(configDir, "configset_controller_mobile_touch.vdf"),
+		"\"controller_config\"\n{\n}\n")
+
+	result, err := InspectControllerLayouts(root)
+	if err != nil {
+		t.Fatalf("inspect layouts: %v", err)
+	}
+	if len(result.Already) != 1 || result.Already[0] != "configset_controller_generic.vdf" {
+		t.Fatalf("already = %v, want generic", result.Already)
+	}
+	if len(result.Autosave) != 1 || result.Autosave[0] != "configset_controller_xboxone.vdf" {
+		t.Fatalf("autosave = %v, want xboxone", result.Autosave)
+	}
+	if len(result.Existing) != 1 || result.Existing[0] != "configset_controller_switch_pro.vdf" {
+		t.Fatalf("existing = %v, want switch_pro", result.Existing)
+	}
+	if len(result.Missing) != 1 || result.Missing[0] != "configset_controller_mobile_touch.vdf" {
+		t.Fatalf("missing = %v, want mobile_touch", result.Missing)
 	}
 }

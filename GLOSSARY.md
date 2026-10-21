@@ -155,9 +155,10 @@ Remote Play Together. Better RPT no implementa invitaciones propias.
 ## Configset de Steam Input
 
 Archivo `configset_controller_<tipo>.vdf` donde Steam guarda qué layout usa cada
-App ID para un tipo de mando. Better RPT añade una referencia a la plantilla
-Gamepad genérica de SpaceWar cuando falta, sin sobrescribir layouts existentes
-ni modificar el control táctil.
+App ID para un tipo de mando, incluido `controller_mobile_touch`. Better RPT
+añade una referencia a la plantilla Gamepad genérica de SpaceWar cuando falta o
+sustituye una selección automática `autosave`, sin modificar el archivo autosave
+ni sobrescribir layouts explícitos.
 
 ## Estado obsoleto (legacy)
 

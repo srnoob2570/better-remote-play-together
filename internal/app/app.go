@@ -139,29 +139,7 @@ func (s *Service) RefreshCatalog(ctx context.Context) (steam.Catalog, error) {
 	if err != nil {
 		return steam.Catalog{}, err
 	}
-	layout, layoutErr := config.EnsureGenericControllerLayouts(catalog.Installation.Root)
-	if layoutErr != nil {
-		s.log.Warn("controller layout", "error", layoutErr)
-		catalog.Warnings = append(catalog.Warnings, steam.Warning{Path: "Steam controller config", Err: layoutErr})
-	} else {
-		if len(layout.Applied) > 0 {
-			s.log.Info("controller layout applied", "configsets", layout.Applied)
-		}
-		if len(layout.Existing) > 0 {
-			s.log.Warn("controller layout kept", "configsets", layout.Existing)
-			catalog.Warnings = append(catalog.Warnings, steam.Warning{
-				Path: "Steam controller config",
-				Err:  fmt.Errorf("SpaceWar already has a controller layout for %v; it was not changed", layout.Existing),
-			})
-		}
-		if len(layout.Skipped) > 0 {
-			s.log.Debug("controller layout skipped", "configsets", layout.Skipped)
-		}
-		for _, warning := range layout.Warnings {
-			s.log.Warn("controller layout", "error", warning)
-			catalog.Warnings = append(catalog.Warnings, steam.Warning{Path: "Steam controller config", Err: warning})
-		}
-	}
+	catalog.Warnings = append(catalog.Warnings, s.applyControllerLayouts(catalog.Installation.Root)...)
 	s.mu.Lock()
 	s.catalog = catalog
 	s.hasCatalog = true
@@ -178,6 +156,53 @@ func (s *Service) Catalog() (steam.Catalog, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.catalog, s.hasCatalog
+}
+
+// applyControllerLayouts keeps SpaceWar's 480 selection on the generic gamepad
+// template and returns the warnings that belong in the catalog. It is
+// idempotent and also runs before every launch so a layout saved during a
+// previous stream is repaired.
+func (s *Service) applyControllerLayouts(steamRoot string) []steam.Warning {
+	if steamRoot == "" {
+		return nil
+	}
+	layout, err := config.EnsureGenericControllerLayouts(steamRoot)
+	if err != nil {
+		s.log.Warn("controller layout", "error", err)
+		return []steam.Warning{{Path: "Steam controller config", Err: err}}
+	}
+	var warnings []steam.Warning
+	if len(layout.Applied) > 0 {
+		s.log.Info("controller layout applied", "configsets", layout.Applied)
+	}
+	if len(layout.Replaced) > 0 {
+		s.log.Info("controller layout replaced autosave", "configsets", layout.Replaced)
+	}
+	if len(layout.Existing) > 0 {
+		s.log.Warn("controller layout kept", "configsets", layout.Existing)
+		warnings = append(warnings, steam.Warning{
+			Path: "Steam controller config",
+			Err:  fmt.Errorf("SpaceWar already has a controller layout for %v; it was not changed", layout.Existing),
+		})
+	}
+	if len(layout.Skipped) > 0 {
+		s.log.Debug("controller layout skipped", "configsets", layout.Skipped)
+	}
+	for _, warning := range layout.Warnings {
+		s.log.Warn("controller layout", "error", warning)
+		warnings = append(warnings, steam.Warning{Path: "Steam controller config", Err: warning})
+	}
+	return warnings
+}
+
+// refreshControllerLayouts repairs the cached installation before a launch
+// without rebuilding the catalog.
+func (s *Service) refreshControllerLayouts() {
+	catalog, ok := s.Catalog()
+	if !ok {
+		return
+	}
+	s.applyControllerLayouts(catalog.Installation.Root)
 }
 
 // SetLanguage validates, persists and applies a new UI language.
