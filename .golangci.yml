@@ -1,0 +1,12 @@
+version: "2"
+
+# Formateadores que ejecuta `golangci-lint fmt` (hook golangci-lint-fmt).
+# goimports agrupa stdlib, terceros y el módulo propio en ese orden.
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/srnoob2570/better-rpt

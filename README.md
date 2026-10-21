@@ -472,13 +472,12 @@ contenedor. Requiere Docker y nfpm v2.48.0; la receta manual está en
 ### Pre-commit
 
 El repo incluye `.pre-commit-config.yaml` con la base de normalización, escaneo
-de secretos, `goimports`, `golangci-lint` y `go mod tidy`. Se instala una vez por
-clon:
+de secretos, formato (`gofmt` + `goimports`), `golangci-lint` y `go mod tidy`.
+pre-commit instala las herramientas en un entorno aislado. Se activa una vez
+por clon:
 
 ```bash
 pipx install pre-commit
-go install golang.org/x/tools/cmd/goimports@latest
-export PATH="$(go env GOPATH)/bin:$PATH"
 pre-commit install
 pre-commit run --all-files
 ```
