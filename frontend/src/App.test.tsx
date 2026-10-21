@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
@@ -335,7 +335,7 @@ describe("library UI", () => {
     expect(mocked.CancelSession).toHaveBeenCalled();
   });
 
-  it("shows the launching label and Steam prompt while the start is pending", async () => {
+  it("shows the launching spinner and Steam prompt while the start is pending", async () => {
     const donor: Game = {
       appId: 480,
       name: "SpaceWar",
@@ -362,10 +362,13 @@ describe("library UI", () => {
     fireEvent.click(screen.getByRole("button", { name: "Jugar" }));
     fireEvent.click(await screen.findByRole("button", { name: "Continuar" }));
 
-    expect(await screen.findByRole("button", { name: "Lanzando…" })).toBeDisabled();
-    expect(
-      within(screen.getByRole("complementary", { name: "Sesión" })).getByRole("status"),
-    ).toHaveTextContent("Acepta «¿Permitir iniciar el juego?»");
+    const sessionPanel = screen.getByRole("complementary", { name: "Sesión" });
+    const play = within(sessionPanel).getByRole("button", { name: "Jugar" });
+    expect(play).toBeDisabled();
+    expect(play.querySelector('[data-slot="spinner"]')).toBeInTheDocument();
+    expect(within(sessionPanel).getByRole("status")).toHaveTextContent(
+      "Acepta «¿Permitir iniciar el juego?»",
+    );
   });
 
   it("renders the active session timer and guide", async () => {
@@ -539,11 +542,14 @@ describe("library UI", () => {
     expect(within(sessionPanel).getByText("stack")).toBeInTheDocument();
   });
 
-  it("renders skeletons while the snapshot is loading", () => {
+  it("renders skeletons and a spinner while the snapshot is loading", () => {
     mocked.Snapshot.mockReturnValue(new Promise(() => {}));
     render(<App />);
 
     expect(document.querySelector('[aria-busy="true"]')).toBeInTheDocument();
+    const refresh = screen.getByRole("button", { name: "Actualizar" });
+    expect(refresh).toBeDisabled();
+    expect(refresh.querySelector('[data-slot="spinner"]')).toBeInTheDocument();
   });
 
   it("opens diagnostics, copies the report and saves it", async () => {
@@ -587,6 +593,36 @@ describe("library UI", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Volver a la biblioteca" }));
     expect(await screen.findByRole("heading", { name: "Biblioteca" })).toBeInTheDocument();
+  });
+
+  it("shows a spinner only in the pending diagnostics action", async () => {
+    let finishCopy: () => void = () => {};
+    const writeText = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishCopy = resolve;
+        }),
+    );
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    render(<App />);
+    await screen.findAllByText("HELLDIVERS™ 2");
+    fireEvent.click(screen.getByRole("button", { name: "Diagnóstico" }));
+    await screen.findByRole("heading", { name: "Diagnóstico" });
+
+    const copyButton = screen.getByRole("button", { name: "Copiar informe" });
+    const saveButton = screen.getByRole("button", { name: "Guardar informe" });
+    fireEvent.click(copyButton);
+
+    expect(copyButton).toBeDisabled();
+    expect(copyButton.querySelector('[data-slot="spinner"]')).toBeInTheDocument();
+    expect(saveButton).toBeDisabled();
+    expect(saveButton.querySelector('[data-slot="spinner"]')).not.toBeInTheDocument();
+
+    finishCopy();
+    await waitFor(() => expect(copyButton).toBeEnabled());
   });
 
   it("does not promise a command for a dependency without one", async () => {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import {
   Collapsible,
   CollapsibleContent,
@@ -333,25 +334,27 @@ function SelectionPanel({
 
       <div className="session-actions selection-actions">
         {!donorInstalled ? (
-          <Button
+          <LoadingButton
             className="primary-button"
             onClick={() => void session.openSpaceWarInstall()}
+            loading={session.busyAction === "openSpaceWar"}
             disabled={session.busy}
           >
             {t("action.addSpacewar")}
-          </Button>
+          </LoadingButton>
         ) : blocked ? (
           <Button className="primary-button" disabled>
             {translate(lang, GAME_STATUS_KEY[game.status])}
           </Button>
         ) : installed ? (
-          <Button
+          <LoadingButton
             className="primary-button"
             onClick={() => session.requestStart(game)}
+            loading={session.launching === game.appId}
             disabled={session.busy}
           >
-            {session.launching === game.appId ? t("action.launching") : t("action.play")}
-          </Button>
+            {t("action.play")}
+          </LoadingButton>
         ) : (
           <Button className="primary-button" onClick={onOpenSetup}>
             {t("action.configure")}
@@ -442,13 +445,14 @@ function LastFull({
         </div>
       </div>
       <div className="session-actions">
-        <Button
+        <LoadingButton
           className="primary-button"
           onClick={() => void session.replay()}
+          loading={session.launching === last.appId}
           disabled={session.busy}
         >
-          {session.launching === last.appId ? t("action.launching") : t("action.playAgain")}
-        </Button>
+          {t("action.playAgain")}
+        </LoadingButton>
         <Button
           variant="outline"
           className="secondary-button"
@@ -517,13 +521,14 @@ function PreparingPanel({
         <p className="hint">{t("prep.step", index + 1, PREP_STEPS.length)}</p>
       </div>
       <div className="session-actions">
-        <Button
+        <LoadingButton
           className="primary-button"
           onClick={() => void session.cancel()}
+          loading={!cancelable || session.busyAction === "cancel"}
           disabled={!cancelable || session.busy}
         >
           {cancelable ? t("action.cancel") : t("session.starting")}
-        </Button>
+        </LoadingButton>
       </div>
       <ol className="steps">
         {PREP_STEPS.map((key, step) => (
@@ -660,25 +665,25 @@ function EndedPanel({
           </Button>
         )}
         {!error && (
-          <Button
+          <LoadingButton
             className={restoreAvailable ? "secondary-button" : "primary-button"}
             variant={restoreAvailable ? "outline" : "default"}
             onClick={() => void session.replay()}
+            loading={session.launching === state.targetAppId}
             disabled={session.busy}
           >
-            {session.launching === state.targetAppId
-              ? t("action.launching")
-              : t("action.playAgain")}
-          </Button>
+            {t("action.playAgain")}
+          </LoadingButton>
         )}
         {error && (
-          <Button
+          <LoadingButton
             className="primary-button"
             onClick={() => game && session.requestStart(game)}
+            loading={session.launching === state.targetAppId}
             disabled={!game || session.busy}
           >
-            {session.launching === state.targetAppId ? t("action.launching") : t("action.retry")}
-          </Button>
+            {t("action.retry")}
+          </LoadingButton>
         )}
         {error && (
           <Button

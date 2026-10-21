@@ -4,6 +4,7 @@ import { XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DialogClose } from "@/components/ui/dialog";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 
@@ -37,6 +38,7 @@ export function RepairWizard({
   const diagnostics = useDiagnostics(lang);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
+  const [copying, setCopying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<MessageKey | null>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -87,6 +89,19 @@ export function RepairWizard({
     setChecking(false);
   }
 
+  async function copyCommand(command: string) {
+    if (copying) return;
+    setCopying(true);
+    try {
+      await copyText(command);
+      toast.add({ type: "success", title: t("action.copied") });
+    } catch {
+      toast.add({ type: "error", title: t("guide.copyError") });
+    } finally {
+      setCopying(false);
+    }
+  }
+
   async function runAction(issue: RepairIssue) {
     if (issue.disabledReasonKey) return;
     setError(null);
@@ -106,8 +121,7 @@ export function RepairWizard({
           break;
         case "deps":
           if (issue.command) {
-            await copyText(issue.command);
-            toast.add({ type: "success", title: t("action.copied") });
+            await copyCommand(issue.command);
           } else if (issue.docs?.[0]) {
             await openDoc(issue.docs[0]);
           }
@@ -151,14 +165,15 @@ export function RepairWizard({
           <p className="wizard-intro">{t("wizard.repair.intro")}</p>
         </div>
         <div className="wizard-header-actions">
-          <Button
+          <LoadingButton
             variant="ghost"
             className="wizard-secondary"
             onClick={() => void recheck()}
+            loading={checking}
             disabled={checking || diagnostics.mode === "loading"}
           >
-            {checking ? t("wizard.checking") : t("wizard.repair.refresh")}
-          </Button>
+            {t("wizard.repair.refresh")}
+          </LoadingButton>
           <DialogClose asChild>
             <Button
               variant="ghost"
@@ -323,13 +338,15 @@ export function RepairWizard({
                       {selected.command ? (
                         <div className="wizard-command-line">
                           <code>{selected.command}</code>
-                          <Button
+                          <LoadingButton
                             variant="ghost"
                             className="wizard-copy"
                             onClick={() => void runAction(selected)}
+                            loading={copying}
+                            disabled={copying}
                           >
                             {t("wizard.dependencies.copy")}
-                          </Button>
+                          </LoadingButton>
                         </div>
                       ) : (
                         <p className="hint">{t("wizard.repair.noAction")}</p>
@@ -338,13 +355,23 @@ export function RepairWizard({
                   ) : selected.action !== "none" ? (
                     <div className="wizard-actions">
                       {!selected.disabledReasonKey && (
-                        <Button
+                        <LoadingButton
                           className="wizard-primary"
                           onClick={() => void runAction(selected)}
+                          loading={
+                            (selected.action === "helper" &&
+                              session.busyAction === "ensureHelper") ||
+                            (selected.action === "spacewar" &&
+                              session.busyAction === "openSpaceWar") ||
+                            (selected.action === "recover" &&
+                              session.busyAction === "recover") ||
+                            (selected.action === "cancel" &&
+                              session.busyAction === "cancel")
+                          }
                           disabled={session.busy}
                         >
                           {t(selected.actionLabelKey)}
-                        </Button>
+                        </LoadingButton>
                       )}
                     </div>
                   ) : (

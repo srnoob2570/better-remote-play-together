@@ -15,6 +15,9 @@ acciones y textos del MVP. El flujo de cerrar Steam ya no existe.
   diálogo de progreso. El dock usa un margen de 8 a 16 px en sus tres bordes.
   En ventanas de hasta 900 px, la franja inferior reserva la altura de los
   controles y los paneles se desvanecen en el borde como pista de desplazamiento.
+- Las acciones asíncronas muestran el **Spinner** de shadcn dentro del botón,
+  conservan su etiqueta y exponen `aria-busy` mientras están pendientes. Solo la
+  acción en curso muestra el indicador; las demás quedan deshabilitadas.
 - Cuerpo en dos columnas: biblioteca (≈60 %) y panel lateral (≈40 %, mínimo
   400 px).
 - La biblioteca y la sesión son dos campos de color distintos: tinta para la

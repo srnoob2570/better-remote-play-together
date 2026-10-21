@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -78,6 +79,7 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
   const [problem, setProblem] = useState<Problem | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [restartFailed, setRestartFailed] = useState(false);
+  const [restarting, setRestarting] = useState(false);
   const startupChecked = useRef(false);
   const manualCheck = useRef(false);
   const dialogInvoker = useRef<HTMLElement | null>(null);
@@ -177,6 +179,8 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
   }
 
   async function restartNow() {
+    if (restarting) return;
+    setRestarting(true);
     setRestartFailed(false);
     setProblem(null);
     try {
@@ -184,6 +188,8 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
     } catch (reason: unknown) {
       setProblem(toBridgeError(reason).problem);
       setRestartFailed(true);
+    } finally {
+      setRestarting(false);
     }
   }
 
@@ -366,14 +372,15 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
                 </Button>
               )}
               {phase === "restartPending" && (
-                <Button
+                <LoadingButton
                   variant="ghost"
                   className="dialog-button"
                   data-primary="true"
                   onClick={() => void restartNow()}
+                  loading={restarting}
                 >
                   {t("update.restartNow")}
-                </Button>
+                </LoadingButton>
               )}
               {phase === "error" && (
                 <Button

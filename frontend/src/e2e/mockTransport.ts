@@ -33,7 +33,8 @@ type Scenario =
   | "session-error"
   | "setup-missing"
   | "update-available"
-  | "update-development";
+  | "update-development"
+  | "start-pending";
 
 const NOW = new Date("2026-10-20T12:00:00Z");
 
@@ -372,6 +373,7 @@ export function installMockTransport(scenarioName: string, language: "es" | "en"
         case 1626599784:
           return;
         case 1417353986:
+          if (scenario === "start-pending") return new Promise(() => {});
           return start(args[0] as { targetAppId: number });
         case 2503687275:
           return replay();
@@ -493,4 +495,5 @@ const SCENARIOS: Record<Scenario, true> = {
   "setup-missing": true,
   "update-available": true,
   "update-development": true,
+  "start-pending": true,
 };

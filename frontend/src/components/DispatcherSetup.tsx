@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { toast } from "@/components/ui/toast";
 
 import { bridge } from "../bridge/wails";
@@ -26,6 +27,8 @@ export function DispatcherSetup({
   const t = (key: MessageKey, ...args: Array<string | number>) =>
     translate(lang, key, ...args);
   const [command, setCommand] = useState("");
+  const [copying, setCopying] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const setup = session.setup;
   const status: SetupStatus = setup?.status ?? "missing";
   const steamRunning = session.situation?.steamRunning ?? false;
@@ -51,20 +54,30 @@ export function DispatcherSetup({
   }, []);
 
   async function copyCommand() {
+    if (copying) return;
+    setCopying(true);
     try {
       await copyText(command);
       toast.add({ type: "success", title: t("action.copied") });
     } catch {
       toast.add({ type: "error", title: t("guide.copyError") });
+    } finally {
+      setCopying(false);
     }
   }
 
   async function verify() {
-    if (onVerify) {
-      await onVerify();
-      return;
+    if (verifying) return;
+    setVerifying(true);
+    try {
+      if (onVerify) {
+        await onVerify();
+      } else {
+        await session.refreshSetup();
+      }
+    } finally {
+      setVerifying(false);
     }
-    await session.refreshSetup();
   }
 
   return (
@@ -77,26 +90,28 @@ export function DispatcherSetup({
       <div className="guide-command-block">
         <div className="guide-command-head">
           <h3 className="section-title">{t("guide.command")}</h3>
-          <Button
+          <LoadingButton
             variant="ghost"
             className="refresh-button"
             onClick={() => void verify()}
+            loading={verifying}
             disabled={session.busy}
           >
             {t("action.refreshSetup")}
-          </Button>
+          </LoadingButton>
         </div>
         <pre className="guide-command">{command || "…"}</pre>
         <p className="hint">{t("guide.commandHint")}</p>
         <div className="wizard-actions">
-          <Button
+          <LoadingButton
             variant="outline"
             className="secondary-button"
             onClick={() => void copyCommand()}
+            loading={copying}
             disabled={!canCopy}
           >
             {t("action.copyCommand")}
-          </Button>
+          </LoadingButton>
           {onOpenGuide && (
             <Button
               variant="outline"
@@ -123,10 +138,11 @@ export function DispatcherSetup({
       {(needsRecord || status === "guide") && (
         <div className="session-actions guide-actions">
           {needsRecord && (
-            <Button
+            <LoadingButton
               className="secondary-button"
               variant="outline"
               onClick={() => void session.recordGuide()}
+              loading={session.busyAction === "recordGuide"}
               disabled={session.busy}
             >
               {t(
@@ -134,15 +150,16 @@ export function DispatcherSetup({
                   ? "action.reconfigure"
                   : "action.prepareGuide",
               )}
-            </Button>
+            </LoadingButton>
           )}
-          <Button
+          <LoadingButton
             className="primary-button"
             onClick={() => void session.installSetup()}
+            loading={session.busyAction === "installSetup"}
             disabled={steamRunning || session.busy}
           >
             {t("action.installAuto")}
-          </Button>
+          </LoadingButton>
         </div>
       )}
       {needsRecord && <p className="hint">{t("guide.prepareHint")}</p>}

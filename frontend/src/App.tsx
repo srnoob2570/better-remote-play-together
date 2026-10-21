@@ -6,6 +6,7 @@ import {
   useState,
   type CSSProperties,
   type RefObject,
+  type SVGProps,
 } from "react";
 
 import { LibraryIcon, MenuIcon, SearchXIcon, XIcon } from "lucide-react";
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Empty, EmptyMedia } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster, toast } from "@/components/ui/toast";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -51,6 +53,7 @@ export default function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [status, setStatus] = useState<LibraryMode>("loading");
+  const [openingSteam, setOpeningSteam] = useState(false);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -300,6 +303,8 @@ export default function App() {
   }
 
   async function openSteam() {
+    if (openingSteam) return;
+    setOpeningSteam(true);
     try {
       await bridge.OpenSteam();
     } catch (reason: unknown) {
@@ -308,6 +313,8 @@ export default function App() {
         title: t("error.title"),
         description: toBridgeError(reason).problem.message,
       });
+    } finally {
+      setOpeningSteam(false);
     }
   }
 
@@ -418,6 +425,7 @@ export default function App() {
                 selectedId={selectedId}
                 problem={problem}
                 searchRef={searchRef}
+                openingSteam={openingSteam}
                 onQuery={setQuery}
                 onFilter={setFilter}
                 onSelect={setSelectedId}
@@ -533,6 +541,7 @@ function LibraryPane({
   selectedId,
   problem,
   searchRef,
+  openingSteam,
   onQuery,
   onFilter,
   onSelect,
@@ -549,6 +558,7 @@ function LibraryPane({
   selectedId: number;
   problem: Problem | null;
   searchRef: RefObject<HTMLInputElement | null>;
+  openingSteam: boolean;
   onQuery: (query: string) => void;
   onFilter: (filter: Filter) => void;
   onSelect: (appId: number) => void;
@@ -606,15 +616,15 @@ function LibraryPane({
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
-        <Button
+        <LoadingButton
           variant="ghost"
           className="refresh-button"
           onClick={onRefresh}
-          disabled={mode === "loading"}
+          loading={mode === "loading"}
         >
-          <RefreshIcon />
-          {mode === "loading" ? t("action.refreshing") : t("action.refresh")}
-        </Button>
+          {mode !== "loading" && <RefreshIcon data-icon="inline-start" />}
+          {t("action.refresh")}
+        </LoadingButton>
       </div>
 
       {mode === "ready" && (
@@ -636,9 +646,13 @@ function LibraryPane({
           <h2>{t("library.empty")}</h2>
           <p>{t("library.emptyHint")}</p>
           <div className="inline-actions">
-            <Button className="primary-button empty-cta" onClick={onOpenSteam}>
+            <LoadingButton
+              className="primary-button empty-cta"
+              onClick={onOpenSteam}
+              loading={openingSteam}
+            >
               {t("action.openSteam")}
-            </Button>
+            </LoadingButton>
             <Button
               variant="outline"
               className="secondary-button empty-cta"
@@ -865,9 +879,16 @@ function LoadingTable({ lang }: { lang: Language }) {
   );
 }
 
-function RefreshIcon() {
+function RefreshIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      width="16"
+      height="16"
+      fill="none"
+      {...props}
+    >
       <path
         d="M13.5 6.5A5.5 5.5 0 1 0 14 9"
         stroke="currentColor"

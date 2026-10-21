@@ -234,6 +234,26 @@ test("toast text and icons share one vertical center", async ({ page }) => {
   expect(Math.abs(centerY(closeBox) - contentCenter)).toBeLessThanOrEqual(1);
 });
 
+test("loading button keeps its label and shows a spinner", async ({ page }) => {
+  await page.goto("/e2e.html?e2e=loading&lang=es");
+
+  const refresh = page.getByRole("button", { name: "Actualizar" });
+  await expect(refresh).toBeDisabled();
+  await expect(refresh.locator('[data-slot="spinner"]')).toBeVisible();
+  await expect(refresh).toContainText("Actualizar");
+});
+
+test("launching button keeps its label and shows a spinner", async ({ page }) => {
+  await page.goto("/e2e.html?e2e=start-pending&lang=es");
+  await page.getByRole("row", { name: /Valheim/ }).click();
+  const play = page.getByRole("button", { name: "Jugar" });
+  await play.click();
+
+  await expect(play).toBeDisabled();
+  await expect(play.locator('[data-slot="spinner"]')).toBeVisible();
+  await expect(play).toContainText("Jugar");
+});
+
 test("multi-line toast keeps its icon and close centered", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/e2e.html?e2e=session-error&lang=es");

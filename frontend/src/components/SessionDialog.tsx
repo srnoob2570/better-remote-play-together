@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import {
   Dialog as UIDialog,
   DialogContent as UIDialogContent,
@@ -50,17 +51,19 @@ export function SessionDialog({
             variant="outline"
             className="dialog-button"
             onClick={() => session.closeDialog()}
+            disabled={session.busy}
           >
             {t("common.cancel")}
           </Button>
-          <Button
+          <LoadingButton
             className="dialog-button"
             data-primary="true"
             onClick={() => void session.confirmDialog()}
+            loading={session.busyAction === "restore"}
             disabled={session.busy}
           >
             {t(unknown ? "common.continue" : "action.restore")}
-          </Button>
+          </LoadingButton>
         </UIDialogFooter>
       </UIDialogContent>
     </UIDialog>

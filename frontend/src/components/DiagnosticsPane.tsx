@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 import { bridge } from "../bridge/wails";
@@ -30,7 +31,7 @@ export function DiagnosticsPane({
   onRepair: (checkId?: string) => void;
 }) {
   const { mode, result, problem, refresh } = useDiagnostics(lang);
-  const [actionBusy, setActionBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<"copy" | "save" | null>(null);
 
   const t: Translator = (key, ...args) => translate(lang, key, ...args);
 
@@ -44,28 +45,28 @@ export function DiagnosticsPane({
   }, [lang, problem]);
 
   async function copy() {
-    if (!result || actionBusy) return;
-    setActionBusy(true);
+    if (!result || busyAction) return;
+    setBusyAction("copy");
     try {
       await copyText(result.markdown);
       toast.add({ type: "success", title: t("diagnostics.copied") });
     } catch {
       toast.add({ type: "error", title: t("diagnostics.copyError") });
     } finally {
-      setActionBusy(false);
+      setBusyAction(null);
     }
   }
 
   async function save() {
-    if (!result || actionBusy) return;
-    setActionBusy(true);
+    if (!result || busyAction) return;
+    setBusyAction("save");
     try {
       const path = await bridge.SaveDiagnostics(result.markdown);
       toast.add({ type: "success", title: t("diagnostics.saved", path) });
     } catch {
       toast.add({ type: "error", title: t("diagnostics.saveError") });
     } finally {
-      setActionBusy(false);
+      setBusyAction(null);
     }
   }
 
@@ -107,30 +108,32 @@ export function DiagnosticsPane({
           >
             {t("wizard.repair.open")}
           </Button>
-          <Button
+          <LoadingButton
             variant="ghost"
             className="refresh-button"
             onClick={() => void refresh()}
-            disabled={mode === "loading"}
+            loading={mode === "loading"}
           >
-            {mode === "loading" ? t("diagnostics.loading") : t("diagnostics.refresh")}
-          </Button>
-          <Button
+            {t("diagnostics.refresh")}
+          </LoadingButton>
+          <LoadingButton
             variant="ghost"
             className="refresh-button"
             onClick={() => void copy()}
-            disabled={!result || actionBusy}
+            loading={busyAction === "copy"}
+            disabled={!result || busyAction !== null}
           >
             {t("diagnostics.copy")}
-          </Button>
-          <Button
+          </LoadingButton>
+          <LoadingButton
             variant="ghost"
             className="refresh-button"
             onClick={() => void save()}
-            disabled={!result || actionBusy}
+            loading={busyAction === "save"}
+            disabled={!result || busyAction !== null}
           >
             {t("diagnostics.save")}
-          </Button>
+          </LoadingButton>
         </div>
       </div>
 

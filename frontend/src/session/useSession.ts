@@ -19,6 +19,18 @@ export type SessionDialog =
   | { kind: "restore" }
   | null;
 
+export type SessionAction =
+  | "start"
+  | "replay"
+  | "cancel"
+  | "restore"
+  | "installSetup"
+  | "recordGuide"
+  | "refreshSetup"
+  | "ensureHelper"
+  | "recover"
+  | "openSpaceWar";
+
 export interface SessionNotice {
   key: MessageKey;
   args?: Array<string | number>;
@@ -33,6 +45,7 @@ export interface SessionController {
   problem: Problem | null;
   notice: SessionNotice | null;
   busy: boolean;
+  busyAction: SessionAction | null;
   /** App ID whose launch is waiting for the backend or Steam confirmation. */
   launching: number | null;
   ready: boolean;
@@ -61,6 +74,7 @@ export function useSession(): SessionController {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [notice, setNotice] = useState<SessionNotice | null>(null);
   const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<SessionAction | null>(null);
   const [launching, setLaunching] = useState<number | null>(null);
   const [ready, setReady] = useState(false);
   const [dialog, setDialog] = useState<SessionDialog>(null);
@@ -152,6 +166,7 @@ export function useSession(): SessionController {
   const startNow = useCallback(
     async (game: Game) => {
       setBusy(true);
+      setBusyAction("start");
       setLaunching(game.appId);
       setProblem(null);
       setNotice(null);
@@ -165,6 +180,7 @@ export function useSession(): SessionController {
       } finally {
         setLaunching(null);
         setBusy(false);
+        setBusyAction(null);
       }
     },
     [refreshContext],
@@ -184,13 +200,14 @@ export function useSession(): SessionController {
   const confirmDialog = useCallback(async () => {
     const current = dialog;
     if (!current) return;
-    setDialog(null);
     if (current.kind === "unknown") {
+      setDialog(null);
       warned.current.add(current.game.appId);
       await startNow(current.game);
       return;
     }
     setBusy(true);
+    setBusyAction("restore");
     setProblem(null);
     try {
       if (setup?.hasBackup) {
@@ -206,6 +223,8 @@ export function useSession(): SessionController {
       setProblem(toBridgeError(reason).problem);
     } finally {
       setBusy(false);
+      setBusyAction(null);
+      setDialog(null);
     }
   }, [dialog, last?.token, refreshContext, setup?.hasBackup, situation?.token, state?.token, startNow]);
 
@@ -221,6 +240,7 @@ export function useSession(): SessionController {
   const cancel = useCallback(async () => {
     if (!state || state.phase !== "preparing") return;
     setBusy(true);
+    setBusyAction("cancel");
     try {
       await bridge.CancelSession();
       await refreshContext();
@@ -228,11 +248,13 @@ export function useSession(): SessionController {
       setProblem(toBridgeError(reason).problem);
     } finally {
       setBusy(false);
+      setBusyAction(null);
     }
   }, [refreshContext, state]);
 
   const replay = useCallback(async () => {
     setBusy(true);
+    setBusyAction("replay");
     setLaunching(last?.appId ?? state?.targetAppId ?? null);
     setProblem(null);
     try {
@@ -245,11 +267,13 @@ export function useSession(): SessionController {
     } finally {
       setLaunching(null);
       setBusy(false);
+      setBusyAction(null);
     }
   }, [last?.appId, refreshContext, state?.targetAppId]);
 
   const installSetup = useCallback(async () => {
     setBusy(true);
+    setBusyAction("installSetup");
     setProblem(null);
     try {
       await bridge.InstallSetup();
@@ -259,11 +283,13 @@ export function useSession(): SessionController {
       setProblem(toBridgeError(reason).problem);
     } finally {
       setBusy(false);
+      setBusyAction(null);
     }
   }, [refreshContext]);
 
   const recordGuide = useCallback(async () => {
     setBusy(true);
+    setBusyAction("recordGuide");
     setProblem(null);
     try {
       await bridge.RecordGuideSetup();
@@ -273,11 +299,13 @@ export function useSession(): SessionController {
       setProblem(toBridgeError(reason).problem);
     } finally {
       setBusy(false);
+      setBusyAction(null);
     }
   }, [refreshContext]);
 
   const refreshSetup = useCallback(async () => {
     setBusy(true);
+    setBusyAction("refreshSetup");
     setProblem(null);
     try {
       const next = await bridge.SetupSnapshot();
@@ -287,11 +315,13 @@ export function useSession(): SessionController {
       setProblem(toBridgeError(reason).problem);
     } finally {
       setBusy(false);
+      setBusyAction(null);
     }
   }, []);
 
   const ensureHelper = useCallback(async () => {
     setBusy(true);
+    setBusyAction("ensureHelper");
     setProblem(null);
     try {
       await bridge.EnsureHelper();
@@ -301,11 +331,13 @@ export function useSession(): SessionController {
       setProblem(toBridgeError(reason).problem);
     } finally {
       setBusy(false);
+      setBusyAction(null);
     }
   }, [refreshContext]);
 
   const recover = useCallback(async () => {
     setBusy(true);
+    setBusyAction("recover");
     setProblem(null);
     try {
       const recovery = await bridge.RecoverSession();
@@ -319,15 +351,21 @@ export function useSession(): SessionController {
       setProblem(toBridgeError(reason).problem);
     } finally {
       setBusy(false);
+      setBusyAction(null);
     }
   }, [refreshContext]);
 
   const openSpaceWarInstall = useCallback(async () => {
+    setBusy(true);
+    setBusyAction("openSpaceWar");
     setProblem(null);
     try {
       await bridge.OpenSpaceWarInstall();
     } catch (reason: unknown) {
       setProblem(toBridgeError(reason).problem);
+    } finally {
+      setBusy(false);
+      setBusyAction(null);
     }
   }, []);
 
@@ -340,6 +378,7 @@ export function useSession(): SessionController {
       problem,
       notice,
       busy,
+      busyAction,
       launching,
       ready,
       dialog,
@@ -360,6 +399,7 @@ export function useSession(): SessionController {
     }),
     [
       busy,
+      busyAction,
       cancel,
       confirmDialog,
       dialog,

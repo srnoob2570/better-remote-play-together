@@ -4,6 +4,7 @@ import { XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DialogClose } from "@/components/ui/dialog";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 
@@ -330,13 +331,14 @@ function StepBody({
               : t("wizard.steam.closed")}
           </p>
           <div className="wizard-actions">
-            <Button
+            <LoadingButton
               className="wizard-primary"
               onClick={() => void session.openSpaceWarInstall()}
+              loading={session.busyAction === "openSpaceWar"}
               disabled={session.busy}
             >
               {t("action.addSpacewar")}
-            </Button>
+            </LoadingButton>
             {steam?.status === "fail" && (
               <Button
                 variant="outline"
@@ -355,14 +357,15 @@ function StepBody({
             )}
           </div>
           <p className="hint">{t("wizard.steam.recheckHint")}</p>
-          <Button
+          <LoadingButton
             variant="outline"
             className="secondary-button"
             onClick={() => void onRecheck()}
+            loading={checking}
             disabled={checking}
           >
-            {checking ? t("wizard.checking") : t("wizard.recheck")}
-          </Button>
+            {t("wizard.recheck")}
+          </LoadingButton>
           {current.status !== "done" && (
             <p className="wizard-note">{t("wizard.steam.nextHint")}</p>
           )}
@@ -379,21 +382,23 @@ function StepBody({
             <p className="hint-amber">{t(current.reasonKey)}</p>
           )}
           <div className="wizard-actions">
-            <Button
+            <LoadingButton
               className="wizard-primary"
               onClick={() => void onEnsureHelper()}
+              loading={session.busyAction === "ensureHelper"}
               disabled={session.busy || current.status === "blocked"}
             >
               {t("wizard.helper.install")}
-            </Button>
-            <Button
+            </LoadingButton>
+            <LoadingButton
               variant="outline"
               className="secondary-button"
               onClick={() => void onRecheck()}
+              loading={checking}
               disabled={checking}
             >
-              {checking ? t("wizard.checking") : t("wizard.recheck")}
-            </Button>
+              {t("wizard.recheck")}
+            </LoadingButton>
           </div>
           <p className="hint">{t("wizard.helper.pathHint")}</p>
         </section>
@@ -460,13 +465,14 @@ function StepBody({
                 : t("wizard.verify.pending")}
           </p>
           <div className="wizard-actions">
-            <Button
+            <LoadingButton
               className="wizard-primary"
               onClick={() => void onRecheck()}
+              loading={checking}
               disabled={checking}
             >
-              {checking ? t("wizard.checking") : t("wizard.verify.refresh")}
-            </Button>
+              {t("wizard.verify.refresh")}
+            </LoadingButton>
             {!assessment.complete && (
               <Button
                 variant="outline"
@@ -500,6 +506,21 @@ function DependenciesStep({
     translate(lang, key, ...args);
   const checks = dependencyChecksFor(report);
   const fallback = appImageFallback(report?.version ?? "");
+  const [copying, setCopying] = useState<string | null>(null);
+
+  async function copy(command: string) {
+    if (copying) return;
+    setCopying(command);
+    try {
+      await copyText(command);
+      toast.add({ type: "success", title: t("action.copied") });
+    } catch {
+      toast.add({ type: "error", title: t("guide.copyError") });
+    } finally {
+      setCopying(null);
+    }
+  }
+
   return (
     <section className="wizard-section">
       <h2 className="wizard-section-title">{t("wizard.dependencies.title")}</h2>
@@ -519,17 +540,15 @@ function DependenciesStep({
                   {command && (
                     <div className="wizard-command-line">
                       <code>{command}</code>
-                      <Button
+                      <LoadingButton
                         variant="ghost"
                         className="wizard-copy"
-                        onClick={() =>
-                          void copyText(command)
-                            .then(() => toast.add({ type: "success", title: t("action.copied") }))
-                            .catch(() => toast.add({ type: "error", title: t("guide.copyError") }))
-                        }
+                        onClick={() => void copy(command)}
+                        loading={copying === command}
+                        disabled={copying !== null}
                       >
                         {t("wizard.dependencies.copy")}
-                      </Button>
+                      </LoadingButton>
                     </div>
                   )}
                 </div>
@@ -538,30 +557,29 @@ function DependenciesStep({
           })}
           <div className="wizard-command-line">
             <code>{fallback}</code>
-            <Button
+            <LoadingButton
               variant="ghost"
               className="wizard-copy"
-              onClick={() =>
-                void copyText(fallback)
-                  .then(() => toast.add({ type: "success", title: t("action.copied") }))
-                  .catch(() => toast.add({ type: "error", title: t("guide.copyError") }))
-              }
+              onClick={() => void copy(fallback)}
+              loading={copying === fallback}
+              disabled={copying !== null}
             >
               {t("wizard.dependencies.copy")}
-            </Button>
+            </LoadingButton>
           </div>
           <p className="hint">{t("wizard.dependencies.fallback")}</p>
           <p className="hint-amber">{t("wizard.dependencies.preGui")}</p>
         </>
       )}
-      <Button
+      <LoadingButton
         variant="outline"
         className="secondary-button"
         onClick={() => void onRecheck()}
+        loading={checking}
         disabled={checking}
       >
-        {checking ? t("wizard.checking") : t("wizard.recheck")}
-      </Button>
+        {t("wizard.recheck")}
+      </LoadingButton>
     </section>
   );
 }

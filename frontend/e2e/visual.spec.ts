@@ -16,6 +16,7 @@ const scenarios = [
   "session-error",
   "update-available",
   "update-development",
+  "start-pending",
 ] as const;
 
 type Scenario = (typeof scenarios)[number];
@@ -39,6 +40,10 @@ async function prepare(page: Page, scenario: Scenario, lang: "es" | "en" = "es")
       })
       .click();
     await expect(page.getByRole("dialog")).toBeVisible();
+  }
+  if (scenario === "start-pending") {
+    await page.getByRole("row", { name: /Valheim/ }).click();
+    await page.getByRole("button", { name: lang === "es" ? "Jugar" : "Play" }).click();
   }
 }
 
@@ -74,12 +79,14 @@ const expected = (scenario: Scenario, lang: "es" | "en"): RegExp | string => {
     case "update-available":
     case "update-development":
       return es ? "Actualización de Better RPT" : "Better RPT update";
+    case "start-pending":
+      return "Valheim";
   }
 };
 
 async function assertReady(page: Page, scenario: Scenario, lang: "es" | "en") {
   if (scenario === "loading") {
-    await expect(page.locator('[aria-busy="true"]')).toBeVisible();
+    await expect(page.locator('.library-table[aria-busy="true"]')).toBeVisible();
     return;
   }
   await expect(page.getByText(expected(scenario, lang), { exact: false }).first()).toBeVisible();
