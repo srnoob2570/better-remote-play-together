@@ -282,7 +282,8 @@ La guía es el flujo principal y debe poder consultarse con Steam abierto:
 **Wizards de configuración y reparación**
 
 Se abren como un diálogo modal sobre la pantalla actual: fondo atenuado, panel
-centrado con borde y sombra, y la app de fondo inerte. El botón **Cerrar**, Esc
+centrado con borde y sombra, y la app de fondo inerte. El cierre es un icono
+**X** en la cabecera; no se repite un botón de texto **Cerrar**. El icono, Esc
 o el final del flujo devuelven a la pantalla de origen sin ejecutar cambios.
 
 **Compatibilidad desconocida**

@@ -11,6 +11,7 @@ import {
 import { LibraryIcon, MenuIcon, SearchXIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Empty, EmptyMedia } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -204,17 +205,6 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
-    if (!modalOpen) return;
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      setView(view === "setup" ? setupReturn : repairReturn);
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [modalOpen, repairReturn, setupReturn, view]);
-
-  useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (modalOpen) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
@@ -370,7 +360,7 @@ export default function App() {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="app-window">
-        <header className="app-header" inert={modalOpen}>
+        <header className="app-header">
           <div className="brand">
             <img className="brand-mark" src="/brand/icon.png" alt="" />
             <div>
@@ -409,7 +399,6 @@ export default function App() {
           className={
             underlayView === "library" ? "app-main" : "app-main diagnostics-main"
           }
-          inert={modalOpen}
         >
           {underlayView === "diagnostics" ? (
             <DiagnosticsPane
@@ -452,40 +441,55 @@ export default function App() {
           )}
         </main>
 
-        <footer className="app-dock" inert={modalOpen}>
+        <footer className="app-dock">
           <UpdateControl lang={lang} version={snapshot?.version ?? ""} />
           <LanguageMenu lang={lang} onSelect={(next) => void changeLanguage(next)} />
         </footer>
 
-        {modalOpen && (
-          <div
-            className="wizard-overlay"
-            role="dialog"
-            aria-modal="true"
+        <Dialog
+          open={modalOpen}
+          onOpenChange={(open) => {
+            if (!open) setView(view === "setup" ? setupReturn : repairReturn);
+          }}
+        >
+          <DialogContent
+            className="wizard-dialog"
+            showCloseButton={false}
             aria-labelledby={
               view === "setup" ? "setup-wizard-title" : "repair-wizard-title"
             }
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              const returnView = view === "setup" ? setupReturn : repairReturn;
+              if (returnView === "setup" || returnView === "repair") return;
+              document
+                .getElementById(
+                  returnView === "diagnostics" ? "diagnostics-title" : "library-title",
+                )
+                ?.focus({ preventScroll: true });
+            }}
           >
-            {view === "setup" ? (
-              <SetupWizard
-                lang={lang}
-                session={session}
-                onClose={() => setView(setupReturn)}
-                onOpenGuide={openGuide}
-                onOpenRepair={() => openRepair(undefined, "setup")}
-              />
-            ) : (
-              <RepairWizard
-                lang={lang}
-                session={session}
-                initialCheckId={repairCheckId}
-                onClose={() => setView(repairReturn)}
-                onOpenGuide={openGuide}
-                onOpenSetup={openSetup}
-              />
-            )}
-          </div>
-        )}
+            {modalOpen &&
+              (view === "setup" ? (
+                <SetupWizard
+                  lang={lang}
+                  session={session}
+                  onClose={() => setView(setupReturn)}
+                  onOpenGuide={openGuide}
+                  onOpenRepair={() => openRepair(undefined, "setup")}
+                />
+              ) : (
+                <RepairWizard
+                  lang={lang}
+                  session={session}
+                  initialCheckId={repairCheckId}
+                  onClose={() => setView(repairReturn)}
+                  onOpenGuide={openGuide}
+                  onOpenSetup={openSetup}
+                />
+              ))}
+          </DialogContent>
+        </Dialog>
 
         <SessionDialog lang={lang} session={session} />
         <Toaster

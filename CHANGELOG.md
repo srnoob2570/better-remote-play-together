@@ -19,7 +19,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   altura para no tapar el contenido.
 - Los wizards de configuración y reparación se abren como diálogos modales
   sobre la pantalla actual, con fondo atenuado, panel centrado y la app de
-  fondo inerte.
+  fondo inerte. El cierre es un icono en la cabecera, sin el botón de texto
+  duplicado.
 - El arranque y el refresco del catálogo evitan trabajo duplicado: la
   biblioteca principal se recorre una sola vez, la detección del tipo de
   instalación se calcula una vez por proceso, las portadas se resuelven sin

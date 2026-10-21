@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { XIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+import { DialogClose } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 
@@ -116,14 +119,15 @@ export function SetupWizard({
           </h1>
           <p className="wizard-intro">{t("wizard.setup.intro")}</p>
         </div>
-        <Button
-          variant="ghost"
-          className="wizard-close"
-          onClick={onClose}
-          aria-label={t("common.close")}
-        >
-          {t("common.close")}
-        </Button>
+        <DialogClose asChild>
+          <Button
+            variant="ghost"
+            className="wizard-close"
+            aria-label={t("common.close")}
+          >
+            <XIcon aria-hidden="true" />
+          </Button>
+        </DialogClose>
       </header>
 
       <div className="wizard-body">

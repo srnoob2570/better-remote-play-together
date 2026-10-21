@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { XIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+import { DialogClose } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 
@@ -156,14 +159,15 @@ export function RepairWizard({
           >
             {checking ? t("wizard.checking") : t("wizard.repair.refresh")}
           </Button>
-          <Button
-            variant="ghost"
-            className="wizard-close"
-            onClick={onClose}
-            aria-label={t("common.close")}
-          >
-            {t("common.close")}
-          </Button>
+          <DialogClose asChild>
+            <Button
+              variant="ghost"
+              className="wizard-close"
+              aria-label={t("common.close")}
+            >
+              <XIcon aria-hidden="true" />
+            </Button>
+          </DialogClose>
         </div>
       </header>
 
@@ -396,13 +400,6 @@ export function RepairWizard({
               {t("wizard.repair.openSetup")}
             </Button>
           )}
-          <Button
-            className="wizard-primary"
-            onClick={onClose}
-            disabled={checking}
-          >
-            {t("common.close")}
-          </Button>
         </div>
       </footer>
     </section>

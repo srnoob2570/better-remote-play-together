@@ -66,7 +66,7 @@ test("repair wizard opens as a modal over the app", async ({ page }) => {
   await page.getByRole("button", { name: "Diagnóstico" }).click();
   await page.getByRole("button", { name: "Revisar" }).click();
 
-  const overlay = page.locator(".wizard-overlay");
+  const overlay = page.locator('[data-slot="dialog-overlay"]');
   const dialog = page.getByRole("dialog", { name: "Diagnóstico y reparación" });
   const view = page.getByRole("region", { name: "Diagnóstico y reparación" });
   await expect(dialog).toBeVisible();
