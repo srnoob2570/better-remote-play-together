@@ -221,9 +221,9 @@ func makeEntry(app appDef) []byte {
 	vdf := makeAppVDF(app)
 
 	var data bytes.Buffer
-	writeU32(&data, 2) // InfoState: normal
-	writeU32(&data, 0) // last updated
-	writeU64(&data, 0) // PICS token
+	writeU32(&data, 2)           // InfoState: normal
+	writeU32(&data, 0)           // last updated
+	writeU64(&data, 0)           // PICS token
 	data.Write(make([]byte, 20)) // VDF SHA-1: unset in synthetic fixtures
 	writeU32(&data, 0)           // change number
 	sum := sha1.Sum(vdf)

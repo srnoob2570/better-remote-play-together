@@ -1,0 +1,95 @@
+# =============================================================================
+# Pre-commit de Better RPT
+#
+# Basado en las plantillas de /home/srnoob/Documentos/pre-commit (2026-10):
+#   base común de normalización + stack Go.
+#
+# Requisitos en la máquina de desarrollo:
+#   - pre-commit (pipx install pre-commit)
+#   - goimports en $(go env GOPATH)/bin y ese directorio en PATH
+#     (go install golang.org/x/tools/cmd/goimports@latest)
+#   - el hook de golangci-lint instala su propia versión vía pre-commit.
+#
+# Uso:
+#   pre-commit install
+#   pre-commit run --all-files
+#
+# Los hooks de auto-fix modifican archivos y fallan el commit: revisa el diff,
+# vuelve a hacer `git add` y repite el commit.
+# =============================================================================
+
+default_language_version:
+  python: python3
+
+repos:
+  # ---------------------------------------------------------------------------
+  # Normalización y saneamiento de texto (base común)
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # --- Formato / normalización (auto-fix) --------------------------------
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: fix-byte-order-marker
+
+      # --- Validación de sintaxis --------------------------------------------
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+
+      # --- Saneamiento de metadatos / riesgos --------------------------------
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: destroyed-symlinks
+      - id: check-illegal-windows-names
+      - id: check-vcs-permalinks
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: [--branch, main, --branch, master]
+
+  # ---------------------------------------------------------------------------
+  # Secretos: bloquea commits con credenciales hardcodeadas
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # ---------------------------------------------------------------------------
+  # Formato + organización de imports
+  #   goimports agrupa stdlib vs externas y, con -local, separa el módulo
+  #   propio. El hook reescribe los archivos (-w) y falla para que se re-stageen.
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/TekWizely/pre-commit-golang
+    rev: v1.0.0-rc.4
+    hooks:
+      - id: go-imports
+        args: [-w, -local, "github.com/srnoob2570/better-rpt"]
+
+  # ---------------------------------------------------------------------------
+  # Lint integral con golangci-lint
+  #   Solo analiza los cambios desde HEAD, para que el commit sea rápido.
+  #   En CI usa `golangci-lint-full` para escanear todo el módulo.
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v2.14.0
+    hooks:
+      - id: golangci-lint
+
+  # ---------------------------------------------------------------------------
+  # go mod tidy: mantiene go.mod / go.sum consistentes
+  #   Auto-corrige; si el commit contiene .go con dependencias sin declarar,
+  #   tidy regenera go.mod/go.sum y el commit falla hasta re-git-add.
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/TekWizely/pre-commit-golang
+    rev: v1.0.0-rc.4
+    hooks:
+      - id: go-mod-tidy

@@ -17,4 +17,3 @@ export const CatalogUpdated = "catalog.updated";
  * Name of the custom event "session.updated".
  */
 export const SessionUpdated = "session.updated";
-

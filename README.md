@@ -469,6 +469,24 @@ contenedor. Requiere Docker y nfpm v2.48.0; la receta manual está en
 [`docs/build.md`](docs/build.md). El AppImage sigue la receta de
 [`docs/appimage.md`](docs/appimage.md).
 
+### Pre-commit
+
+El repo incluye `.pre-commit-config.yaml` con la base de normalización, escaneo
+de secretos, `goimports`, `golangci-lint` y `go mod tidy`. Se instala una vez por
+clon:
+
+```bash
+pipx install pre-commit
+go install golang.org/x/tools/cmd/goimports@latest
+export PATH="$(go env GOPATH)/bin:$PATH"
+pre-commit install
+pre-commit run --all-files
+```
+
+Los hooks de auto-fix modifican archivos y hacen fallar el commit: revisa el
+diff, vuelve a `git add` y repite. `no-commit-to-branch` bloquea los commits
+directos a `main` y `master`; usa una rama de trabajo.
+
 ### Probar con Steam simulado
 
 `make dev` usa tu `HOME` y tus directorios XDG reales por defecto, así que puede
