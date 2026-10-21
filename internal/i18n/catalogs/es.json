@@ -403,6 +403,8 @@
   "library.loading": "Leyendo la biblioteca de Steam…",
   "library.title": "Biblioteca",
   "library.warnings": "Avisos de la biblioteca",
+  "nav.home": "Inicio",
+  "nav.primary": "Navegación principal",
   "pending.body": "SpaceWar conserva una configuración de una sesión anterior de %s. No es la última sesión; puedes restaurarla o consultar la guía.",
   "pending.guide": "Ver cómo restaurar",
   "pending.orphanBody": "SpaceWar tiene un comando de Better RPT sin sesión ni copia coherente. No se modificará.",

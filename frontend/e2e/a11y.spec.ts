@@ -103,6 +103,10 @@ test("compact header exposes every action and restores focus on Escape", async (
   await menu.click();
   const panel = page.getByRole("group", { name: "Menú" });
   await expect(panel).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Inicio" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   await expect(panel.getByRole("button", { name: "Diagnóstico" })).toBeVisible();
   await expect(
     panel.getByRole("button", { name: /Integración de SpaceWar/ }),

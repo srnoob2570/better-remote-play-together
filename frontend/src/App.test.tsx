@@ -552,6 +552,25 @@ describe("library UI", () => {
     expect(refresh.querySelector('[data-slot="spinner"]')).toBeInTheDocument();
   });
 
+  it("navigates between home and diagnostics from the appbar", async () => {
+    render(<App />);
+    await screen.findAllByText("HELLDIVERS™ 2");
+
+    const nav = screen.getByRole("navigation", { name: "Navegación principal" });
+    const home = within(nav).getByRole("button", { name: "Inicio" });
+    const diagnostics = within(nav).getByRole("button", { name: "Diagnóstico" });
+
+    expect(home).toHaveAttribute("aria-current", "page");
+    fireEvent.click(diagnostics);
+    expect(await screen.findByRole("heading", { name: "Diagnóstico" })).toBeInTheDocument();
+    expect(diagnostics).toHaveAttribute("aria-current", "page");
+    expect(home).not.toHaveAttribute("aria-current");
+
+    fireEvent.click(home);
+    expect(await screen.findByRole("heading", { name: "Biblioteca" })).toBeInTheDocument();
+    expect(home).toHaveAttribute("aria-current", "page");
+  });
+
   it("opens diagnostics, copies the report and saves it", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {

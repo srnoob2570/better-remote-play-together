@@ -1131,6 +1131,49 @@ button {
   }
 }
 /* Library virtualisation and header additions. */
+.app-nav {
+  align-self: stretch;
+  margin-left: clamp(28px, 5vw, 96px);
+}
+
+.app-nav-list {
+  display: flex;
+  align-items: stretch;
+  gap: clamp(16px, 2.2vw, 32px);
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-nav-item {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-muted-ink);
+  font-size: var(--size-control);
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.app-nav-item:hover {
+  background: transparent;
+  color: var(--color-cream);
+}
+
+.app-nav-item[aria-current="page"] {
+  background: transparent;
+  color: var(--color-cream);
+  border-bottom-color: var(--color-amber);
+}
+
 .header-right {
   display: flex;
   align-items: center;
@@ -1192,22 +1235,26 @@ button {
   display: none;
 }
 
-.header-menu-panel .setup-indicator,
-.header-menu-panel .diagnostics-button {
+.header-menu-panel .app-nav {
+  align-self: auto;
   width: 100%;
+  margin-left: 0;
+}
+
+.header-menu-panel .app-nav-list {
+  gap: 24px;
+  height: auto;
+}
+
+.header-menu-panel .app-nav-item {
+  height: 44px;
 }
 
 .header-menu-panel .setup-indicator {
+  width: 100%;
   justify-content: flex-start;
   padding: 8px;
-  border-bottom: 1px solid var(--color-line-soft);
   white-space: normal;
-}
-
-.header-menu-panel .diagnostics-button {
-  justify-content: flex-start;
-  text-align: left;
-  padding: 0 8px;
 }
 
 .app-dock {
@@ -1689,23 +1736,6 @@ button {
 }
 
 /* Diagnostics screen. */
-.diagnostics-button {
-  border: 1px solid var(--color-line-soft);
-  border-radius: 2px;
-  color: var(--color-cream);
-  font-size: var(--size-small);
-  height: 44px;
-  padding: 0 10px;
-  white-space: nowrap;
-}
-
-.diagnostics-button:hover,
-.diagnostics-button[data-active="true"] {
-  border-color: var(--color-amber);
-  color: var(--color-amber);
-  background: var(--color-raised);
-}
-
 .diagnostics-main {
   display: block;
   overflow-y: auto;

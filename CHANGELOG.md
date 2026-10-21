@@ -83,6 +83,12 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Los avisos de error no se duplican al cambiar de idioma y los avisos se
   muestran por encima de los diálogos abiertos.
 
+### Added
+
+- La barra superior incorpora una navegación principal con **Inicio** y
+  **Diagnóstico**, con la vista actual subrayada. En ventanas estrechas la
+  navegación vive dentro del menú y desaparece el botón suelto de Diagnóstico.
+
 ## [0.2.2] - 2026-10-21 (efe5aea)
 
 ### Added

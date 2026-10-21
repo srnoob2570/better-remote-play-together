@@ -167,6 +167,23 @@ test.describe("parity states", () => {
     await expect(search).toHaveValue("");
   });
 
+  test("appbar navigation moves between home and diagnostics", async ({ page }) => {
+    await open(page, "library");
+    const nav = page.getByRole("navigation", { name: "Navegación principal" });
+    const home = nav.getByRole("button", { name: "Inicio" });
+    const diagnostics = nav.getByRole("button", { name: "Diagnóstico" });
+
+    await expect(home).toHaveAttribute("aria-current", "page");
+    await diagnostics.click();
+    await expect(page.getByRole("heading", { name: "Diagnóstico", exact: true })).toBeVisible();
+    await expect(diagnostics).toHaveAttribute("aria-current", "page");
+    await expect(home).not.toHaveAttribute("aria-current");
+
+    await home.click();
+    await expect(page.getByRole("heading", { name: "Biblioteca" })).toBeVisible();
+    await expect(home).toHaveAttribute("aria-current", "page");
+  });
+
   test("diagnostics shows the report and returns to the library", async ({ page }) => {
     await open(page, "library");
     await page.getByRole("button", { name: "Diagnóstico" }).click();

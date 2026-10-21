@@ -161,7 +161,7 @@ test("compact controls meet the 44px touch target", async ({ page }) => {
   const controls = [
     ".compact-menu-button",
     ".setup-indicator",
-    ".diagnostics-button",
+    ".app-nav-item",
     ".update-button",
     ".language-trigger",
     ".search-field",

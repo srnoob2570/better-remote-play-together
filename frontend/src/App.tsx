@@ -47,6 +47,7 @@ import { setupAutoOpen } from "./wizards/readiness";
 type Filter = "all" | "ready" | "unknown" | "incompatible";
 type LibraryMode = "loading" | "ready" | "empty" | "no-results" | "error";
 type View = "library" | "diagnostics" | "setup" | "repair";
+type NavView = "library" | "diagnostics";
 type SetupReturn = "library" | "diagnostics" | "repair";
 type RepairReturn = "library" | "diagnostics" | "setup";
 
@@ -352,26 +353,21 @@ export default function App() {
     setGuideRequest((value) => value + 1);
   }
 
-  const headerActions = (
-    <>
-      {view !== "setup" && (
-        <SetupIndicator
-          lang={lang}
-          status={session.setup?.status}
-          ready={session.ready}
-          onOpen={openSetup}
-        />
-      )}
-      <Button
-        variant="ghost"
-        className="diagnostics-button"
-        data-active={view === "diagnostics"}
-        onClick={() => setView("diagnostics")}
-      >
-        {t("diagnostics.open")}
-      </Button>
-    </>
-  );
+  function navigate(next: NavView) {
+    setMenuOpen(false);
+    setView(next);
+  }
+
+  const activeNav: NavView = underlayView === "diagnostics" ? "diagnostics" : "library";
+  const headerActions =
+    view !== "setup" ? (
+      <SetupIndicator
+        lang={lang}
+        status={session.setup?.status}
+        ready={session.ready}
+        onOpen={openSetup}
+      />
+    ) : null;
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -384,6 +380,9 @@ export default function App() {
               <p className="brand-subtitle">{t("app.subtitle")}</p>
             </div>
           </div>
+          {!compact && (
+            <HeaderNav lang={lang} active={activeNav} onNavigate={navigate} />
+          )}
           <div className="header-actions" ref={headerMenu}>
             <button
               type="button"
@@ -406,6 +405,9 @@ export default function App() {
                 if ((event.target as HTMLElement).closest("button, a")) setMenuOpen(false);
               }}
             >
+              {compact && (
+                <HeaderNav lang={lang} active={activeNav} onNavigate={navigate} />
+              )}
               {headerActions}
             </div>
           </div>
@@ -515,6 +517,44 @@ export default function App() {
         />
       </div>
     </TooltipProvider>
+  );
+}
+
+function HeaderNav({
+  lang,
+  active,
+  onNavigate,
+}: {
+  lang: Language;
+  active: NavView;
+  onNavigate: (view: NavView) => void;
+}) {
+  const t = (key: MessageKey) => translate(lang, key);
+  return (
+    <nav className="app-nav" aria-label={t("nav.primary")}>
+      <ul className="app-nav-list">
+        <li>
+          <button
+            type="button"
+            className="app-nav-item"
+            aria-current={active === "library" ? "page" : undefined}
+            onClick={() => onNavigate("library")}
+          >
+            {t("nav.home")}
+          </button>
+        </li>
+        <li>
+          <button
+            type="button"
+            className="app-nav-item"
+            aria-current={active === "diagnostics" ? "page" : undefined}
+            onClick={() => onNavigate("diagnostics")}
+          >
+            {t("diagnostics.open")}
+          </button>
+        </li>
+      </ul>
+    </nav>
   );
 }
 

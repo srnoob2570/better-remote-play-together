@@ -403,6 +403,8 @@
   "library.loading": "Reading the Steam library…",
   "library.title": "Library",
   "library.warnings": "Library warnings",
+  "nav.home": "Home",
+  "nav.primary": "Primary navigation",
   "pending.body": "SpaceWar still has a configuration from an earlier session for %s. It is not the last session; you can restore it or open the guide.",
   "pending.guide": "See how to restore",
   "pending.orphanBody": "SpaceWar has a Better RPT command without a coherent session or backup. It will not be changed.",
