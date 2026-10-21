@@ -7,6 +7,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-10-21 (0321e4a)
+
 ### Added
 
 - La barra superior incorpora una navegación principal con **Inicio** y
@@ -99,6 +101,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 - El build usa Go 1.27.3, que corrige GO-2026-6809 en `crypto/x509` y evita
   confiar en certificados intermedios comprometidos.
+
+**Full changelog:** [v0.2.2...v0.2.3][0.2.3]
 
 ## [0.2.2] - 2026-10-21 (efe5aea)
 
@@ -305,7 +309,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Cierre y reapertura automática de Steam durante la preparación.
 - Diálogo «Cerrar Steam para preparar» y textos asociados.
 
-[Unreleased]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.2...v0.2.0
