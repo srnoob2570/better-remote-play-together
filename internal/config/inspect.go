@@ -33,21 +33,20 @@ type ControllerLayoutInspection struct {
 // InspectOverlay reads SpaceWar's OverlayAppEnable flag without modifying the
 // Steam configuration. It requires a readable native Steam root.
 func InspectOverlay(steamRoot string) (OverlayInspection, error) {
-	if strings.TrimSpace(steamRoot) == "" {
-		return OverlayInspection{}, fmt.Errorf("%w: empty Steam root", ErrLocalConfigMissing)
-	}
-	account, err := SelectAccount(steamRoot)
+	state, err := ReadLocalState(steamRoot)
 	if err != nil {
 		return OverlayInspection{}, err
 	}
-	data, _, err := readLocalConfig(account.LocalConfigPath(steamRoot))
-	if err != nil {
-		return OverlayInspection{}, err
-	}
-	document, err := parseVDFDocument(data)
-	if err != nil {
-		return OverlayInspection{}, err
-	}
+	return state.InspectOverlay()
+}
+
+// InspectOverlay reads the overlay flag from an already-read localconfig
+// snapshot.
+func (s LocalState) InspectOverlay() (OverlayInspection, error) {
+	return inspectOverlay(s.document)
+}
+
+func inspectOverlay(document *vdfDocument) (OverlayInspection, error) {
 	apps, err := findObject(document, launchOptionPath)
 	if err != nil {
 		return OverlayInspection{}, err

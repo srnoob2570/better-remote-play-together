@@ -111,14 +111,15 @@ type Stale struct {
 
 // Situation is the classified lifecycle state used by the current dashboard.
 type Situation struct {
-	Kind         string        `json:"kind"`
-	Setup        string        `json:"setup"`
-	Restore      string        `json:"restore"`
-	Token        string        `json:"token,omitempty"`
-	TargetAppID  uint32        `json:"targetAppId,omitempty"`
-	SteamRunning bool          `json:"steamRunning"`
-	State        *SessionState `json:"state,omitempty"`
-	Last         *LastSession  `json:"last,omitempty"`
+	Kind          string         `json:"kind"`
+	Setup         string         `json:"setup"`
+	Restore       string         `json:"restore"`
+	Token         string         `json:"token,omitempty"`
+	TargetAppID   uint32         `json:"targetAppId,omitempty"`
+	SteamRunning  bool           `json:"steamRunning"`
+	State         *SessionState  `json:"state,omitempty"`
+	Last          *LastSession   `json:"last,omitempty"`
+	SetupSnapshot *SetupSnapshot `json:"setupSnapshot,omitempty"`
 }
 
 // LastSession is the durable last-launch record shown in the session panel.
@@ -283,6 +284,10 @@ func mapSituation(situation session.Situation) Situation {
 		out.State = &state
 	}
 	out.Last = mapLast(situation.Last)
+	if situation.SetupSnapshot.Status != "" || situation.SetupSnapshot.Setup != nil {
+		setup := mapSetupSnapshot(situation.SetupSnapshot)
+		out.SetupSnapshot = &setup
+	}
 	return out
 }
 

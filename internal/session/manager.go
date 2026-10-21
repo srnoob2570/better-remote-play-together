@@ -17,7 +17,7 @@ import (
 type RestoreFunc func(config.RestoreOptions) (config.Restored, error)
 
 // SetupDetectFunc reads the persistent dispatcher state.
-type SetupDetectFunc func(config.Paths, string) (config.SetupSnapshot, error)
+type SetupDetectFunc func(config.Paths, config.LocalState) (config.SetupSnapshot, error)
 
 // SetupInstallFunc installs the persistent dispatcher.
 type SetupInstallFunc func(config.InstallSetupOptions) (config.Setup, error)
@@ -42,11 +42,11 @@ type Manager struct {
 	Installer      *helper.Installer
 	RestoreFn      RestoreFunc
 	SetupDetect    SetupDetectFunc
+	LocalState     func(string) (config.LocalState, error)
 	SetupInstall   SetupInstallFunc
 	SetupGuide     SetupGuideFunc
 	SetupRestore   SetupRestoreFunc
 	LaunchSession  LaunchSessionFunc
-	LastPlayed     func(string) (*config.LastPlayed, error)
 	Now            func() time.Time
 	PollInterval   time.Duration
 	StartupTimeout time.Duration
@@ -96,12 +96,12 @@ func NewManager(paths config.Paths, catalog steam.Catalog) (*Manager, error) {
 		Lifecycle:      lifecycle,
 		Installer:      helper.NewInstaller(paths),
 		RestoreFn:      config.Restore,
-		SetupDetect:    config.DetectSetup,
+		SetupDetect:    config.DetectSetupFromState,
 		SetupInstall:   config.InstallSetup,
 		SetupGuide:     config.RecordGuideSetup,
 		SetupRestore:   config.RestoreSetup,
 		LaunchSession:  lifecycle.AppLaunchSession,
-		LastPlayed:     config.ReadLastPlayed,
+		LocalState:     config.ReadLocalState,
 		PollInterval:   time.Second,
 		StartupTimeout: StartupTimeout,
 		Now:            time.Now,
@@ -158,7 +158,11 @@ func (m *Manager) Start(ctx context.Context, options StartOptions) (Active, erro
 		m.LaunchSession = m.Lifecycle.AppLaunchSession
 	}
 
-	snapshot, err := m.setupSnapshot()
+	local, err := m.localState()
+	if err != nil {
+		return Active{}, err
+	}
+	snapshot, err := m.setupSnapshot(local)
 	if err != nil {
 		return Active{}, err
 	}
@@ -397,20 +401,28 @@ func (m *Manager) RestoreSetup(ctx context.Context) (config.Restored, error) {
 
 // SetupSnapshot reads the current setup without writing.
 func (m *Manager) SetupSnapshot() (config.SetupSnapshot, error) {
-	return m.setupSnapshot()
+	local, err := m.localState()
+	if err != nil {
+		return config.SetupSnapshot{}, err
+	}
+	return m.setupSnapshot(local)
 }
 
 // Situation classifies the current durable and Steam configuration state.
 func (m *Manager) Situation() (Situation, error) {
+	situation, _, err := m.situation()
+	return situation, err
+}
+
+func (m *Manager) situation() (Situation, config.SetupSnapshot, error) {
 	now := m.now()
 	last, err := m.Store.ReadLastLaunch()
 	if err != nil && !errors.Is(err, ErrLastLaunchMissing) {
-		return Situation{}, err
+		return Situation{}, config.SetupSnapshot{}, err
 	}
 	if last != nil {
 		last = m.reconcileLast(last)
 	}
-	last = m.reconcileSteamLast(last)
 
 	var snapshot config.SetupSnapshot
 	marker := MarkerNone
@@ -418,9 +430,14 @@ func (m *Manager) Situation() (Situation, error) {
 	var stale *config.Stale
 	root := m.Catalog.Installation.Root
 	if root != "" {
-		snapshot, err = m.setupSnapshot()
+		local, err := m.localState()
 		if err != nil {
-			return Situation{}, err
+			return Situation{}, config.SetupSnapshot{}, err
+		}
+		last = m.reconcileSteamLast(last, local)
+		snapshot, err = m.setupSnapshot(local)
+		if err != nil {
+			return Situation{}, config.SetupSnapshot{}, err
 		}
 		if snapshot.Current.Exists && snapshot.Current.Value != "" {
 			switch {
@@ -433,9 +450,9 @@ func (m *Manager) Situation() (Situation, error) {
 			}
 		}
 		if marker == MarkerLegacy {
-			stale, err = config.DetectStale(m.Paths, root, false)
+			stale, err = config.DetectStaleFromState(m.Paths, local, false)
 			if err != nil {
-				return Situation{}, err
+				return Situation{}, config.SetupSnapshot{}, err
 			}
 			if stale != nil {
 				legacy = &LegacyEvidence{}
@@ -458,7 +475,7 @@ func (m *Manager) Situation() (Situation, error) {
 	if stateToken != "" {
 		loaded, readErr := m.Store.ReadState(stateToken)
 		if readErr != nil && !errors.Is(readErr, ErrStateMissing) {
-			return Situation{}, readErr
+			return Situation{}, config.SetupSnapshot{}, readErr
 		}
 		if readErr == nil {
 			state = &loaded
@@ -467,7 +484,7 @@ func (m *Manager) Situation() (Situation, error) {
 	if state == nil {
 		active, activeErr := m.Store.ActiveState()
 		if activeErr != nil {
-			return Situation{}, activeErr
+			return Situation{}, config.SetupSnapshot{}, activeErr
 		}
 		if active != nil {
 			state = active
@@ -482,16 +499,16 @@ func (m *Manager) Situation() (Situation, error) {
 	intent, intentErr := m.Store.ReadIntent(now)
 	if intentErr != nil && !errors.Is(intentErr, ErrIntentMissing) &&
 		!errors.Is(intentErr, ErrIntentExpired) {
-		return Situation{}, intentErr
+		return Situation{}, config.SetupSnapshot{}, intentErr
 	}
 	steamRunning := false
 	if m.Lifecycle != nil {
 		steamRunning, err = m.Lifecycle.IsRunning()
 		if err != nil {
-			return Situation{}, err
+			return Situation{}, config.SetupSnapshot{}, err
 		}
 	}
-	return Classify(Evidence{
+	situation := Classify(Evidence{
 		Setup:        setupState(snapshot.Status),
 		SetupBackup:  snapshot.Setup != nil && snapshot.Setup.Backup.Path != "",
 		Marker:       marker,
@@ -501,7 +518,9 @@ func (m *Manager) Situation() (Situation, error) {
 		HelperAlive:  helperAlive,
 		SteamRunning: steamRunning,
 		Last:         last,
-	}), nil
+	})
+	situation.SetupSnapshot = snapshot
+	return situation, snapshot, nil
 }
 
 // Recover inspects startup state and returns the classified situation.
@@ -541,15 +560,13 @@ func (m *Manager) Recover(ctx context.Context) (*Recovery, error) {
 		_ = intent
 		_ = m.Store.ClearIntent()
 	}
-	situation, err := m.Situation()
+	situation, setup, err := m.situation()
 	if err != nil {
 		return nil, err
 	}
 	recovery.Situation = situation
 	recovery.Last = situation.Last
-	if setup, setupErr := m.SetupSnapshot(); setupErr == nil {
-		recovery.Setup = setup
-	}
+	recovery.Setup = setup
 	if recovery.State == nil && recovery.Last == nil && situation.Kind == SituationIdle &&
 		situation.Setup == SetupMissing && len(recovery.ExpiredPlans) == 0 {
 		return nil, nil
@@ -581,23 +598,23 @@ func (m *Manager) restore(ctx context.Context, token string, active bool) (err e
 	return err
 }
 
-func (m *Manager) setupSnapshot() (config.SetupSnapshot, error) {
-	if m.SetupDetect == nil {
-		m.SetupDetect = config.DetectSetup
+func (m *Manager) localState() (config.LocalState, error) {
+	if m.LocalState == nil {
+		m.LocalState = config.ReadLocalState
 	}
-	return m.SetupDetect(m.Paths, m.Catalog.Installation.Root)
+	return m.LocalState(m.Catalog.Installation.Root)
 }
 
-func (m *Manager) reconcileSteamLast(last *LastLaunch) *LastLaunch {
-	root := m.Catalog.Installation.Root
-	if root == "" {
-		return last
+func (m *Manager) setupSnapshot(local config.LocalState) (config.SetupSnapshot, error) {
+	if m.SetupDetect == nil {
+		m.SetupDetect = config.DetectSetupFromState
 	}
-	if m.LastPlayed == nil {
-		m.LastPlayed = config.ReadLastPlayed
-	}
-	played, err := m.LastPlayed(root)
-	if err != nil || played == nil {
+	return m.SetupDetect(m.Paths, local)
+}
+
+func (m *Manager) reconcileSteamLast(last *LastLaunch, local config.LocalState) *LastLaunch {
+	played := local.LastPlayed
+	if played == nil {
 		return last
 	}
 	if last != nil {

@@ -535,7 +535,15 @@ func TestRecoverSessionNilHasEmptySlices(t *testing.T) {
 func TestSituationAndSetup(t *testing.T) {
 	app := &fakeApp{
 		situationFn: func() (session.Situation, error) {
-			return session.Situation{Kind: session.SituationIdle, Setup: session.SetupMissing, Restore: session.RestoreNotNeeded}, nil
+			return session.Situation{
+				Kind:    session.SituationIdle,
+				Setup:   session.SetupMissing,
+				Restore: session.RestoreNotNeeded,
+				SetupSnapshot: config.SetupSnapshot{
+					Status:  config.SetupGuide,
+					Current: config.LaunchOption{Value: "current"},
+				},
+			}, nil
 		},
 		setupFn: func() (config.SetupSnapshot, error) {
 			return config.SetupSnapshot{Status: config.SetupGuide, Current: config.LaunchOption{Value: "current"}}, nil
@@ -548,6 +556,10 @@ func TestSituationAndSetup(t *testing.T) {
 	}
 	if situation.Kind != "idle" || situation.Setup != "missing" {
 		t.Fatalf("situation = %+v", situation)
+	}
+	if situation.SetupSnapshot == nil || situation.SetupSnapshot.Status != "guide" ||
+		situation.SetupSnapshot.CurrentValue != "current" {
+		t.Fatalf("situation setup snapshot = %+v", situation.SetupSnapshot)
 	}
 	setup, err := b.SetupSnapshot()
 	if err != nil {

@@ -65,13 +65,10 @@ export function useSession(): SessionController {
   const warned = useRef(new Set<number>());
 
   const refreshContext = useCallback(async () => {
-    const [nextSituation, nextSetup] = await Promise.all([
-      bridge.Situation(),
-      bridge.SetupSnapshot(),
-    ]);
-    setSituation(nextSituation);
-    setSetup(nextSetup);
-    if (nextSituation.last) setLast(nextSituation.last);
+    const next = await bridge.Situation();
+    setSituation(next);
+    if (next.setupSnapshot) setSetup(next.setupSnapshot);
+    if (next.last) setLast(next.last);
   }, []);
 
   useEffect(() => {

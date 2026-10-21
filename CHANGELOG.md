@@ -25,6 +25,10 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Listar los backups lee solo sus metadatos; el contenido se sigue verificando
   al restaurar. Con diez backups de 1 MB, el listado baja de ~7,5 ms a ~0,2 ms
   y de ~10,7 MB a ~38 kB por llamada.
+- La situación de sesión y el estado del dispatcher comparten una sola lectura
+  y parseo de `localconfig.vdf`, y el refresco de la interfaz hace una sola
+  llamada al bridge. En una configuración de 91 KB, el trabajo de configuración
+  baja de ~147 µs a ~76 µs y de ~61 KB a ~21 KB por refresco.
 
 ## [0.2.2] - 2026-10-21 (efe5aea)
 

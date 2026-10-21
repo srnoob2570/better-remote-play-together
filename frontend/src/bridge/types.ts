@@ -120,6 +120,7 @@ export interface Situation {
   steamRunning: boolean;
   state?: SessionState;
   last?: LastSession;
+  setupSnapshot?: SetupSnapshot;
 }
 
 export interface LastSession {
