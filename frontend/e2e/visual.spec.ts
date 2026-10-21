@@ -15,6 +15,7 @@ const scenarios = [
   "dialog-unknown",
   "session-error",
   "update-available",
+  "update-development",
 ] as const;
 
 type Scenario = (typeof scenarios)[number];
@@ -31,7 +32,7 @@ async function prepare(page: Page, scenario: Scenario, lang: "es" | "en" = "es")
     await page.getByRole("button", { name: lang === "es" ? "Jugar" : "Play" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
   }
-  if (scenario === "update-available") {
+  if (scenario === "update-available" || scenario === "update-development") {
     await page
       .getByRole("button", {
         name: lang === "es" ? "Actualización 0.2.1 disponible" : "Update 0.2.1 available",
@@ -71,6 +72,7 @@ const expected = (scenario: Scenario, lang: "es" | "en"): RegExp | string => {
     case "session-error":
       return es ? "No se pudo completar la operación" : "The operation could not be completed";
     case "update-available":
+    case "update-development":
       return es ? "Actualización de Better RPT" : "Better RPT update";
   }
 };

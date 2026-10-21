@@ -860,6 +860,30 @@ button {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
 }
 
+.dialog-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--color-muted-ink);
+  justify-content: center;
+}
+
+.dialog-close:hover {
+  background: var(--color-line-soft);
+  color: var(--color-cream);
+}
+
+.dialog-close svg {
+  width: 20px;
+  height: 20px;
+}
+
 .dialog-header {
   display: block;
   gap: 0;
@@ -870,6 +894,10 @@ button {
   color: var(--color-cream);
   font-size: var(--size-lead);
   font-weight: 600;
+}
+
+.update-dialog .dialog-title {
+  padding-right: 44px;
 }
 
 .dialog-body {
@@ -1419,18 +1447,6 @@ button {
   font-size: var(--size-caption);
   line-height: 1.5;
   overflow-wrap: anywhere;
-}
-
-.update-link {
-  display: inline-block;
-  margin-top: 16px;
-  color: var(--color-cyan);
-  font-size: var(--size-small);
-  text-underline-offset: 3px;
-}
-
-.update-link:hover {
-  color: var(--color-cream);
 }
 
 .library-table {

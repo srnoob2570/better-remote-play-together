@@ -141,7 +141,8 @@ describe("update control", () => {
       within(dialog).getByText("Estás al día. La versión 0.2.0 es la más reciente."),
     ).toBeInTheDocument();
     expect(within(dialog).queryByRole("button", { name: "Actualizar ahora" })).not.toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Cerrar" }));
+    expect(within(dialog).getByRole("button", { name: "Cerrar" })).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Aceptar" }));
     expect(await screen.findByRole("button", { name: "Estás al día" })).toBeInTheDocument();
   });
 
@@ -153,10 +154,9 @@ describe("update control", () => {
     expect(within(dialog).getByText("Versión actual: 0.2.0")).toBeInTheDocument();
     expect(within(dialog).getByText("Nueva versión: 0.2.1")).toBeInTheDocument();
     expect(within(dialog).getByText("La versión 0.2.1 está disponible.")).toBeInTheDocument();
-    expect(within(dialog).getByRole("link", { name: "Ver notas del release" })).toHaveAttribute(
-      "href",
-      updateCheck().releaseUrl,
-    );
+    expect(
+      within(dialog).getByRole("button", { name: "Ver notas del release" }),
+    ).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Actualizar ahora" })).toBeInTheDocument();
   });
 
@@ -243,10 +243,7 @@ describe("update control", () => {
     ).toBeInTheDocument();
     expect(within(dialog).getByText("HTTP 403")).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
-    expect(within(dialog).getByRole("link", { name: "Abrir release" })).toHaveAttribute(
-      "href",
-      "https://github.com/srnoob2570/better-remote-play-together/releases/latest",
-    );
+    expect(within(dialog).getByRole("button", { name: "Abrir release" })).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "Reintentar" }));
     await waitFor(() => expect(mocked.CheckForUpdate).toHaveBeenCalledTimes(2));
   });
@@ -272,6 +269,10 @@ describe("update control", () => {
       ),
     ).toBeInTheDocument();
     expect(within(dialog).queryByRole("button", { name: "Actualizar ahora" })).not.toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("button", { name: "Ver notas del release" }),
+    ).toHaveAttribute("data-primary", "true");
+    expect(within(dialog).getByRole("button", { name: "Aceptar" })).toBeInTheDocument();
   });
 
   it("explains where a fallback AppImage was saved", async () => {
@@ -299,7 +300,7 @@ describe("update control", () => {
     renderControl();
     fireEvent.click(screen.getByRole("button", { name: "Buscar actualizaciones" }));
     const dialog = await screen.findByRole("dialog", { name: "Actualización de Better RPT" });
-    fireEvent.click(within(dialog).getByRole("link", { name: "Ver notas del release" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Ver notas del release" }));
     expect(Browser.OpenURL).toHaveBeenCalledWith(updateCheck().releaseUrl);
   });
 

@@ -21,6 +21,9 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   sobre la pantalla actual, con fondo atenuado, panel centrado y la app de
   fondo inerte. El cierre es un icono en la cabecera, sin el botón de texto
   duplicado.
+- El diálogo de actualización incorpora una **X** en la cabecera y sustituye el
+  enlace suelto por un botón con icono para abrir las notas del release o el
+  release completo. El pie cierra con **Aceptar** en lugar de **Cerrar**.
 - El arranque y el refresco del catálogo evitan trabajo duplicado: la
   biblioteca principal se recorre una sola vez, la detección del tipo de
   instalación se calcula una vez por proceso, las portadas se resuelven sin

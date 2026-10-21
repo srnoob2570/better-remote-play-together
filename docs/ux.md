@@ -295,6 +295,13 @@ o el final del flujo devuelven a la pantalla de origen sin ejecutar cambios.
 
 Se muestra una vez por juego en cada ejecución.
 
+**Actualización**
+
+Muestra las versiones actual y nueva, el progreso y el resultado. La **X** de la
+cabecera cierra el diálogo; el pie ofrece la acción principal disponible
+(actualizar, reiniciar o reintentar), un botón con icono de enlace externo para
+las notas del release o el release completo, y **Aceptar** para cerrar.
+
 **Restaurar**
 
 > Se restaurará la opción de lanzamiento original de SpaceWar. ¿Continuar?

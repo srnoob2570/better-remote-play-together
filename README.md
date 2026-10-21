@@ -96,7 +96,8 @@ fuera de Ubuntu 22.04 en esta versión.
 Better RPT comprueba GitHub Releases al arrancar sin bloquear la interfaz y
 muestra la versión (`v0.2.0`) junto a un botón de actualización solo con icono
 en la esquina inferior izquierda. El tooltip y los iconos explican el estado; el
-diálogo muestra versiones, progreso y enlaces. La comprobación de arranque
+diálogo muestra versiones, progreso y un botón para abrir las notas del release.
+Se cierra con la X superior o con **Aceptar**. La comprobación de arranque
 reutiliza el último resultado correcto durante 24 horas; el botón consulta
 siempre la red. No requiere cuenta, token ni configuración.
 
@@ -119,7 +120,8 @@ La actualización solo se ofrece para instalaciones Linux amd64:
   instalar, **Reiniciar ahora** abre la versión nueva.
 - **Compilación de desarrollo:** si la versión es `dev` o el binario no se
   detecta como AppImage ni como paquete Debian, no se ofrece autoinstalación;
-  el diálogo indica que es una compilación de desarrollo y enlaza al release.
+  el diálogo indica que es una compilación de desarrollo y ofrece **Ver notas
+  del release**.
 
 La descarga tiene un límite de 200 MB y un tiempo máximo de cinco minutos; la
 consulta de metadatos tiene un timeout de 10 segundos. La verificación del
@@ -127,7 +129,7 @@ checksum es obligatoria y fail-closed: si el asset o `SHA256SUMS` falta, o el
 hash no coincide, se aborta sin tocar el binario actual y se eliminan los
 temporales. Un fallo de red, un rate limit de GitHub o una respuesta inválida
 no interrumpen la aplicación; la comprobación de arranque falla en silencio y
-el botón muestra un error con reintento y enlace al release.
+el botón muestra un error con reintento y el botón **Abrir release**.
 
 El updater no se ofrece en Flatpak/Snap, otras arquitecturas ni instalaciones
 manuales en rutas distintas de `/usr/bin/better-rpt`.

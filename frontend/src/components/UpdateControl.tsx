@@ -1,18 +1,21 @@
-import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Browser, Events } from "@wailsio/runtime";
 import {
   CircleCheckIcon,
   DownloadIcon,
+  ExternalLinkIcon,
   FlaskConicalIcon,
   FolderCheckIcon,
   RefreshCwIcon,
   RotateCcwIcon,
   TriangleAlertIcon,
+  XIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -88,6 +91,8 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
   const releaseUrl = check?.releaseUrl || RELEASES_URL;
   const showBadge = Boolean(check?.available && latestVersion);
   const versionText = formatVersion(version);
+  const releaseIsPrimary =
+    phase === "development" || (phase === "available" && !check?.canInstall);
 
   useEffect(() => {
     const off = Events.On("update.progress", (event) => {
@@ -192,8 +197,7 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
     void checkNow();
   }
 
-  function openRelease(event: MouseEvent<HTMLAnchorElement>) {
-    event.preventDefault();
+  function openRelease() {
     void Browser.OpenURL(releaseUrl);
   }
 
@@ -286,6 +290,15 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
             focusInvoker(dialogInvoker.current);
           }}
         >
+          <DialogClose asChild>
+            <Button
+              variant="ghost"
+              className="dialog-close"
+              aria-label={t("common.close")}
+            >
+              <XIcon aria-hidden="true" />
+            </Button>
+          </DialogClose>
           <DialogHeader className="dialog-header">
             <DialogTitle className="dialog-title">{t("update.dialogTitle")}</DialogTitle>
             <DialogDescription
@@ -372,20 +385,25 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
                   {t("update.retry")}
                 </Button>
               )}
+              {showReleaseLink(phase) && (
+                <Button
+                  variant="ghost"
+                  className="dialog-button"
+                  data-primary={releaseIsPrimary ? "true" : undefined}
+                  onClick={openRelease}
+                >
+                  <ExternalLinkIcon aria-hidden="true" />
+                  {phase === "error" ? t("update.openRelease") : t("update.releaseNotes")}
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 className="dialog-button"
                 onClick={() => setDialogOpen(false)}
               >
-                {t("common.close")}
+                {t("common.accept")}
               </Button>
             </DialogFooter>
-          )}
-
-          {showReleaseLink(phase) && (
-            <a className="update-link" href={releaseUrl} onClick={openRelease}>
-              {phase === "error" ? t("update.openRelease") : t("update.releaseNotes")}
-            </a>
           )}
         </DialogContent>
       </Dialog>

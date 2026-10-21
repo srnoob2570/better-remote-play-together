@@ -32,7 +32,8 @@ type Scenario =
   | "dialog-unknown"
   | "session-error"
   | "setup-missing"
-  | "update-available";
+  | "update-available"
+  | "update-development";
 
 const NOW = new Date("2026-10-20T12:00:00Z");
 
@@ -296,6 +297,15 @@ function scenarioData(name: Scenario, lang: "es" | "en") {
     case "update-available":
       updateValue = updateCheck(true);
       break;
+    case "update-development":
+      updateValue = {
+        ...updateCheck(true),
+        currentVersion: "dev",
+        development: true,
+        canInstall: false,
+        installKind: "development",
+      };
+      break;
     default:
       break;
   }
@@ -307,7 +317,7 @@ function scenarioData(name: Scenario, lang: "es" | "en") {
       if (name === "loading") return new Promise(() => {});
       return Promise.resolve({
         schemaVersion: 1,
-        version: "0.2.0",
+        version: name === "update-development" ? "dev" : "0.2.0",
         language: lang,
         config: { language: lang },
         catalog: snapshotCatalog,
@@ -482,4 +492,5 @@ const SCENARIOS: Record<Scenario, true> = {
   "session-error": true,
   "setup-missing": true,
   "update-available": true,
+  "update-development": true,
 };
