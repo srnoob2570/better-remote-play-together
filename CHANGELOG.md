@@ -9,6 +9,9 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Fixed
 
+- La etiqueta **Veredicto** del resumen de diagnóstico se centra con el
+  veredicto y comparte la línea base de los recuentos, en lugar de quedar
+  desplazada hacia abajo.
 - El botón de volver del diagnóstico queda a la izquierda del título, centrado
   verticalmente, como un icono grande con tooltip, sin texto visible ni fila
   propia; el encabezado recupera ese espacio vertical.
