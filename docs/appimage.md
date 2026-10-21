@@ -45,10 +45,10 @@ BetterRPT.AppDir/
 
 ## Compilación
 
-El binario Wails/GTK3 final se construye en Ubuntu 22.04 (glibc 2.35), igual que el `.deb`. `make build VERSION=0.2.0` genera el frontend, los bindings y `cmd/better-rpt/dist`, y compila con los tags de Wails:
+El binario Wails/GTK3 final se construye en Ubuntu 22.04 (glibc 2.35), igual que el `.deb`. `make build VERSION=0.2.1` genera el frontend, los bindings y `cmd/better-rpt/dist`, y compila con los tags de Wails:
 
 ```bash
-make build VERSION=0.2.0
+make build VERSION=0.2.1
 ```
 
 La compilación manual equivalente, una vez existen los assets web, es:
@@ -56,10 +56,10 @@ La compilación manual equivalente, una vez existen los assets web, es:
 ```bash
 CGO_ENABLED=1 GOTOOLCHAIN=go1.27.2 go build -tags "gtk3 production" \
   -trimpath -buildvcs=false \
-  -ldflags '-s -w -X main.version=0.2.0' -o dist/better-rpt ./cmd/better-rpt
+  -ldflags '-s -w -X main.version=0.2.1' -o dist/better-rpt ./cmd/better-rpt
 
 CGO_ENABLED=0 GOTOOLCHAIN=go1.27.2 go build -trimpath -buildvcs=false \
-  -ldflags '-s -w -X main.version=0.2.0' -o dist/better-rpt-helper ./cmd/better-rpt-helper
+  -ldflags '-s -w -X main.version=0.2.1' -o dist/better-rpt-helper ./cmd/better-rpt-helper
 ```
 
 `cmd/better-rpt/dist` debe existir antes de compilar el binario Wails; `make build` lo deja listo. El helper no usa GTK ni WebKit.
@@ -82,7 +82,7 @@ chmod 0755 dist/BetterRPT.AppDir/AppRun \
 ARCH=x86_64 SOURCE_DATE_EPOCH=1700000000 APPIMAGE_EXTRACT_AND_RUN=1 \
   "$HOME/.cache/better-rpt/release-tools/appimagetool" --no-appstream \
   --runtime-file "$HOME/.cache/better-rpt/release-tools/runtime-x86_64" \
-  dist/BetterRPT.AppDir dist/BetterRPT-0.2.0-x86_64.AppImage
+  dist/BetterRPT.AppDir dist/BetterRPT-0.2.1-x86_64.AppImage
 ```
 
 Herramientas verificadas:
@@ -90,14 +90,14 @@ Herramientas verificadas:
 - `appimagetool` continuous, git `854e19e`, build 313 (2026-10-04), SHA-256 `95cbe7cce9717fce90c484e34052ee7c7f1d7635b33c12525b4776826a7d29b6`.
 - Runtime type2 commit `fedfad5`, SHA-256 `617aa77314d57c8b8e4fae9c3f0b35af7b30d5529cb69e98f64f92510ed98a46`, 944.632 bytes.
 - Para reproducibilidad, guardar ambos binarios en el repositorio de compilación o en caché con esos hashes; no depender de `continuous` ni de la descarga en cada compilación.
-- La compilación de referencia con el mismo AppDir y `SOURCE_DATE_EPOCH=1700000000` produjo `8591dc468f089fe4e438c16762e82659dbb7c0cb49ea276712a0280f429f88ff` (7,7 MB). El script de release repite la compilación para comprobar reproducibilidad antes de publicar.
+- La compilación de referencia con el mismo AppDir y `SOURCE_DATE_EPOCH=1700000000` produjo `259b190de18066463cc8ea2de4c4d55630d6c95a1616697adf4b771e80ed70aa` (7,7 MB). El script de release repite la compilación para comprobar reproducibilidad antes de publicar.
 
 ## Runtime
 
 - El runtime type2 verificado es `static-pie`; no contiene `libfuse.so.2`. Usa `fusermount`/`fusermount3` del sistema y es compatible con FUSE 3.
 - El runtime monta el AppDir con `ro,nosuid,nodev`. `nosuid`/`nodev` son normales y no impiden ejecutar el AppImage; solo `noexec` impediría ejecutar su contenido. El diagnóstico no trata `nosuid`/`nodev` como fallo.
 - Si FUSE no está disponible: ejecutar con `--appimage-extract-and-run` o `APPIMAGE_EXTRACT_AND_RUN=1`. Esa extracción temporal **no** se usa para el launch option.
-- Si el AppImage no arranca, `--diagnose` explica FUSE, glibc, bibliotecas ELF, sesión gráfica, SELinux/AppArmor y Steam sin abrir la GUI. Con FUSE ausente: `APPIMAGE_EXTRACT_AND_RUN=1 ./BetterRPT-0.2.0-x86_64.AppImage --diagnose`. Ver [`diagnostics.md`](diagnostics.md).
+- Si el AppImage no arranca, `--diagnose` explica FUSE, glibc, bibliotecas ELF, sesión gráfica, SELinux/AppArmor y Steam sin abrir la GUI. Con FUSE ausente: `APPIMAGE_EXTRACT_AND_RUN=1 ./BetterRPT-0.2.1-x86_64.AppImage --diagnose`. Ver [`diagnostics.md`](diagnostics.md).
 - El AppImage no incluye glibc, GTK3, WebKit2GTK 4.1, GL, Wayland ni X11: se usan las bibliotecas del sistema. Requisitos mínimos: glibc ≥ 2.35, `libgtk-3-0`/`libgtk-3-0t64`, `libwebkit2gtk-4.1-0`, `libwayland-client`, `libwayland-cursor`, `libwayland-egl`, `libxkbcommon`, Mesa/GL y las bibliotecas X11 que use la sesión. `AppRun` comprueba GTK/WebKit y muestra qué falta.
 - Probado con el artefacto final: `--version` directo con FUSE, con `APPIMAGE_EXTRACT_AND_RUN=1` y con `--appimage-extract-and-run`; GUI bajo Xvfb con el catálogo real de Steam (5 juegos), cierre limpio con `WM_DELETE_WINDOW` y extracción con `--appimage-extract` verificada. También se comprobó `--version` en Fedora 44 y Arch tras instalar las bibliotecas gráficas.
 - Linux Mint/Pop!_OS y otras familias con glibc ≥ 2.35 no se probaron una a una; no se declara una garantía por versión.

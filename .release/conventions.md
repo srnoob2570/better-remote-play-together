@@ -5,7 +5,7 @@
 - `0.1.0` es la primera release: no había tags, releases ni ramas `release/*`.
   Las entradas de `[Unreleased]` se integraron en `0.1.0` porque nunca se publicó
   una versión anterior.
-- La versión se define en `Makefile` (`VERSION ?= 0.2.0`), se pasa a
+- La versión se define en `Makefile` (`VERSION ?= 0.2.1`), se pasa a
   `packaging/nfpm.yaml` y `scripts/release.sh` la deduce de los commits.
 - `make release` (o `scripts/release.sh`) es el flujo canónico: mueve
   `[Unreleased]`, actualiza referencias y documentación, compila y verifica los

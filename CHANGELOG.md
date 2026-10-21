@@ -7,6 +7,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-20 (5c7d8eb)
+
 ### Fixed
 
 - Steam Input vuelve a aplicar la plantilla Gamepad genérica al control táctil:
@@ -19,6 +21,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Al lanzar, el botón muestra **Lanzando…** y el panel recuerda aceptar el aviso
   de Steam. La app pide a Steam que traiga su ventana al frente después de
   solicitar el lanzamiento, sin fallar si el compositor deniega el foco.
+
+**Full changelog:** [v0.2.0...v0.2.1][0.2.1]
 
 ## [0.2.0] - 2026-10-20 (370a955)
 
@@ -189,7 +193,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Cierre y reapertura automática de Steam durante la preparación.
 - Diálogo «Cerrar Steam para preparar» y textos asociados.
 
-[Unreleased]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.1.0...v0.1.1
