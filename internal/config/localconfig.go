@@ -272,6 +272,9 @@ func Restore(options RestoreOptions) (Restored, error) {
 		backup, err = LoadBackup(options.BackupPath)
 	case options.SessionToken != "":
 		backup, err = FindBackupBySession(options.Paths, options.SessionToken)
+		if err == nil {
+			backup, err = LoadBackup(backup.Path)
+		}
 	default:
 		return Restored{}, fmt.Errorf("%w: specify a backup or session", ErrBackupMissing)
 	}

@@ -22,6 +22,9 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   el catálogo lo consulta, de modo que los juegos no instalados ya no se
   parsean. En una caché real de 1,5 MB, la apertura baja de ~13,8 ms a ~0,7 ms
   y de ~18,2 MB a ~1,8 MB por refresco.
+- Listar los backups lee solo sus metadatos; el contenido se sigue verificando
+  al restaurar. Con diez backups de 1 MB, el listado baja de ~7,5 ms a ~0,2 ms
+  y de ~10,7 MB a ~38 kB por llamada.
 
 ## [0.2.2] - 2026-10-21 (efe5aea)
 
