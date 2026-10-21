@@ -95,7 +95,7 @@ aplica o que no se puede verificar sin root; no equivale a un fallo.
 | ID | Qué comprueba |
 |---|---|
 | `appimage.fuse` | `fusermount3` y `/dev/fuse`; si no aplica, propone extracción. |
-| `appimage.mount` | Opciones `noexec`/`nosuid` del montaje. |
+| `appimage.mount` | Montaje FUSE del AppImage: solo `noexec` es un fallo; `nosuid`/`nodev` son normales. |
 | `appimage.mac` | SELinux/AppArmor y denegaciones legibles; `SKIP` si no se pueden leer sin root. |
 | `deps.elf` | `DT_NEEDED` real del binario resuelto por el cargador; enumera las bibliotecas ausentes si el binario puede cargarse. |
 

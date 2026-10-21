@@ -95,6 +95,7 @@ Herramientas verificadas:
 ## Runtime
 
 - El runtime type2 verificado es `static-pie`; no contiene `libfuse.so.2`. Usa `fusermount`/`fusermount3` del sistema y es compatible con FUSE 3.
+- El runtime monta el AppDir con `ro,nosuid,nodev`. `nosuid`/`nodev` son normales y no impiden ejecutar el AppImage; solo `noexec` impediría ejecutar su contenido. El diagnóstico no trata `nosuid`/`nodev` como fallo.
 - Si FUSE no está disponible: ejecutar con `--appimage-extract-and-run` o `APPIMAGE_EXTRACT_AND_RUN=1`. Esa extracción temporal **no** se usa para el launch option.
 - Si el AppImage no arranca, `--diagnose` explica FUSE, glibc, bibliotecas ELF, sesión gráfica, SELinux/AppArmor y Steam sin abrir la GUI. Con FUSE ausente: `APPIMAGE_EXTRACT_AND_RUN=1 ./BetterRPT-0.2.0-x86_64.AppImage --diagnose`. Ver [`diagnostics.md`](diagnostics.md).
 - El AppImage no incluye glibc, GTK3, WebKit2GTK 4.1, GL, Wayland ni X11: se usan las bibliotecas del sistema. Requisitos mínimos: glibc ≥ 2.35, `libgtk-3-0`/`libgtk-3-0t64`, `libwebkit2gtk-4.1-0`, `libwayland-client`, `libwayland-cursor`, `libwayland-egl`, `libxkbcommon`, Mesa/GL y las bibliotecas X11 que use la sesión. `AppRun` comprueba GTK/WebKit y muestra qué falta.

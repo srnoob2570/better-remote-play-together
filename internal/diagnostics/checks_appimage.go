@@ -91,17 +91,16 @@ func (e *evaluator) checkAppImageMount() Status {
 		return StatusSkip
 	}
 	e.mountEvidence = []string{"mount=" + mount, "options=" + options}
-	parts := strings.Split(options, ",")
-	noexec, nosuid := false, false
-	for _, part := range parts {
-		switch part {
-		case "noexec":
+	// The AppImage runtime mounts the payload read-only with nosuid,nodev.
+	// Those flags do not prevent execution; only noexec does.
+	noexec := false
+	for _, part := range strings.Split(options, ",") {
+		if part == "noexec" {
 			noexec = true
-		case "nosuid":
-			nosuid = true
+			break
 		}
 	}
-	if noexec || nosuid {
+	if noexec {
 		e.mountNext = "diag.appimage.mount.next"
 		return StatusFail
 	}

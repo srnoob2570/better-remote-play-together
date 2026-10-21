@@ -137,6 +137,37 @@ describe("repair issue mapping", () => {
     expect(actions["appimage.fuse"]).toBe("deps");
   });
 
+  it("only offers a copy command for dependencies that have one", () => {
+    const issues = buildRepairIssues(
+      report("appimage", [
+        check("appimage.fuse", "fail", "fuse missing"),
+        check("deps.elf", "fail", "libraries missing"),
+        check("appimage.mount", "fail", "mount"),
+        check("appimage.mac", "fail", "denied"),
+        check("system.glibc", "fail", "old glibc"),
+      ]),
+    );
+    const issue = (id: string) => {
+      const found = issues.find((item) => item.checkId === id);
+      if (!found) throw new Error(`missing issue ${id}`);
+      return found;
+    };
+
+    expect(issue("appimage.fuse").action).toBe("deps");
+    expect(issue("appimage.fuse").command).toBe("sudo apt install fuse3");
+    expect(issue("appimage.fuse").hintKey).toBe("wizard.repair.depsHint");
+    expect(issue("deps.elf").action).toBe("deps");
+    expect(issue("deps.elf").command).toBe(
+      "sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0",
+    );
+
+    for (const id of ["appimage.mount", "appimage.mac", "system.glibc"]) {
+      expect(issue(id).action).toBe("none");
+      expect(issue(id).command).toBeUndefined();
+      expect(issue(id).hintKey).toBeUndefined();
+    }
+  });
+
   it("offers restore only when the situation says it is available", () => {
     const available = buildRepairIssues(
       report("deb", []),

@@ -7,6 +7,12 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Fixed
+
+- El diagnóstico ya no marca como fallo el montaje FUSE normal de un AppImage
+  (`nosuid`/`nodev`); solo `noexec` indica un problema real. La reparación deja
+  de ofrecer «Copiar comando» cuando la comprobación no tiene un comando seguro.
+
 ## [0.2.0] - 2026-10-20 (370a955)
 
 ### Added

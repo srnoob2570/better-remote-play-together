@@ -7,9 +7,9 @@
   "summary": {
     "verdict": "fail",
     "counts": {
-      "ok": 13,
+      "ok": 14,
       "warn": 2,
-      "fail": 5,
+      "fail": 4,
       "skip": 11
     },
     "total": 31
@@ -127,14 +127,13 @@
     },
     {
       "id": "appimage.mount",
-      "status": "fail",
+      "status": "ok",
       "title": "Montaje del AppImage",
-      "message": "El montaje del AppImage tiene noexec o nosuid.",
+      "message": "El montaje del AppImage permite ejecutar; nosuid/nodev son normales.",
       "evidence": [
         "mount=$HOME/Apps",
         "options=rw,nosuid,nodev"
       ],
-      "nextStep": "Copia el AppImage a tu home y vuelve a ejecutarlo desde allí.",
       "docs": [
         "docs/appimage.md"
       ]

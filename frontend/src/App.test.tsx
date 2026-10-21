@@ -519,4 +519,56 @@ describe("library UI", () => {
     fireEvent.click(screen.getByRole("button", { name: "Volver a la biblioteca" }));
     expect(await screen.findByRole("heading", { name: "Biblioteca" })).toBeInTheDocument();
   });
+
+  it("does not promise a command for a dependency without one", async () => {
+    const base = diagnosticsResult().report;
+    mocked.RunDiagnostics.mockResolvedValue({
+      report: {
+        ...base,
+        summary: {
+          verdict: "fail",
+          counts: { ok: 1, warn: 0, fail: 1, skip: 0 },
+          total: 2,
+        },
+        checks: [
+          base.checks[0],
+          {
+            id: "appimage.mac",
+            status: "fail",
+            title: "SELinux/AppArmor",
+            message: "No se pudieron leer denegaciones de SELinux/AppArmor sin root.",
+            evidence: ["selinux_enforcing=true"],
+            nextStep: "Revisa las denegaciones con ausearch o dmesg.",
+            docs: ["docs/appimage.md"],
+          },
+        ],
+      },
+      markdown: "# Better RPT diagnostics\n\nFAIL · OK 1 · WARN 0 · FAIL 1 · SKIP 0\n",
+    });
+
+    render(<App />);
+    await screen.findAllByText("HELLDIVERS™ 2");
+    fireEvent.click(screen.getByRole("button", { name: "Diagnóstico" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Diagnóstico y reparación" }),
+    );
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "Diagnóstico y reparación",
+    });
+    expect(
+      within(dialog).getByRole("heading", { name: "SELinux/AppArmor" }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("Este problema no tiene una acción automática segura."),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).queryByText(
+        "Copia el comando y ejecútalo en tu terminal. Better RPT no usa root.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("button", { name: "Copiar comando" }),
+    ).not.toBeInTheDocument();
+  });
 });

@@ -120,12 +120,8 @@ function issueForCheck(
     case "deps.elf":
     case "appimage.mount":
     case "appimage.mac":
-      return {
-        ...baseIssue(check, "deps", undefined, "wizard.repair.depsHint"),
-        command: dependencyCommand(check.id) ?? undefined,
-      };
     case "system.glibc":
-      return baseIssue(check, "deps", undefined, "wizard.repair.depsHint");
+      return dependencyIssue(check);
     case "steam.permissions":
       return baseIssue(check, "none", undefined, "wizard.repair.permissionsHint");
     case "session.state": {
@@ -245,6 +241,21 @@ function baseIssue(
     actionLabelKey: ACTION_LABEL[action],
     disabledReasonKey,
     hintKey,
+  };
+}
+
+function dependencyIssue(check: DiagnosticCheck): RepairIssue {
+  // A deps action must carry a command; otherwise the dialog promises a
+  // command that does not exist.
+  const command = dependencyCommand(check.id);
+  return {
+    ...baseIssue(
+      check,
+      command ? "deps" : "none",
+      undefined,
+      command ? "wizard.repair.depsHint" : undefined,
+    ),
+    command: command ?? undefined,
   };
 }
 

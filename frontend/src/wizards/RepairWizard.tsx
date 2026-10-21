@@ -310,7 +310,7 @@ export function RepairWizard({
                       </div>
                     ) : selected.action === "deps" ? (
                       <div className="wizard-section">
-                        {selected.command && (
+                        {selected.command ? (
                           <div className="wizard-command-line">
                             <code>{selected.command}</code>
                             <Button
@@ -321,6 +321,8 @@ export function RepairWizard({
                               {t("wizard.dependencies.copy")}
                             </Button>
                           </div>
+                        ) : (
+                          <p className="hint">{t("wizard.repair.noAction")}</p>
                         )}
                       </div>
                     ) : selected.action !== "none" ? (
