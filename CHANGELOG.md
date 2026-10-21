@@ -17,6 +17,9 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   en monoespaciada, el estado de actualización en el icono y el mismo
   tratamiento para el selector de idioma. En ventanas estrechas reservan su
   altura para no tapar el contenido.
+- Los wizards de configuración y reparación se abren como diálogos modales
+  sobre la pantalla actual, con fondo atenuado, panel centrado y la app de
+  fondo inerte.
 - El arranque y el refresco del catálogo evitan trabajo duplicado: la
   biblioteca principal se recorre una sola vez, la detección del tipo de
   instalación se calcula una vez por proceso, las portadas se resuelven sin
@@ -54,9 +57,9 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Fixed
 
-- Los controles inferiores usan el mismo margen inferior que el lateral de la
-  página, también en ventanas estrechas, y dejan un pequeño respiro respecto al
-  contenido para no quedar pegados al borde.
+- El dock inferior usa un margen de 8 a 16 px en sus tres bordes, también en
+  ventanas estrechas, y deja un pequeño respiro respecto al contenido para no
+  quedar pegado al borde.
 - La interfaz mantiene las acciones principales junto al título, adapta la
   cabecera y los wizards a ventanas estrechas, mejora la jerarquía de
   encabezados y devuelve el foco al control de origen al cerrar los diálogos.

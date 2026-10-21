@@ -59,24 +59,33 @@ test("guide refresh action shares the command heading row", async ({ page }) => 
   ).toBeLessThanOrEqual(1);
 });
 
-test("repair wizard fills the main view without overflowing it", async ({ page }) => {
+test("repair wizard opens as a modal over the app", async ({ page }) => {
   const viewport = { width: 1280, height: 800 };
   await page.setViewportSize(viewport);
   await page.goto("/e2e.html?e2e=library&lang=es");
   await page.getByRole("button", { name: "Diagnóstico" }).click();
   await page.getByRole("button", { name: "Revisar" }).click();
 
-  const main = page.locator("main");
+  const overlay = page.locator(".wizard-overlay");
+  const dialog = page.getByRole("dialog", { name: "Diagnóstico y reparación" });
   const view = page.getByRole("region", { name: "Diagnóstico y reparación" });
+  await expect(dialog).toBeVisible();
   await expect(view).toBeVisible();
   await page.waitForTimeout(250);
 
-  const [mainBox, viewBox] = await Promise.all([box(main), box(view)]);
-  expect(viewBox.x).toBeGreaterThanOrEqual(mainBox.x);
-  expect(viewBox.y).toBeGreaterThanOrEqual(mainBox.y);
-  expect(viewBox.x + viewBox.width).toBeLessThanOrEqual(mainBox.x + mainBox.width + 1);
-  expect(viewBox.y + viewBox.height).toBeLessThanOrEqual(mainBox.y + mainBox.height + 1);
-  expect(viewBox.width).toBeGreaterThanOrEqual(viewport.width - 1);
+  const [overlayBox, viewBox] = await Promise.all([box(overlay), box(view)]);
+  expect(overlayBox).toEqual({ ...viewport, x: 0, y: 0 });
+  expect(viewBox.x).toBeGreaterThan(0);
+  expect(viewBox.y).toBeGreaterThan(0);
+  expect(viewBox.x + viewBox.width).toBeLessThan(viewport.width);
+  expect(viewBox.y + viewBox.height).toBeLessThan(viewport.height);
+  expect(viewBox.width).toBeLessThanOrEqual(1280);
+  expect(Math.abs(viewBox.x + viewBox.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(1);
+  expect(Math.abs(viewBox.y + viewBox.height / 2 - viewport.height / 2)).toBeLessThanOrEqual(1);
+
+  await page.keyboard.press("Escape");
+  await expect(view).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Diagnóstico", exact: true })).toBeFocused();
 });
 
 test("library search and filter toolbar keep breathing room", async ({ page }) => {

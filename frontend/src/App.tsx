@@ -71,6 +71,17 @@ export default function App() {
   const t = (key: MessageKey, ...args: Array<string | number>) =>
     translate(lang, key, ...args);
   const clearGuideRequest = useCallback(() => setGuideRequest(0), []);
+  const modalOpen = view === "setup" || view === "repair";
+  const underlayView =
+    view === "setup"
+      ? setupReturn === "diagnostics"
+        ? "diagnostics"
+        : "library"
+      : view === "repair"
+        ? repairReturn === "diagnostics"
+          ? "diagnostics"
+          : "library"
+        : view;
 
   useEffect(() => {
     if (!session.notice) return;
@@ -193,7 +204,19 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
+    if (!modalOpen) return;
     function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setView(view === "setup" ? setupReturn : repairReturn);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [modalOpen, repairReturn, setupReturn, view]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (modalOpen) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
         event.preventDefault();
         searchRef.current?.focus();
@@ -211,7 +234,7 @@ export default function App() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [busy]);
+  }, [busy, modalOpen]);
 
   const games = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -347,7 +370,7 @@ export default function App() {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="app-window">
-        <header className="app-header">
+        <header className="app-header" inert={modalOpen}>
           <div className="brand">
             <img className="brand-mark" src="/brand/icon.png" alt="" />
             <div>
@@ -384,35 +407,15 @@ export default function App() {
 
         <main
           className={
-            view === "library"
-              ? "app-main"
-              : view === "diagnostics"
-                ? "app-main diagnostics-main"
-                : "app-main app-main-single"
+            underlayView === "library" ? "app-main" : "app-main diagnostics-main"
           }
+          inert={modalOpen}
         >
-          {view === "diagnostics" ? (
+          {underlayView === "diagnostics" ? (
             <DiagnosticsPane
               lang={lang}
               onBack={() => setView("library")}
               onRepair={(checkId) => openRepair(checkId, "diagnostics")}
-            />
-          ) : view === "setup" ? (
-            <SetupWizard
-              lang={lang}
-              session={session}
-              onClose={() => setView(setupReturn)}
-              onOpenGuide={openGuide}
-              onOpenRepair={() => openRepair(undefined, "setup")}
-            />
-          ) : view === "repair" ? (
-            <RepairWizard
-              lang={lang}
-              session={session}
-              initialCheckId={repairCheckId}
-              onClose={() => setView(repairReturn)}
-              onOpenGuide={openGuide}
-              onOpenSetup={openSetup}
             />
           ) : (
             <>
@@ -449,10 +452,40 @@ export default function App() {
           )}
         </main>
 
-        <footer className="app-dock">
+        <footer className="app-dock" inert={modalOpen}>
           <UpdateControl lang={lang} version={snapshot?.version ?? ""} />
           <LanguageMenu lang={lang} onSelect={(next) => void changeLanguage(next)} />
         </footer>
+
+        {modalOpen && (
+          <div
+            className="wizard-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={
+              view === "setup" ? "setup-wizard-title" : "repair-wizard-title"
+            }
+          >
+            {view === "setup" ? (
+              <SetupWizard
+                lang={lang}
+                session={session}
+                onClose={() => setView(setupReturn)}
+                onOpenGuide={openGuide}
+                onOpenRepair={() => openRepair(undefined, "setup")}
+              />
+            ) : (
+              <RepairWizard
+                lang={lang}
+                session={session}
+                initialCheckId={repairCheckId}
+                onClose={() => setView(repairReturn)}
+                onOpenGuide={openGuide}
+                onOpenSetup={openSetup}
+              />
+            )}
+          </div>
+        )}
 
         <SessionDialog lang={lang} session={session} />
         <Toaster

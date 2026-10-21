@@ -177,11 +177,6 @@ button {
   overflow: hidden;
 }
 
-.app-main-single {
-  display: block;
-  overflow: hidden;
-}
-
 .library-pane {
   min-width: 0;
   padding: 24px clamp(13px, 2vw, 36px) calc(var(--size-dock-height) + 12px)
@@ -1199,7 +1194,7 @@ button {
   justify-content: space-between;
   gap: 16px;
   height: var(--size-dock-height);
-  padding: 0 var(--size-page-gutter) var(--size-page-gutter);
+  padding: 0 var(--size-dock-inset) var(--size-dock-inset);
   pointer-events: none;
 }
 
@@ -2139,20 +2134,33 @@ button {
   text-underline-offset: 2px;
 }
 
+.wizard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(12px, 3vh, 32px) clamp(12px, 3vw, 32px);
+  background: rgba(2, 6, 8, 0.84);
+}
+
 .wizard-view {
   width: 100%;
   max-width: 1280px;
   height: 100%;
+  max-height: 760px;
   min-height: 0;
   margin: 0 auto;
-  padding: 0 0 calc(var(--size-dock-height) + 12px);
+  padding: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-left: 1px solid var(--color-line);
-  border-right: 1px solid var(--color-line);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
   background: var(--color-surface);
   color: var(--color-cream);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
 }
 
 .wizard-header {
@@ -2178,7 +2186,7 @@ button {
   letter-spacing: -0.02em;
 }
 
-.wizard-title:focus:not(:focus-visible) {
+.wizard-title:focus {
   outline: none;
 }
 

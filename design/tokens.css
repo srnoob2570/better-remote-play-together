@@ -63,5 +63,6 @@
   --size-split-thickness: 8px;
   --size-titlebar-height: 32px;
   --size-page-gutter: clamp(20px, 3.4vw, 44px);
-  --size-dock-height: calc(44px + var(--size-page-gutter));
+  --size-dock-inset: clamp(8px, 1.2vw, 16px);
+  --size-dock-height: calc(44px + var(--size-dock-inset));
 }
