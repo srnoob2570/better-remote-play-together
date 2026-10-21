@@ -1745,22 +1745,27 @@ button {
   display: inline-flex;
   flex: none;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
   min-height: 44px;
-  height: auto;
+  height: 44px;
   margin: 0;
-  padding: 2px 0;
+  padding: 0;
   border: 0;
-  border-radius: 0;
+  border-radius: 2px;
   background: transparent;
   color: var(--color-muted-ink);
-  font-size: var(--size-small);
-  font-weight: 600;
 }
 
 .diagnostics-back:hover {
-  background: transparent;
+  background: var(--color-line-soft);
   color: var(--color-cream);
+}
+
+.diagnostics-back svg {
+  width: 28px;
+  height: 28px;
 }
 
 .diagnostics-pane {
@@ -1782,8 +1787,8 @@ button {
 
 .diagnostics-heading-main {
   display: flex;
-  align-items: baseline;
-  gap: 16px;
+  align-items: flex-start;
+  gap: 14px;
   min-width: 0;
 }
 

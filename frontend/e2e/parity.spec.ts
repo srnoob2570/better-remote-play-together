@@ -193,7 +193,10 @@ test.describe("parity states", () => {
       "href",
       "https://github.com/srnoob2570/better-remote-play-together/blob/main/docs/appimage.md",
     );
-    await page.getByRole("button", { name: "Volver a la biblioteca" }).click();
+    const back = page.getByRole("button", { name: "Volver a la biblioteca" });
+    await back.hover();
+    await expect(page.getByRole("tooltip")).toHaveText("Volver a la biblioteca");
+    await back.click();
     await expect(page.getByRole("heading", { name: "Biblioteca" })).toBeVisible();
   });
 });

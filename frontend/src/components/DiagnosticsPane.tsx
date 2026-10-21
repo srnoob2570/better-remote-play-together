@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 
-import { ExternalLinkIcon } from "lucide-react";
+import { ArrowLeftIcon, ExternalLinkIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { bridge } from "../bridge/wails";
 import { copyText } from "../clipboard";
 import { docsUrl, openDoc as openDocs } from "../docs";
@@ -91,10 +92,22 @@ export function DiagnosticsPane({
     <section className="diagnostics-pane" aria-labelledby="diagnostics-title">
       <div className="diagnostics-heading">
         <div className="diagnostics-heading-main">
-          <Button variant="ghost" className="diagnostics-back" onClick={onBack}>
-            <span aria-hidden="true">←</span>
-            {t("diagnostics.back")}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="diagnostics-back"
+                aria-label={t("diagnostics.back")}
+                onClick={onBack}
+              >
+                <ArrowLeftIcon aria-hidden="true" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" align="start" sideOffset={6} className="app-tooltip">
+              {t("diagnostics.back")}
+            </TooltipContent>
+          </Tooltip>
           <div className="diagnostics-intro">
             <h1 id="diagnostics-title" className="diagnostics-title" tabIndex={-1}>
               {t("diagnostics.title")}

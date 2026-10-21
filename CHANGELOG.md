@@ -9,9 +9,9 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Fixed
 
-- El botón «Volver a la biblioteca» del diagnóstico queda a la izquierda del
-  título en lugar de ocupar una fila propia, y el encabezado recupera ese
-  espacio vertical.
+- El botón de volver del diagnóstico queda a la izquierda del título como un
+  icono grande con tooltip, sin texto visible ni fila propia, y el encabezado
+  recupera ese espacio vertical.
 
 ### Changed
 
