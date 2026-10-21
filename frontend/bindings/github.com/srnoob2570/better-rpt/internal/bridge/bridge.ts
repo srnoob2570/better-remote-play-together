@@ -97,7 +97,8 @@ export function RecoverSession(): $CancellablePromise<$models.Recovery> {
 }
 
 /**
- * RefreshCatalog rebuilds the library and emits catalog.updated on success.
+ * RefreshCatalog rebuilds the library and returns the new catalog. The caller
+ * applies the returned value; there is no duplicate catalog.updated event.
  */
 export function RefreshCatalog(): $CancellablePromise<$models.Catalog> {
     return $Call.ByID(1442126872);

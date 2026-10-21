@@ -140,6 +140,7 @@ export interface Situation {
     "steamRunning": boolean;
     "state"?: SessionState | null;
     "last"?: LastSession | null;
+    "setupSnapshot"?: SetupSnapshot | null;
 }
 
 /**
