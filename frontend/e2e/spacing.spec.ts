@@ -102,6 +102,11 @@ test("library search and filter toolbar keep breathing room", async ({ page }) =
   const heading = page.locator(".library-heading");
   const search = page.getByRole("searchbox", { name: "Buscar por nombre o App ID" });
   const toolbar = page.locator(".library-toolbar");
+  await expect(
+    toolbar
+      .getByRole("button", { name: "Actualizar" })
+      .locator("svg.lucide-refresh-cw"),
+  ).toBeVisible();
   const [headingBox, searchBox, toolbarBox] = await Promise.all([
     box(heading),
     box(search),

@@ -6,10 +6,15 @@ import {
   useState,
   type CSSProperties,
   type RefObject,
-  type SVGProps,
 } from "react";
 
-import { LibraryIcon, MenuIcon, SearchXIcon, XIcon } from "lucide-react";
+import {
+  LibraryIcon,
+  MenuIcon,
+  RefreshCwIcon,
+  SearchXIcon,
+  XIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -622,7 +627,9 @@ function LibraryPane({
           onClick={onRefresh}
           loading={mode === "loading"}
         >
-          {mode !== "loading" && <RefreshIcon data-icon="inline-start" />}
+          {mode !== "loading" && (
+            <RefreshCwIcon data-icon="inline-start" aria-hidden="true" />
+          )}
           {t("action.refresh")}
         </LoadingButton>
       </div>
@@ -876,26 +883,5 @@ function LoadingTable({ lang }: { lang: Language }) {
         ))}
       </div>
     </div>
-  );
-}
-
-function RefreshIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 16 16"
-      width="16"
-      height="16"
-      fill="none"
-      {...props}
-    >
-      <path
-        d="M13.5 6.5A5.5 5.5 0 1 0 14 9"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path d="M13.5 2.5v4h-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
   );
 }
