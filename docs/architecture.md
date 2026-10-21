@@ -379,7 +379,7 @@ Al arrancar:
   no-shutdown, conflicto de configuración y regresión A→B.
 - Humo manual: instalar el `.deb`/AppImage, abrir la app, pegar/instalar el
   dispatcher, verificar el popup, lanzar, invitar y restaurar.
-- La prueba real con Steam y el popup se registra en `GATES.md`; si no se puede
+- La prueba real con Steam y el popup se verifica manualmente; si no se puede
   verificar, la opción automática queda deshabilitada con motivo y la guía sigue
   siendo el flujo principal.
 

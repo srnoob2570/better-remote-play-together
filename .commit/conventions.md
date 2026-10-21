@@ -64,3 +64,5 @@
   El binario del host no se usa en la release; el AppImage se construye con los
   binarios que deja el contenedor. `AppRun` valida GTK3/WebKit2GTK 4.1 en el
   host.
+- Los ledgers de gates de las tareas de `unlazy` viven en `.unlazy/<tarea>/GATES.md`,
+  que está ignorado; no se versiona ningún `GATES*.md` en la raíz.
