@@ -14,6 +14,10 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   instalación se calcula una vez por proceso, las portadas se resuelven sin
   globs innecesarios y la edición/restauración de VDF y la verificación de la
   release reutilizan el análisis ya hecho.
+- El catálogo se carga una sola vez aunque la interfaz y la recuperación de
+  sesión lo pidan a la vez, y se entrega una sola vez a React. El reloj de la
+  sesión activa ya no re-renderiza toda la aplicación cada segundo y se pausa
+  con la ventana oculta.
 
 ## [0.2.2] - 2026-10-21 (efe5aea)
 

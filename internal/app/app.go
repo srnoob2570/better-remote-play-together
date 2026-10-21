@@ -28,6 +28,17 @@ type Service struct {
 	catalog    steam.Catalog
 	hasCatalog bool
 	sessions   sessionRunner
+
+	refreshMu   sync.Mutex
+	refreshing  *catalogRefresh
+	loadCatalog func(context.Context) (steam.Catalog, error)
+}
+
+// catalogRefresh is one in-flight catalog load shared by concurrent callers.
+type catalogRefresh struct {
+	done    chan struct{}
+	catalog steam.Catalog
+	err     error
 }
 
 // New resolves the user paths, loads the configuration and takes the
@@ -66,11 +77,12 @@ func NewWithPaths(paths config.Paths, logger *slog.Logger) (*Service, error) {
 		lang = string(i18n.Detect())
 	}
 	svc := &Service{
-		paths: paths,
-		log:   logger,
-		cfg:   cfg,
-		tr:    i18n.New(lang),
-		lock:  lock,
+		paths:       paths,
+		log:         logger,
+		cfg:         cfg,
+		tr:          i18n.New(lang),
+		lock:        lock,
+		loadCatalog: steam.Open,
 	}
 	logger.Info("better-rpt started", "config", paths.ConfigFile, "language", svc.tr.Language())
 	return svc, nil
@@ -134,21 +146,48 @@ func (s *Service) T(key string, args ...any) string {
 
 // RefreshCatalog detects Steam and rebuilds the installed-game catalog.
 // Library and manifest warnings are returned in the catalog and logged.
+// Concurrent callers share one load instead of scanning Steam twice.
 func (s *Service) RefreshCatalog(ctx context.Context) (steam.Catalog, error) {
-	catalog, err := steam.Open(ctx)
-	if err != nil {
-		return steam.Catalog{}, err
+	if ctx == nil {
+		ctx = context.Background()
 	}
-	catalog.Warnings = append(catalog.Warnings, s.applyControllerLayouts(catalog.Installation.Root)...)
-	s.mu.Lock()
-	s.catalog = catalog
-	s.hasCatalog = true
-	s.mu.Unlock()
-	for _, warning := range catalog.Warnings {
-		s.log.Warn("steam catalog warning", "path", warning.Path, "error", warning.Err)
+	s.refreshMu.Lock()
+	if pending := s.refreshing; pending != nil {
+		s.refreshMu.Unlock()
+		select {
+		case <-pending.done:
+			return pending.catalog, pending.err
+		case <-ctx.Done():
+			return steam.Catalog{}, ctx.Err()
+		}
 	}
-	s.log.Info("steam catalog refreshed", "libraries", len(catalog.Libraries), "games", len(catalog.Games), "warnings", len(catalog.Warnings))
-	return catalog, nil
+	pending := &catalogRefresh{done: make(chan struct{})}
+	s.refreshing = pending
+	s.refreshMu.Unlock()
+
+	load := s.loadCatalog
+	if load == nil {
+		load = steam.Open
+	}
+	catalog, err := load(ctx)
+	if err == nil {
+		catalog.Warnings = append(catalog.Warnings, s.applyControllerLayouts(catalog.Installation.Root)...)
+		s.mu.Lock()
+		s.catalog = catalog
+		s.hasCatalog = true
+		s.mu.Unlock()
+		for _, warning := range catalog.Warnings {
+			s.log.Warn("steam catalog warning", "path", warning.Path, "error", warning.Err)
+		}
+		s.log.Info("steam catalog refreshed", "libraries", len(catalog.Libraries), "games", len(catalog.Games), "warnings", len(catalog.Warnings))
+	}
+
+	pending.catalog, pending.err = catalog, err
+	s.refreshMu.Lock()
+	s.refreshing = nil
+	close(pending.done)
+	s.refreshMu.Unlock()
+	return catalog, err
 }
 
 // Catalog returns the last successful refresh and whether one exists.

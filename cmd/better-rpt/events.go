@@ -9,6 +9,5 @@ import (
 )
 
 func init() {
-	application.RegisterEvent[bridge.Catalog](bridge.EventCatalogUpdated)
 	application.RegisterEvent[bridge.SessionState](bridge.EventSessionUpdated)
 }

@@ -6,7 +6,6 @@ import {
   type CSSProperties,
   type RefObject,
 } from "react";
-import { Events } from "@wailsio/runtime";
 
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
@@ -91,12 +90,6 @@ export default function App() {
 
   useEffect(() => {
     let alive = true;
-    const offCatalog = Events.On("catalog.updated", (event) => {
-      if (!alive) return;
-      setCatalog(event.data as Catalog);
-      setStatus("ready");
-      setProblem(null);
-    });
 
     async function load() {
       try {
@@ -130,7 +123,6 @@ export default function App() {
 
     return () => {
       alive = false;
-      offCatalog();
     };
   }, []);
 

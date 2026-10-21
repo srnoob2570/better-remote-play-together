@@ -17,8 +17,6 @@ import (
 )
 
 const (
-	// EventCatalogUpdated carries a Catalog after a successful refresh.
-	EventCatalogUpdated = "catalog.updated"
 	// EventSessionUpdated carries a SessionState on every observed phase.
 	EventSessionUpdated = "session.updated"
 	// EventUpdateProgress carries download and installation progress.
@@ -97,15 +95,14 @@ func (b *Bridge) Snapshot(_ context.Context) (Snapshot, error) {
 	return snapshot, nil
 }
 
-// RefreshCatalog rebuilds the library and emits catalog.updated on success.
+// RefreshCatalog rebuilds the library and returns the new catalog. The caller
+// applies the returned value; there is no duplicate catalog.updated event.
 func (b *Bridge) RefreshCatalog(ctx context.Context) (Catalog, error) {
 	catalog, err := b.app.RefreshCatalog(contextOrBackground(ctx))
 	if err != nil {
 		return Catalog{}, err
 	}
-	mapped := mapCatalog(catalog)
-	b.emit(EventCatalogUpdated, mapped)
-	return mapped, nil
+	return mapCatalog(catalog), nil
 }
 
 // StartSession starts a launch using a context owned by the bridge. The Wails
