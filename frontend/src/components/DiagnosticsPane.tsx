@@ -89,17 +89,18 @@ export function DiagnosticsPane({
 
   return (
     <section className="diagnostics-pane" aria-labelledby="diagnostics-title">
-      <Button variant="ghost" className="diagnostics-back" onClick={onBack}>
-        <span aria-hidden="true">←</span>
-        {t("diagnostics.back")}
-      </Button>
-
       <div className="diagnostics-heading">
-        <div className="diagnostics-intro">
-          <h1 id="diagnostics-title" className="diagnostics-title" tabIndex={-1}>
-            {t("diagnostics.title")}
-          </h1>
-          <p className="hint">{t("diagnostics.intro")}</p>
+        <div className="diagnostics-heading-main">
+          <Button variant="ghost" className="diagnostics-back" onClick={onBack}>
+            <span aria-hidden="true">←</span>
+            {t("diagnostics.back")}
+          </Button>
+          <div className="diagnostics-intro">
+            <h1 id="diagnostics-title" className="diagnostics-title" tabIndex={-1}>
+              {t("diagnostics.title")}
+            </h1>
+            <p className="hint">{t("diagnostics.intro")}</p>
+          </div>
         </div>
         <div className="diagnostics-actions">
           <Button
