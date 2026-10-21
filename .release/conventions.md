@@ -47,7 +47,9 @@
 - `--repack` reconstruye una versión ya publicada y re-sube los assets con
   `gh release upload --clobber`; no toca commit, tag ni rama. Antes de subir
   compara los SHA-256 con los assets publicados y aborta si difieren. Guarda una
-  copia local en `dist/repack-backup-<fecha>/` antes de recompilar.
+  copia local en `dist/repack-backup-<fecha>/` antes de recompilar. `--force`
+  omite esa comprobación previa: úsalo solo si el cambio de assets es
+  intencional; la comprobación posterior a la subida sigue ejecutándose.
 - La primera release no lleva la línea `**Full changelog:**`; las siguientes sí
   incluyen el enlace de comparación.
 - El hash del encabezado de la sección del changelog es el último commit antes

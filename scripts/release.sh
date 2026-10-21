@@ -25,6 +25,7 @@ timing() {
 version=""
 dry_run=0
 repack=0
+force=0
 assume_yes=0
 no_push=0
 skip_build=0
@@ -37,6 +38,7 @@ Uso: scripts/release.sh [opciones]
 
   --version X.Y.Z   Fija la versión; por defecto se deduce de los commits.
   --repack          Recompila y re-sube los artefactos de una versión publicada.
+  --force           Con --repack, reemplaza assets aunque los SHA-256 difieran.
   --dry-run         Muestra el plan sin escribir, compilar ni publicar.
   --yes             No pide confirmación (uso desatendido).
   --no-push         Crea commit, tag y rama, pero no publica.
@@ -77,6 +79,10 @@ while [ $# -gt 0 ]; do
 		repack=1
 		shift
 		;;
+	--force)
+		force=1
+		shift
+		;;
 	--dry-run)
 		dry_run=1
 		shift
@@ -114,6 +120,9 @@ done
 
 [ -f CHANGELOG.md ] || die "ejecuta el script desde el repositorio"
 [ -f Makefile ] || die "falta Makefile"
+if [ "$force" = 1 ] && [ "$repack" = 0 ]; then
+	die "--force solo se usa con --repack"
+fi
 
 # ---------------------------------------------------------------------------
 # Estado del repositorio y de la release
@@ -693,7 +702,11 @@ if [ "$repack" = 1 ]; then
 		info "Tiempo total: ${SECONDS}s"
 		exit 0
 	fi
-	verify_repack_assets
+	if [ "$force" = 1 ]; then
+		info "Aviso: --force reemplaza los assets aunque los SHA-256 difieran."
+	else
+		verify_repack_assets
+	fi
 	gh release upload "$tag" --clobber \
 		"dist/better-rpt_${version}-1_amd64.deb" \
 		"dist/BetterRPT-${version}-x86_64.AppImage" \

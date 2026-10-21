@@ -63,9 +63,10 @@ scripts/release.sh --repack --version 0.2.1 --yes
 Recompila el `.deb` y el AppImage de esa versión, comprueba la reproducibilidad,
 verifica que los SHA-256 coinciden con los assets publicados y los re-sube con
 `gh release upload --clobber`. No crea commit, tag ni rama. Si los artefactos
-nuevos no coinciden con los publicados, aborta para no sustituir el release.
-Antes de recompilar guarda una copia local en `dist/repack-backup-<fecha>/`.
-Con `--no-push` solo recompila y verifica, sin subir nada.
+nuevos no coinciden con los publicados, aborta para no sustituir el release;
+`--force` permite reemplazarlos cuando el cambio es intencional. Antes de
+recompilar guarda una copia local en `dist/repack-backup-<fecha>/`. Con
+`--no-push` solo recompila y verifica, sin subir nada.
 
 ## Tiempo
 
