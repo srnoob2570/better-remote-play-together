@@ -41,6 +41,9 @@
   lock de instancia.
 - El shell Wails requiere el CLI `wails3` instalado con `-tags gtk3`; `make build`
   lo busca en `PATH` y en `$(go env GOPATH)/bin`.
+- `make setup` solo instala paquetes del sistema mediante `scripts/setup.sh`
+  (apt, dnf, pacman o zypper); Go, Node/npm y el CLI de Wails se instalan
+  aparte. `make setup-check` informa sin root y sin modificar el sistema.
 - `go test ./...` compila `cmd/better-rpt/main_stub.go` por defecto; para compilar
   la entrada Wails hay que usar `-tags gtk3`. Los bindings generados en
   `frontend/bindings/` se versionan para que el frontend compile sin regenerarlos.

@@ -5,7 +5,16 @@ BINARY ?= dist/better-rpt
 HELPER ?= dist/better-rpt-helper
 ARGS ?=
 
-.PHONY: dev build frontend helper deb test test-race vet release release-plan
+.PHONY: setup setup-check dev build frontend helper deb test test-race vet release release-plan
+
+# Instala los paquetes del sistema necesarios para compilar. No gestiona Go,
+# Node/npm ni el CLI de Wails; consulta el README. Requiere root para instalar
+# y es idempotente. `setup-check` solo detecta e informa, sin privilegios.
+setup:
+	./scripts/setup.sh
+
+setup-check:
+	./scripts/setup.sh --check
 
 dev:
 	PATH="$(dir $(WAILS3)):$$PATH" $(WAILS3) dev -config ./build/config.yml -port 9245

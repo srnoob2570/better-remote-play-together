@@ -8,9 +8,21 @@ arranque GUI como usuario no root en X11 y Wayland, el rechazo de root y
 `dpkg-shlibdeps`. El AppImage se construye sobre la misma base Ubuntu 22.04; su
 receta está en `docs/appimage.md`.
 
-## Dependencias de compilación (Debian/Ubuntu)
+## Dependencias de compilación
 
-La UI React usa Wails v3 con GTK3/WebKit2GTK 4.1. Para desarrollo y pruebas:
+La UI React usa Wails v3 con GTK3/WebKit2GTK 4.1. El `Makefile` instala los
+paquetes del sistema con:
+
+```bash
+make setup-check   # solo informa; no necesita sudo
+sudo make setup    # instala lo que falte; requiere privilegios
+```
+
+`make setup` detecta apt, dnf, pacman o zypper y cubre gcc y make, pkg-config,
+GTK3, WebKit2GTK 4.1, Mesa/OpenGL, Wayland, xkbcommon y las cabeceras X11. No
+gestiona Go, Node/npm ni el CLI de Wails.
+
+La lista manual para Debian/Ubuntu es:
 
 ```bash
 sudo apt-get install \
@@ -36,7 +48,7 @@ sudo apt-get install \
 Para iterar no hace falta instalar el `.deb` ni el AppImage:
 
 ```bash
-# una vez, con el CLI de Wails en PATH
+# una vez, con Go y Node/npm instalados; añade $GOPATH/bin al PATH
 go install -tags gtk3 github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.33
 cd frontend && npm ci && cd ..
 
@@ -66,7 +78,8 @@ sudo make install
 `make all` antes de `sudo make install` para que la compilación se haga como tu
 usuario.
 
-El `Makefile` fija `GOTOOLCHAIN=go1.27.2` y no usa `sudo`. `make dev` usa el
+Los targets de compilación fijan `GOTOOLCHAIN=go1.27.2` y no usan `sudo`; solo
+`make setup` lo requiere para instalar paquetes del sistema. `make dev` usa el
 `HOME`/XDG reales; para una prueba aislada con los fixtures sintéticos, consulta
 la sección «Desarrollo local» del [`README.md`](../README.md). La build de
 release **no** es `make build`: se hace en el contenedor 22.04 descrito abajo.

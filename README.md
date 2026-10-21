@@ -406,22 +406,36 @@ Para el AppImage, borra el archivo. Los datos anteriores siguen las mismas rutas
 
 No hace falta instalar el `.deb` ni el AppImage para desarrollar o probar la
 app. La UI React usa Wails v3; `make dev` arranca Vite y el binario Wails con
-recarga en caliente:
+recarga en caliente.
+
+Primero, comprueba e instala los paquetes del sistema:
 
 ```bash
-# una vez, con el CLI de Wails en PATH
+make setup-check   # informa qué falta; no necesita sudo
+sudo make setup    # instala solo lo que falte; requiere privilegios
+```
+
+`make setup` detecta apt, dnf, pacman o zypper e instala únicamente los
+paquetes ausentes. Cubre gcc y make, pkg-config, GTK3, WebKit2GTK 4.1,
+Mesa/OpenGL, Wayland, xkbcommon y las cabeceras X11 que usa Wails. Es
+idempotente: si ya está todo, no invoca al gestor de paquetes. No instala Go,
+Node/npm ni el CLI de Wails; esas dependencias de lenguaje se instalan aparte:
+
+```bash
+# una vez, con Go y Node/npm instalados; añade $GOPATH/bin al PATH
 go install -tags gtk3 github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.33
 cd frontend && npm ci && cd ..
 
 make dev
 ```
 
-El `Makefile` usa `GOTOOLCHAIN=go1.27.2` y no necesita `sudo`. La versión en
-desarrollo se muestra como `dev`; la versión publicada (`0.2.2`) se inyecta
-con `-ldflags` al compilar. `make dev` recarga Go y el frontend; detén con
-`Ctrl+C`.
+Los targets de compilación usan `GOTOOLCHAIN=go1.27.2` y no necesitan `sudo`;
+solo `sudo make setup` eleva privilegios para instalar paquetes del sistema.
+La versión en desarrollo se muestra como `dev`; la versión publicada (`0.2.2`)
+se inyecta con `-ldflags` al compilar. `make dev` recarga Go y el frontend;
+detén con `Ctrl+C`.
 
-Si faltan dependencias en Ubuntu/Debian:
+Si prefieres instalar los paquetes a mano en Ubuntu/Debian:
 
 ```bash
 sudo apt-get install \
@@ -435,6 +449,8 @@ sudo apt-get install \
 Comandos de desarrollo:
 
 ```bash
+make setup-check                 # estado de los prerrequisitos del sistema
+sudo make setup                  # instala los paquetes del sistema que falten
 make dev                         # Wails dev + Vite, recarga en caliente
 make build                       # frontend + dist/better-rpt con assets embebidos
 make frontend                    # solo bindings + frontend, sin binario host
