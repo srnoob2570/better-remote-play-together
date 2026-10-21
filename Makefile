@@ -5,7 +5,7 @@ BINARY ?= dist/better-rpt
 HELPER ?= dist/better-rpt-helper
 ARGS ?=
 
-.PHONY: dev build helper deb test test-race vet release release-plan
+.PHONY: dev build frontend helper deb test test-race vet release release-plan
 
 dev:
 	PATH="$(dir $(WAILS3)):$$PATH" $(WAILS3) dev -config ./build/config.yml -port 9245
@@ -13,13 +13,16 @@ dev:
 build:
 	PATH="$(dir $(WAILS3)):$$PATH" VERSION=$(VERSION) $(WAILS3) build
 
+frontend:
+	PATH="$(dir $(WAILS3)):$$PATH" $(WAILS3) task frontend
+
 helper:
 	mkdir -p $(dir $(HELPER))
 	CGO_ENABLED=0 $(GO) build -trimpath -buildvcs=false \
 		-ldflags "-s -w -X main.version=$(VERSION)" \
 		-o $(HELPER) ./cmd/better-rpt-helper
 
-deb: build
+deb: frontend
 	VERSION="$(VERSION)" ./scripts/build-deb.sh
 
 test:

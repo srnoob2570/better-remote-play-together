@@ -15,7 +15,7 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 
 if [ ! -f cmd/better-rpt/dist/index.html ]; then
-	echo "error: missing cmd/better-rpt/dist/index.html; run 'make build VERSION=$version' first" >&2
+	echo "error: missing cmd/better-rpt/dist/index.html; run 'make frontend' first" >&2
 	exit 1
 fi
 

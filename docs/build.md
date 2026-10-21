@@ -26,8 +26,9 @@ sudo apt-get install \
 - Wails v3 se instala con el tag `gtk3`; el CLI por defecto busca GTK4:
   `go install -tags gtk3 github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.33`.
 - El frontend requiere Node 20.19+ (probado con Node 24) y `npm ci`.
-- `make deb` depende de `make build`: primero genera los bindings y
-  `cmd/better-rpt/dist`, y después compila dentro de Ubuntu 22.04. `make helper`
+- `make deb` depende de `make frontend`: genera los bindings y
+  `cmd/better-rpt/dist`, y después compila dentro de Ubuntu 22.04. No compila el
+  binario del host; el AppImage usa los binarios del contenedor. `make helper`
   no cambia.
 
 ## Desarrollo local
@@ -127,8 +128,8 @@ docker run --rm -v "$PWD:/src" -w /src ubuntu:22.04 bash -c '
 ```
 
 El binario Wails quedó en 11,5 MB y el helper estático en 3,4 MB. El binario
-embebe `cmd/better-rpt/dist`; `make build` genera ese directorio antes de `make
-deb`. Verificar la versión de glibc con `objdump -T dist/better-rpt | grep GLIBC`
+embebe `cmd/better-rpt/dist`; `make frontend` genera ese directorio antes de
+compilar (y `make deb` lo invoca). Verificar la versión de glibc con `objdump -T dist/better-rpt | grep GLIBC`
 y `dpkg-shlibdeps`; no asumirla por la versión del contenedor. La compilación en
 Ubuntu 22.04 se completó; no fue necesario usar Ubuntu 24.04 como alternativa.
 
@@ -148,7 +149,7 @@ CGO_ENABLED=0 GOTOOLCHAIN=go1.27.2 \
 ```
 
 El binario de la app necesita `cmd/better-rpt/dist` (frontend y assets); usa
-`make build` para generarlo, o copia el resultado de `cd frontend && npm run
+`make frontend` para generarlo, o copia el resultado de `cd frontend && npm run
 build` en ese directorio. El helper no tiene interfaz gráfica, es estático y no enlaza GTK ni WebKit; la
 app lo copia a `$XDG_DATA_HOME/better-rpt/bin/better-rpt-helper`.
 La versión final es `0.2.1`. `-trimpath` y `-buildvcs=false` son necesarios para

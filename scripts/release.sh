@@ -10,6 +10,17 @@ set -euo pipefail
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
+# Un push no debe quedarse colgado esperando una contraseña o una conexión
+# muerta. Respeta GIT_SSH_COMMAND si el entorno ya define uno.
+export GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3}"
+
+SECONDS=0
+phase_start=0
+timing() {
+	info "  $1: $((SECONDS - phase_start))s"
+	phase_start=$SECONDS
+}
+
 version=""
 dry_run=0
 assume_yes=0
@@ -395,7 +406,9 @@ build_artifacts() {
 		local deb_first app_first
 		deb_first="$(sha256sum "dist/better-rpt_${version}-1_amd64.deb" | cut -d' ' -f1)"
 		app_first="$(sha256sum "dist/BetterRPT-${version}-x86_64.AppImage" | cut -d' ' -f1)"
-		make deb VERSION="$version" >/dev/null
+		# El frontend ya está generado y no cambia entre pasadas. Recompilar solo
+		# el .deb evita repetir bindings y Vite en la comprobación de reproducibilidad.
+		VERSION="$version" ./scripts/build-deb.sh >/dev/null
 		build_appimage "/tmp/better-rpt-${version}-verify.AppImage" >/dev/null
 		[ "$deb_first" = "$(sha256sum "dist/better-rpt_${version}-1_amd64.deb" | cut -d' ' -f1)" ] ||
 			die "el .deb no es reproducible"
@@ -517,15 +530,29 @@ PY
 	rm -f "$message"
 }
 
+push_refs() {
+	local attempt delay
+	for attempt in 1 2 3; do
+		if git push --atomic origin main "$tag" "$release_branch"; then
+			return 0
+		fi
+		[ "$attempt" -lt 3 ] || break
+		delay=$((attempt * 2))
+		info "push falló (intento $attempt/3); reintentando en ${delay}s..."
+		sleep "$delay"
+	done
+	return 1
+}
+
 publish() {
 	info "Publicando $tag..."
-	git push origin main
-	git push origin "$tag"
-	git push origin "$release_branch"
+	push_refs || die "no se pudo publicar; el commit, tag y rama quedan locales"
+	timing "push"
 	gh release create "$tag" --title "$tag" --notes-from-tag --verify-tag \
 		"dist/better-rpt_${version}-1_amd64.deb" \
 		"dist/BetterRPT-${version}-x86_64.AppImage" \
 		"dist/SHA256SUMS"
+	timing "subida de artefactos"
 	info "Publicada: $repo_url/releases/tag/$tag"
 }
 
@@ -562,12 +589,16 @@ if [ "$dry_run" = 1 ]; then
 	exit 0
 fi
 
+phase_start=$SECONDS
 if [ -z "$release_commit" ]; then
 	confirm "¿Crear la release $tag?" || die "cancelado"
+	timing "preparación y aprobación"
 	run_checks
+	timing "tests y vet"
 	update_changelog
 	bump_version_refs
 	update_release_state
+	timing "changelog y versión"
 
 	if [ "$skip_build" = 1 ]; then
 		verify_artifacts
@@ -575,11 +606,13 @@ if [ -z "$release_commit" ]; then
 		build_artifacts
 	fi
 	update_artifact_docs
+	timing "artefactos y docs"
 
 	git add -- Makefile scripts/build-deb.sh README.md docs/appimage.md docs/build.md \
 		docs/distribution.md CHANGELOG.md .release/config.json .release/conventions.md
 	git commit --message "chore(release): $tag"
 	release_commit="$(git rev-parse HEAD)"
+	timing "commit"
 fi
 
 if [ "$tag_exists" = 0 ]; then
@@ -588,8 +621,10 @@ fi
 if [ "$branch_exists" = 0 ]; then
 	git branch "$release_branch" "$release_commit"
 fi
+timing "tag y rama"
 
 verify_artifacts
+timing "verificación final"
 
 info ""
 info "Gate de publicación:"
@@ -602,12 +637,15 @@ info "    dist/better-rpt_${version}-1_amd64.deb"
 info "    dist/BetterRPT-${version}-x86_64.AppImage"
 info "    dist/SHA256SUMS"
 info ""
-info "Se ejecutará: git push origin main && git push origin $tag && git push origin $release_branch"
+info "Se ejecutará: git push --atomic origin main $tag $release_branch"
 info "              gh release create $tag --notes-from-tag --verify-tag <artefactos>"
 
 if [ "$no_push" = 1 ]; then
 	info "Publicación omitida (--no-push)."
+	info "Tiempo total: ${SECONDS}s"
 	exit 0
 fi
 confirm "¿Publicar $tag?" || die "publicación cancelada; el commit, tag y rama quedan locales"
+timing "confirmación de publicación"
 publish
+info "Tiempo total: ${SECONDS}s"

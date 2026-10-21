@@ -40,6 +40,10 @@
 - `scripts/release.sh` reanuda: no duplica un commit, tag o rama existentes y
   termina si la release ya está publicada. `--dry-run` muestra el plan y
   `--skip-build` reutiliza `dist/`.
+- La verificación de reproducibilidad recompila solo el `.deb` con
+  `scripts/build-deb.sh` y el AppImage; no repite bindings ni Vite porque el
+  frontend ya está generado. El binario del host no se usa: el AppImage toma los
+  binarios de Ubuntu 22.04 que deja el contenedor.
 - La primera release no lleva la línea `**Full changelog:**`; las siguientes sí
   incluyen el enlace de comparación.
 - El hash del encabezado de la sección del changelog es el último commit antes
@@ -60,10 +64,13 @@
 - `scripts/release.sh` deduce un patch cuando hay `feat` en 0.x. Si la versión
   ya está fijada en `Makefile`, `build/config.yml` y los docs, pásale
   `--version X.Y.Z` para no desincronizar las referencias.
-- El SSH al puerto 22 de GitHub puede cerrar la conexión al publicar. Si
-  `git push` falla, reintenta o usa `ssh.github.com:443`; no cambies el remoto
-  del repositorio. Una subida interrumpida de `gh release create` puede dejar
-  un draft duplicado: bórralo por ID sin tocar el tag.
+- El SSH al puerto 22 de GitHub puede cerrar la conexión al publicar. El script
+  hace un único `git push --atomic` de `main`, tag y rama, con
+  `BatchMode=yes`, `ConnectTimeout=15` y tres reintentos. No pruebes
+  `ssh.github.com:443` automáticamente: en la release 0.2.1 agotó 3 minutos. No
+  cambies el remoto del repositorio. Una subida interrumpida de
+  `gh release create` puede dejar un draft duplicado: bórralo por ID sin tocar
+  el tag.
 - El aviso alto de Dependabot sobre `braces` llega por la CLI de `shadcn`
   (`fast-glob`), una dependencia de compilación; no entra en el bundle ni en
   los artefactos publicados. Al publicar 0.2.0 no había versión parcheada.

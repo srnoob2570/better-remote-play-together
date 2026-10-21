@@ -394,6 +394,7 @@ Comandos de desarrollo:
 ```bash
 make dev                         # Wails dev + Vite, recarga en caliente
 make build                       # frontend + dist/better-rpt con assets embebidos
+make frontend                    # solo bindings + frontend, sin binario host
 make helper                      # dist/better-rpt-helper, estático
 make deb                         # .deb de release (Ubuntu 22.04 + nfpm)
 make test                        # go test ./...
@@ -402,9 +403,10 @@ make test-race                   # go test -race ./internal/...
 ```
 
 `make build` produce un binario para desarrollo en el equipo; **no** es la
-compilación final. `make deb` construye el `.deb` de release dentro de una
-imagen Ubuntu 22.04 para mantener la compatibilidad con glibc 2.35 y lo empaqueta
-con nfpm. Requiere Docker y nfpm v2.48.0; la receta manual está en
+compilación final. `make deb` genera solo bindings y frontend en el host, y
+construye el `.deb` de release dentro de una imagen Ubuntu 22.04 para mantener la
+compatibilidad con glibc 2.35; el AppImage reutiliza esos binarios del
+contenedor. Requiere Docker y nfpm v2.48.0; la receta manual está en
 [`docs/build.md`](docs/build.md). El AppImage sigue la receta de
 [`docs/appimage.md`](docs/appimage.md).
 

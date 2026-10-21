@@ -18,6 +18,12 @@ tasks:
           DEV: '{{.DEV}}'
       - CGO_ENABLED=1 go build -tags '{{if eq .DEV "true"}}gtk3{{else}}gtk3 production{{end}}' -trimpath -buildvcs=false -ldflags '-s -w -X main.version={{.VERSION}}' -o {{.BIN_DIR}}/{{.APP_NAME}} ./cmd/better-rpt
 
+  frontend:
+    cmds:
+      - task: install:frontend
+      - task: generate:bindings
+      - task: build:frontend
+
   install:frontend:
     dir: frontend
     status:

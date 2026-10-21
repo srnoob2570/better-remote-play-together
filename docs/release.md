@@ -39,18 +39,28 @@ Si no hay commits `feat`, `fix`, `perf` o `revert`, aborta.
 2. Reemplaza la versión anterior en `Makefile`, `scripts/build-deb.sh`, README y
    documentación de build, distribución y AppImage.
 3. Ejecuta `make test`, `make vet` y `govulncheck` (si existe).
-4. Compila el `.deb` en Ubuntu 22.04 con `make deb` y el AppImage con los
-   binarios resultantes. Repite ambas compilaciones y compara los SHA-256.
-   `--no-verify` omite la comprobación de reproducibilidad.
+4. Compila el `.deb` en Ubuntu 22.04 con `make deb` (solo bindings, frontend y
+   contenedor) y el AppImage con los binarios resultantes. La comprobación de
+   reproducibilidad recompila solo el `.deb` y el AppImage, sin repetir bindings
+   ni Vite, y compara los SHA-256. `--no-verify` omite la comprobación.
 5. Genera `dist/SHA256SUMS` y actualiza el hash del AppImage y los tamaños del
    `.deb` en la documentación.
 6. Actualiza `.release/config.json`, crea el commit `chore(release): vX.Y.Z`,
    el tag anotado y la rama `release/vX.Y.Z`.
-7. Hace push de `main`, del tag y de la rama, y crea la release de GitHub con
-   `.deb`, AppImage y `SHA256SUMS` adjuntos.
+7. Hace un push atómico de `main`, del tag y de la rama (con tres reintentos y
+   timeout de SSH), y crea la release de GitHub con `.deb`, AppImage y
+   `SHA256SUMS` adjuntos.
 
 `--verify-install` añade una instalación real del `.deb` en un contenedor
 Ubuntu 22.04 limpio.
+
+## Tiempo
+
+Con la caché de Docker y npm caliente, en el equipo de desarrollo la primera
+pasada tarda unos 12 s y la verificación de reproducibilidad otros 3 s; el
+AppImage añade menos de un segundo. El script imprime el tiempo de cada fase y
+el total. La espera de aprobación y la subida a GitHub no forman parte del build
+y suelen explicar la mayor parte de una release lenta.
 
 ## Reanudar
 

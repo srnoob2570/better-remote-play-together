@@ -59,7 +59,8 @@
 - `Service.EnsureHelper` se ejecuta al arrancar la GUI y copia el helper
   empaquetado a la ruta XDG estable. La instalación y la restauración del
   dispatcher siguen exigiendo Steam cerrado; ningún wizard lo cierra.
-- `make deb` depende de `make build` (Wails, frontend y assets), compila en
-  Ubuntu 22.04 con `-tags "gtk3 production"` y requiere Docker/nfpm. El AppImage
-  se construye con `scripts/release.sh`; `AppRun` valida GTK3/WebKit2GTK 4.1 en
-  el host.
+- `make deb` depende de `make frontend` (bindings y assets), no de `make build`:
+  compila en Ubuntu 22.04 con `-tags "gtk3 production"` y requiere Docker/nfpm.
+  El binario del host no se usa en la release; el AppImage se construye con los
+  binarios que deja el contenedor. `AppRun` valida GTK3/WebKit2GTK 4.1 en el
+  host.
