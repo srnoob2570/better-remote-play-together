@@ -44,6 +44,10 @@
   `scripts/build-deb.sh` y el AppImage; no repite bindings ni Vite porque el
   frontend ya está generado. El binario del host no se usa: el AppImage toma los
   binarios de Ubuntu 22.04 que deja el contenedor.
+- `--repack` reconstruye una versión ya publicada y re-sube los assets con
+  `gh release upload --clobber`; no toca commit, tag ni rama. Antes de subir
+  compara los SHA-256 con los assets publicados y aborta si difieren. Guarda una
+  copia local en `dist/repack-backup-<fecha>/` antes de recompilar.
 - La primera release no lleva la línea `**Full changelog:**`; las siguientes sí
   incluyen el enlace de comparación.
 - El hash del encabezado de la sección del changelog es el último commit antes

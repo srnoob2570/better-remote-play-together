@@ -5,6 +5,7 @@
 #
 # Solo pide confirmación dos veces: antes de escribir/compilar y antes de
 # publicar. Usa --yes para un flujo desatendido y --dry-run para ver el plan.
+# Con --repack recompila y re-sube los artefactos de una versión ya publicada.
 set -euo pipefail
 
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -23,6 +24,7 @@ timing() {
 
 version=""
 dry_run=0
+repack=0
 assume_yes=0
 no_push=0
 skip_build=0
@@ -34,6 +36,7 @@ usage() {
 Uso: scripts/release.sh [opciones]
 
   --version X.Y.Z   Fija la versión; por defecto se deduce de los commits.
+  --repack          Recompila y re-sube los artefactos de una versión publicada.
   --dry-run         Muestra el plan sin escribir, compilar ni publicar.
   --yes             No pide confirmación (uso desatendido).
   --no-push         Crea commit, tag y rama, pero no publica.
@@ -69,6 +72,10 @@ while [ $# -gt 0 ]; do
 		version="${2:-}"
 		[ -n "$version" ] || die "--version necesita un valor"
 		shift 2
+		;;
+	--repack)
+		repack=1
+		shift
 		;;
 	--dry-run)
 		dry_run=1
@@ -132,6 +139,11 @@ PY
 repo_url="https://github.com/$repo_slug"
 owner="${repo_slug%%/*}"
 
+# Un repack reutiliza la última versión publicada salvo que se indique otra.
+if [ "$repack" = 1 ] && [ -z "$version" ]; then
+	version="$prev_version"
+fi
+
 if [ -z "$version" ]; then
 	version="$(git log --format='%s%n%b%n---RELEASE-COMMIT---' "$prev_tag..HEAD" | python3 -c '
 import re, sys
@@ -178,6 +190,9 @@ git rev-parse -q --verify "refs/tags/$tag" >/dev/null && tag_exists=1
 if [ "$version" = "$prev_version" ] && [ "$tag_exists" = 0 ]; then
 	die "la versión $version ya es la última; indica una mayor"
 fi
+if [ "$repack" = 1 ] && [ "$tag_exists" = 0 ]; then
+	die "--repack necesita una versión publicada; no existe el tag $tag"
+fi
 branch_exists=0
 git show-ref --verify --quiet "refs/heads/$release_branch" && branch_exists=1
 release_commit="$(git log --format='%H' --grep="^chore(release): $tag$" -1 || true)"
@@ -206,7 +221,10 @@ gh_ready() {
 
 if [ "$no_push" = 0 ]; then
 	gh_ready
-	if gh release view "$tag" >/dev/null 2>&1; then
+	if [ "$repack" = 1 ]; then
+		gh release view "$tag" >/dev/null 2>&1 ||
+			die "la release $tag no existe; no hay artefactos que re-subir"
+	elif gh release view "$tag" >/dev/null 2>&1; then
 		info "La release $tag ya está publicada: $repo_url/releases/tag/$tag"
 		exit 0
 	fi
@@ -449,6 +467,65 @@ verify_artifacts() {
 	) || die "SHA256SUMS no coincide con los artefactos"
 }
 
+backup_repack_assets() {
+	local dir="dist/repack-backup-$(date +%Y%m%d-%H%M%S)"
+	local name copied=0
+	mkdir -p "$dir"
+	for name in "better-rpt_${version}-1_amd64.deb" "BetterRPT-${version}-x86_64.AppImage" "SHA256SUMS"; do
+		if [ -f "dist/$name" ]; then
+			cp "dist/$name" "$dir/"
+			copied=1
+		fi
+	done
+	if [ "$copied" = 1 ]; then
+		info "Copia local de los artefactos actuales: $dir"
+	else
+		rmdir "$dir"
+	fi
+}
+
+verify_repack_assets() {
+	python3 - "$repo_slug" "$tag" <<'PY'
+import hashlib, json, pathlib, subprocess, sys
+
+repo, tag = sys.argv[1:3]
+try:
+    data = json.loads(
+        subprocess.check_output(
+            ["gh", "api", f"repos/{repo}/releases/tags/{tag}"],
+            stderr=subprocess.DEVNULL,
+        )
+    )
+except subprocess.CalledProcessError:
+    sys.exit(f"no se pudo leer la release {tag}")
+
+published = {
+    asset["name"]: (asset.get("digest") or "").removeprefix("sha256:")
+    for asset in data.get("assets", [])
+}
+sums_path = pathlib.Path("dist/SHA256SUMS")
+local = {}
+for line in sums_path.read_text(encoding="utf-8").splitlines():
+    line = line.strip()
+    if not line:
+        continue
+    digest, name = line.split(maxsplit=1)
+    local[name.strip().lstrip("*")] = digest
+local["SHA256SUMS"] = hashlib.sha256(sums_path.read_bytes()).hexdigest()
+
+different = {
+    name: (published.get(name), digest)
+    for name, digest in local.items()
+    if published.get(name) != digest
+}
+if different:
+    for name, (old, new) in different.items():
+        print(f"  {name}: publicado {old or 'sin digest'} / nuevo {new}", file=sys.stderr)
+    sys.exit("los artefactos nuevos no coinciden con los publicados; no se reemplaza la release")
+print(f"Los {len(local)} artefactos coinciden con los publicados en {tag}.")
+PY
+}
+
 update_artifact_docs() {
 	local deb_size app_size deb_sha app_sha installed
 	deb_size="$(stat -c %s "dist/better-rpt_${version}-1_amd64.deb")"
@@ -566,30 +643,68 @@ fi
 
 info "Release:      $tag (anterior $prev_tag)"
 info "Repositorio:  $repo_slug"
-if [ -n "$release_commit" ]; then
-	info "Estado:       reanudar; commit de release $release_commit"
+if [ "$repack" = 1 ]; then
+	info "Modo:         reempaquetar y re-subir artefactos"
 else
-	info "Commits desde $prev_tag:"
-	git log --format='  %h %s' "$prev_tag..HEAD"
-	info ""
-	info "Nueva sección del changelog:"
-	info ""
-	new_section
+	if [ -n "$release_commit" ]; then
+		info "Estado:       reanudar; commit de release $release_commit"
+	else
+		info "Commits desde $prev_tag:"
+		git log --format='  %h %s' "$prev_tag..HEAD"
+		info ""
+		info "Nueva sección del changelog:"
+		info ""
+		new_section
+	fi
 fi
 info ""
 if [ "$dry_run" = 1 ]; then
 	info "Plan (sin cambios):"
-	info "  1. mover [Unreleased] a [$version] y actualizar enlaces"
-	info "  2. ejecutar tests, vet y govulncheck (si está instalado)"
-	info "  3. reemplazar $prev_version por $version en Makefile, script y docs"
-	info "  4. compilar .deb y AppImage, generar dist/SHA256SUMS"
-	info "  5. actualizar hash/tamaños y .release/config.json"
-	info "  6. commit chore(release): $tag, tag anotado y rama $release_branch"
-	info "  7. push de main, $tag y $release_branch; gh release create con artefactos"
+	if [ "$repack" = 1 ]; then
+		info "  1. recompilar .deb y AppImage de $version"
+		info "  2. verificar reproducibilidad y generar dist/SHA256SUMS"
+		info "  3. comprobar que los SHA-256 coinciden con la release publicada"
+		info "  4. gh release upload $tag --clobber <artefactos>"
+	else
+		info "  1. mover [Unreleased] a [$version] y actualizar enlaces"
+		info "  2. ejecutar tests, vet y govulncheck (si está instalado)"
+		info "  3. reemplazar $prev_version por $version en Makefile, script y docs"
+		info "  4. compilar .deb y AppImage, generar dist/SHA256SUMS"
+		info "  5. actualizar hash/tamaños y .release/config.json"
+		info "  6. commit chore(release): $tag, tag anotado y rama $release_branch"
+		info "  7. push de main, $tag y $release_branch; gh release create con artefactos"
+	fi
 	exit 0
 fi
 
 phase_start=$SECONDS
+if [ "$repack" = 1 ]; then
+	confirm "¿Reempaquetar y re-subir $tag?" || die "cancelado"
+	timing "preparación y aprobación"
+	if [ "$skip_build" = 1 ]; then
+		verify_artifacts
+	else
+		backup_repack_assets
+		build_artifacts
+	fi
+	timing "artefactos"
+	if [ "$no_push" = 1 ]; then
+		info "Subida omitida (--no-push)."
+		info "Tiempo total: ${SECONDS}s"
+		exit 0
+	fi
+	verify_repack_assets
+	gh release upload "$tag" --clobber \
+		"dist/better-rpt_${version}-1_amd64.deb" \
+		"dist/BetterRPT-${version}-x86_64.AppImage" \
+		"dist/SHA256SUMS"
+	timing "subida de artefactos"
+	verify_repack_assets
+	info "Re-subido: $repo_url/releases/tag/$tag"
+	info "Tiempo total: ${SECONDS}s"
+	exit 0
+fi
+
 if [ -z "$release_commit" ]; then
 	confirm "¿Crear la release $tag?" || die "cancelado"
 	timing "preparación y aprobación"

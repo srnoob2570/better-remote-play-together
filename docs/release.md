@@ -54,6 +54,19 @@ Si no hay commits `feat`, `fix`, `perf` o `revert`, aborta.
 `--verify-install` añade una instalación real del `.deb` en un contenedor
 Ubuntu 22.04 limpio.
 
+## Reempaquetar una versión publicada
+
+```bash
+scripts/release.sh --repack --version 0.2.1 --yes
+```
+
+Recompila el `.deb` y el AppImage de esa versión, comprueba la reproducibilidad,
+verifica que los SHA-256 coinciden con los assets publicados y los re-sube con
+`gh release upload --clobber`. No crea commit, tag ni rama. Si los artefactos
+nuevos no coinciden con los publicados, aborta para no sustituir el release.
+Antes de recompilar guarda una copia local en `dist/repack-backup-<fecha>/`.
+Con `--no-push` solo recompila y verifica, sin subir nada.
+
 ## Tiempo
 
 Con la caché de Docker y npm caliente, en el equipo de desarrollo la primera
