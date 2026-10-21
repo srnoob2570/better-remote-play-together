@@ -71,6 +71,12 @@ test("repair wizard opens as a modal over the app", async ({ page }) => {
   const view = page.getByRole("region", { name: "Diagnóstico y reparación" });
   await expect(dialog).toBeVisible();
   await expect(view).toBeVisible();
+  await expect(
+    view
+      .locator(".wizard-header")
+      .getByRole("button", { name: "Actualizar" })
+      .locator("svg.lucide-refresh-cw"),
+  ).toBeVisible();
   await page.waitForTimeout(250);
 
   const [overlayBox, viewBox] = await Promise.all([box(overlay), box(view)]);

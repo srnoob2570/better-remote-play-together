@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { XIcon } from "lucide-react";
+import { RefreshCwIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DialogClose } from "@/components/ui/dialog";
@@ -172,6 +172,7 @@ export function RepairWizard({
             loading={checking}
             disabled={checking || diagnostics.mode === "loading"}
           >
+            {!checking && <RefreshCwIcon data-icon="inline-start" aria-hidden="true" />}
             {t("wizard.repair.refresh")}
           </LoadingButton>
           <DialogClose asChild>

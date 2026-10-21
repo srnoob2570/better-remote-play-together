@@ -27,6 +27,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Las acciones asíncronas muestran el **Spinner** de shadcn dentro del botón,
   conservan su etiqueta y exponen `aria-busy` mientras están pendientes. Solo la
   acción en curso muestra el indicador; las demás quedan deshabilitadas.
+- El botón **Actualizar** del wizard de reparación usa el icono `RefreshCw` de
+  Lucide.
 - El arranque y el refresco del catálogo evitan trabajo duplicado: la
   biblioteca principal se recorre una sola vez, la detección del tipo de
   instalación se calcula una vez por proceso, las portadas se resuelven sin
