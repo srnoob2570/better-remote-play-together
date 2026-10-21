@@ -73,6 +73,15 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
   cabecera y los wizards a ventanas estrechas, mejora la jerarquía de
   encabezados y devuelve el foco al control de origen al cerrar los diálogos.
   Las vistas de carga y vacío usan indicadores y acciones consistentes.
+- La tabla de la biblioteca se recorre con las flechas, Inicio/Fin y Re/Av Pág,
+  sin encadenar una parada de tabulación por juego. Los bordes de los controles
+  alcanzan 3:1, el documento declara el idioma activo, la carga se anuncia, el
+  foco del wizard vuelve a ser visible y la interfaz respeta
+  `prefers-reduced-motion`.
+- Los botones del pie del diálogo de actualización comparten altura, también
+  cuando hay una acción principal.
+- Los avisos de error no se duplican al cambiar de idioma y los avisos se
+  muestran por encima de los diálogos abiertos.
 
 ## [0.2.2] - 2026-10-21 (efe5aea)
 

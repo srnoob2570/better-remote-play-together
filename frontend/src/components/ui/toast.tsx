@@ -148,7 +148,7 @@ function ToastRow({ item, closeLabel }: { item: ToastItem; closeLabel: string })
         }
       }}
       className={cn(
-        "pointer-events-auto relative w-full origin-bottom rounded-[2px] border border-[var(--color-line)] bg-popover text-popover-foreground shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-[transform,opacity] duration-200 ease-out outline-none select-none",
+        "pointer-events-auto relative w-full origin-bottom rounded-[2px] border border-[var(--color-line)] bg-popover text-popover-foreground shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-[transform,opacity] duration-200 ease-out outline-none",
         "data-[state=open]:translate-y-0 data-[state=open]:opacity-100",
         "data-[state=closed]:translate-y-2 data-[state=closed]:opacity-0",
         "focus-visible:border-[var(--color-cyan)] focus-visible:ring-[3px] focus-visible:ring-[rgba(127,200,216,0.35)]",
@@ -209,7 +209,7 @@ function Toaster({
       <ToastPrimitive.Viewport
         data-slot="toast-viewport"
         label={viewportLabel}
-        className="pointer-events-none fixed inset-x-4 bottom-4 z-50 m-0 flex list-none flex-col gap-3 p-0 outline-none sm:right-4 sm:left-auto sm:mx-0 sm:w-full sm:max-w-sm"
+        className="pointer-events-none fixed inset-x-4 bottom-4 z-[100] m-0 flex list-none flex-col gap-3 p-0 outline-none sm:right-4 sm:left-auto sm:mx-0 sm:w-full sm:max-w-sm"
       />
     </ToastPrimitive.Provider>
   );

@@ -141,6 +141,22 @@ test.describe("parity states", () => {
     await expect(page.getByRole("tab", { name: "Session" })).toBeVisible();
   });
 
+  test("language switch does not re-announce an existing error", async ({ page }) => {
+    await open(page, "session-error", "en");
+    const toasts = page.locator('[data-slot="toast"]');
+    await expect(toasts).toContainText("The operation could not be completed");
+
+    await page.locator(".language-trigger").click();
+    await page.getByRole("menuitemradio", { name: "Español" }).click();
+    await expect(page.getByRole("heading", { name: "Biblioteca" })).toBeVisible();
+
+    // The existing toast may live or expire, but the switch must not raise it again.
+    await page.waitForTimeout(300);
+    expect(
+      await toasts.filter({ hasText: "No se pudo completar la operación" }).count(),
+    ).toBe(0);
+  });
+
   test("keyboard shortcuts focus and clear search", async ({ page }) => {
     await open(page, "library");
     await page.keyboard.press("Control+f");

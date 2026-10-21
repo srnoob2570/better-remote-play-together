@@ -288,3 +288,92 @@ test("multi-line toast keeps its icon and close centered", async ({ page }) => {
   expect(Math.abs(centerY(iconBox) - contentCenter)).toBeLessThanOrEqual(1);
   expect(Math.abs(centerY(closeBox) - contentCenter)).toBeLessThanOrEqual(1);
 });
+
+test("update dialog footer buttons share one height", async ({ page }) => {
+  for (const scenario of ["update-development", "update-available"]) {
+    for (const viewport of [
+      { width: 1920, height: 1080 },
+      { width: 1280, height: 800 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto(`/e2e.html?e2e=${scenario}&lang=es`);
+      await page.locator(".update-button").click();
+
+      const dialog = page.getByRole("dialog", {
+        name: "Actualización de Better RPT",
+      });
+      await expect(dialog).toBeVisible();
+      await page.waitForTimeout(300);
+
+      const buttons = await dialog.locator(".dialog-button").evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const rect = node.getBoundingClientRect();
+          return {
+            label: (node.textContent ?? "").trim(),
+            height: rect.height,
+            center: rect.y + rect.height / 2,
+          };
+        }),
+      );
+
+      const context = `${scenario} ${viewport.width}x${viewport.height}: ${JSON.stringify(buttons)}`;
+      expect(buttons.length, context).toBeGreaterThanOrEqual(2);
+      const heights = new Set(buttons.map((button) => button.height));
+      expect(heights.size, context).toBe(1);
+      expect(Math.min(...buttons.map((button) => button.height)), context).toBeGreaterThanOrEqual(44);
+      const centers = buttons.map((button) => button.center);
+      expect(Math.max(...centers) - Math.min(...centers), context).toBeLessThanOrEqual(0.5);
+    }
+  }
+});
+
+test("toast stays above an open dialog", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/e2e.html?e2e=session-error&lang=es");
+
+  const toast = page.locator('[data-slot="toast"]').last();
+  await expect(toast).toBeVisible();
+
+  await page.getByRole("button", { name: "Diagnóstico", exact: true }).click();
+  await page.getByRole("button", { name: "Revisar" }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Diagnóstico y reparación" });
+  await expect(dialog).toBeVisible();
+  await page.waitForTimeout(350);
+
+  const result = await page.evaluate(() => {
+    const toastEl = document.querySelector('[data-slot="toast"]');
+    const dialogEl = document.querySelector('[data-slot="dialog-content"]');
+    const viewportEl = document.querySelector('[data-slot="toast-viewport"]');
+    if (!toastEl || !dialogEl || !viewportEl) {
+      return { found: false, overlaps: false, onTop: false, toastZ: "", dialogZ: "" };
+    }
+    const t = toastEl.getBoundingClientRect();
+    const d = dialogEl.getBoundingClientRect();
+    const left = Math.max(t.left, d.left);
+    const top = Math.max(t.top, d.top);
+    const right = Math.min(t.right, d.right);
+    const bottom = Math.min(t.bottom, d.bottom);
+    const x = (left + right) / 2;
+    const y = (top + bottom) / 2;
+
+    // The modal blocks pointer events outside the dialog, so the toast is
+    // temporarily hit-testable to ask which layer paints on top there.
+    const saved = toastEl.style.pointerEvents;
+    toastEl.style.pointerEvents = "auto";
+    const hit = document.elementFromPoint(x, y);
+    toastEl.style.pointerEvents = saved;
+
+    return {
+      found: true,
+      overlaps: right > left && bottom > top,
+      onTop: Boolean(hit?.closest('[data-slot="toast"]')),
+      toastZ: getComputedStyle(viewportEl).zIndex,
+      dialogZ: getComputedStyle(dialogEl).zIndex,
+    };
+  });
+
+  expect(result.found).toBe(true);
+  expect(result.overlaps).toBe(true);
+  expect(Number(result.toastZ)).toBeGreaterThan(Number(result.dialogZ));
+  expect(result.onTop).toBe(true);
+});

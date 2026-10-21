@@ -57,7 +57,7 @@
   --accent-foreground: #f2f5f4;
   --destructive: #ee7b66;
   --border: #304b53;
-  --input: #304b53;
+  --input: var(--color-control-line);
   --ring: #7fc8d8;
   --chart-1: #f4a261;
   --chart-2: #2a9d8f;
@@ -216,7 +216,7 @@ button {
   height: 44px;
   width: 100%;
   flex-shrink: 0;
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--color-control-line);
   border-radius: 2px;
   background: var(--color-ink);
   color: var(--color-cream);
@@ -668,7 +668,7 @@ button {
 .secondary-button {
   width: 100%;
   min-height: 44px;
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--color-control-line);
   border-radius: 2px;
   background: transparent;
   color: var(--color-cream);
@@ -920,7 +920,7 @@ button {
 
 .dialog-button {
   min-height: 44px;
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--color-control-line);
   background: transparent;
   color: var(--color-cream);
   padding: 8px 16px;
@@ -929,7 +929,6 @@ button {
 }
 
 .dialog-button[data-primary="true"] {
-  min-height: 48px;
   border-color: var(--color-amber);
   background: var(--color-amber);
   color: #101416;
@@ -1103,7 +1102,7 @@ button {
   --accent-foreground: #f2f5f4;
   --destructive: #ee7b66;
   --border: #304b53;
-  --input: #304b53;
+  --input: var(--color-control-line);
   --ring: #7fc8d8;
   --chart-1: #f4a261;
   --chart-2: #2a9d8f;
@@ -1153,7 +1152,7 @@ button {
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid var(--color-line-soft);
+  border: 1px solid var(--color-control-line);
   border-radius: 2px;
   background: transparent;
   color: var(--color-cream);
@@ -1338,7 +1337,7 @@ button {
   min-width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--color-control-line);
   border-radius: 6px;
   background: var(--color-raised);
   color: var(--color-cream);
@@ -1647,6 +1646,21 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* The spinner still needs to communicate that work is happening. */
+  [data-slot="spinner"] {
+    animation-duration: 1.5s !important;
+    animation-iteration-count: infinite !important;
+  }
+
   .guide-restore-chevron {
     transition: none;
   }
@@ -1998,6 +2012,13 @@ button {
   text-underline-offset: 2px;
 }
 
+.diagnostic-docs-icon {
+  width: 12px;
+  height: 12px;
+  margin-left: 3px;
+  vertical-align: -1px;
+}
+
 .diagnostic-others {
   margin-top: 28px;
   border-top: 1px solid var(--color-line-soft);
@@ -2202,7 +2223,7 @@ button {
   letter-spacing: -0.02em;
 }
 
-.wizard-title:focus {
+.wizard-title:focus:not(:focus-visible) {
   outline: none;
 }
 

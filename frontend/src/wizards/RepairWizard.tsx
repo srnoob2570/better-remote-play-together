@@ -253,6 +253,9 @@ export function RepairWizard({
                       className="repair-issue"
                       data-active={issueKey(issue) === issueKey(selected)}
                       data-status={issue.status}
+                      aria-current={
+                        issueKey(issue) === issueKey(selected) ? "true" : undefined
+                      }
                       onClick={() => setSelectedKey(issueKey(issue))}
                     >
                       <span className="repair-issue-status">

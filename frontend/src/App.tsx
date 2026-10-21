@@ -93,12 +93,16 @@ export default function App() {
         : view;
 
   useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  useEffect(() => {
     if (!session.notice) return;
     toast.add({
       type: session.notice.tone === "mint" ? "success" : "warning",
       title: translate(lang, session.notice.key, ...(session.notice.args ?? [])),
     });
-  }, [lang, session.notice]);
+  }, [session.notice]);
 
   useEffect(() => {
     if (!session.problem) return;
@@ -110,7 +114,7 @@ export default function App() {
         ? `${message}\n\n${session.problem.detail}`
         : message,
     });
-  }, [lang, session.problem]);
+  }, [session.problem]);
 
   useEffect(() => {
     const error = session.state?.phase === "error" ? session.state.error : undefined;
@@ -120,7 +124,7 @@ export default function App() {
       title: translate(lang, "error.title"),
       description: problemText(lang, error),
     });
-  }, [lang, session.state?.phase, session.state?.token]);
+  }, [session.state?.phase, session.state?.token]);
 
   useEffect(() => {
     let alive = true;
@@ -582,6 +586,9 @@ function LibraryPane({
 
   return (
     <section className="library-pane" aria-labelledby="library-title">
+      <span className="sr-only" role="status">
+        {mode === "loading" ? t("library.loading") : ""}
+      </span>
       <div className="library-heading">
         <h1 className="library-title" id="library-title" tabIndex={-1}>
           {t("library.title")}
@@ -608,14 +615,13 @@ function LibraryPane({
           }}
           className="filter-tabs"
           spacing={0}
-          aria-label={t("library.title")}
+          aria-label={t("library.filters")}
         >
           {FILTERS.map((item) => (
             <ToggleGroupItem
               key={item}
               value={item}
               className="filter-button"
-              aria-label={t(`filter.${item}`)}
             >
               {t(`filter.${item}`)}
             </ToggleGroupItem>
@@ -724,6 +730,7 @@ function VirtualTable({
   onSelect: (appId: number) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pendingFocus = useRef<number | null>(null);
   const [viewport, setViewport] = useState({ top: 0, height: 400 });
 
   useEffect(() => {
@@ -746,6 +753,7 @@ function VirtualTable({
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    pendingFocus.current = null;
     setViewport((current) => ({ ...current, top: 0 }));
   }, [games]);
 
@@ -754,11 +762,80 @@ function VirtualTable({
     games.length,
     Math.ceil((viewport.top + viewport.height) / ROW_HEIGHT) + 3,
   );
-  const visible = games.slice(start, end);
+  const selectedIndex = games.findIndex((game) => game.appId === selectedId);
+  const activeIndex = selectedIndex === -1 ? 0 : selectedIndex;
+  const activeId = games[activeIndex]?.appId;
+
+  // Keep the tab stop mounted even when the selected row is scrolled away.
+  const rowIndices: number[] = [];
+  for (let index = start; index < end; index++) rowIndices.push(index);
+  if (selectedIndex !== -1 && (selectedIndex < start || selectedIndex >= end)) {
+    rowIndices.push(selectedIndex);
+  }
+
+  function moveFocus(from: number, to: number) {
+    const target = Math.max(0, Math.min(games.length - 1, to));
+    if (target === from) return;
+    const next = games[target];
+    if (!next) return;
+    pendingFocus.current = next.appId;
+    onSelect(next.appId);
+    const element = scrollRef.current;
+    if (!element) return;
+    const rowTop = target * ROW_HEIGHT;
+    const rowBottom = rowTop + ROW_HEIGHT;
+    if (rowTop < element.scrollTop) element.scrollTop = rowTop;
+    else if (rowBottom > element.scrollTop + element.clientHeight) {
+      element.scrollTop = rowBottom - element.clientHeight;
+    }
+  }
+
+  function navigate(from: number, key: string) {
+    const page = Math.max(
+      1,
+      Math.floor((scrollRef.current?.clientHeight || 400) / ROW_HEIGHT) - 1,
+    );
+    switch (key) {
+      case "ArrowDown":
+        moveFocus(from, from + 1);
+        break;
+      case "ArrowUp":
+        moveFocus(from, from - 1);
+        break;
+      case "Home":
+        moveFocus(from, 0);
+        break;
+      case "End":
+        moveFocus(from, games.length - 1);
+        break;
+      case "PageDown":
+        moveFocus(from, from + page);
+        break;
+      case "PageUp":
+        moveFocus(from, from - page);
+        break;
+    }
+  }
+
+  useEffect(() => {
+    const appId = pendingFocus.current;
+    if (appId === null) return;
+    const node = scrollRef.current?.querySelector<HTMLElement>(
+      `[data-app-id="${appId}"]`,
+    );
+    if (!node) return;
+    pendingFocus.current = null;
+    node.focus({ preventScroll: true });
+  }, [viewport.top, viewport.height, games, selectedId]);
 
   return (
-    <div className="library-table" role="table" aria-label={translate(lang, "library.title")}>
-      <div className="table-header" role="row">
+    <div
+      className="library-table"
+      role="table"
+      aria-label={translate(lang, "library.title")}
+      aria-rowcount={games.length + 1}
+    >
+      <div className="table-header" role="row" aria-rowindex={1}>
         <span role="columnheader">{translate(lang, "library.columnGame")}</span>
         <span role="columnheader">{translate(lang, "library.columnKind")}</span>
         <span role="columnheader">{translate(lang, "library.columnStatus")}</span>
@@ -769,16 +846,22 @@ function VirtualTable({
           role="rowgroup"
           style={{ height: games.length * ROW_HEIGHT }}
         >
-          {visible.map((game, index) => (
-            <GameRow
-              key={game.appId}
-              game={game}
-              lang={lang}
-              selected={game.appId === selectedId}
-              onSelect={onSelect}
-              style={{ top: (start + index) * ROW_HEIGHT }}
-            />
-          ))}
+          {rowIndices.map((index) => {
+            const game = games[index];
+            return (
+              <GameRow
+                key={game.appId}
+                game={game}
+                lang={lang}
+                selected={game.appId === selectedId}
+                tabStop={game.appId === activeId}
+                rowIndex={index + 2}
+                onSelect={onSelect}
+                onNavigate={(key) => navigate(index, key)}
+                style={{ top: index * ROW_HEIGHT }}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
@@ -789,42 +872,56 @@ function GameRow({
   game,
   lang,
   selected,
+  tabStop,
+  rowIndex,
   onSelect,
+  onNavigate,
   style,
 }: {
   game: Game;
   lang: Language;
   selected: boolean;
+  tabStop: boolean;
+  rowIndex: number;
   onSelect: (appId: number) => void;
+  onNavigate: (key: string) => void;
   style: CSSProperties;
 }) {
   return (
     <div
       className="game-row"
       role="row"
-      tabIndex={0}
+      tabIndex={tabStop ? 0 : -1}
       aria-selected={selected}
+      aria-rowindex={rowIndex}
       data-selected={selected}
+      data-app-id={game.appId}
       style={{ position: "absolute", left: 0, right: 0, height: ROW_HEIGHT, ...style }}
       onClick={() => onSelect(game.appId)}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           onSelect(game.appId);
+          return;
         }
-        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        if (
+          event.key === "ArrowDown" ||
+          event.key === "ArrowUp" ||
+          event.key === "Home" ||
+          event.key === "End" ||
+          event.key === "PageDown" ||
+          event.key === "PageUp"
+        ) {
           event.preventDefault();
-          const rows = Array.from(
-            event.currentTarget.parentElement?.querySelectorAll<HTMLElement>(".game-row") ?? [],
-          );
-          const index = rows.indexOf(event.currentTarget);
-          rows[index + (event.key === "ArrowDown" ? 1 : -1)]?.focus();
+          onNavigate(event.key);
         }
       }}
     >
       <span className="game-identity" role="cell">
         <GameIcon game={game} />
-        <span className="game-name">{game.name}</span>
+        <span className="game-name" title={game.name}>
+          {game.name}
+        </span>
       </span>
       <span className="game-kind" role="cell">
         {gameKindLabel(lang, game.kind)}
@@ -864,7 +961,12 @@ function GameIcon({ game }: { game: Game }) {
 
 function LoadingTable({ lang }: { lang: Language }) {
   return (
-    <div className="library-table" aria-busy="true">
+    <div
+      className="library-table"
+      role="table"
+      aria-label={translate(lang, "library.title")}
+      aria-busy="true"
+    >
       <div className="table-header" role="row">
         <span role="columnheader">{translate(lang, "library.columnGame")}</span>
         <span role="columnheader">{translate(lang, "library.columnKind")}</span>

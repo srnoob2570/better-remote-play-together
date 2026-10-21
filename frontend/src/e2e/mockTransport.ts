@@ -19,6 +19,7 @@ import type {
 
 type Scenario =
   | "library"
+  | "many-games"
   | "loading"
   | "empty"
   | "error"
@@ -49,6 +50,10 @@ const games: Game[] = [
     message: "Easy Anti-Cheat no es compatible con Remote Play Together.",
   }),
 ];
+
+const manyGames: Game[] = Array.from({ length: 80 }, (_, index) =>
+  game(900000 + index, `Test Game ${String(index + 1).padStart(2, "0")}`, "native", "ready"),
+);
 
 function game(
   appId: number,
@@ -222,6 +227,9 @@ function scenarioData(name: Scenario, lang: "es" | "en") {
   let updateValue = updateCheck(false);
 
   switch (name) {
+    case "many-games":
+      snapshotCatalog = catalog({ games: manyGames });
+      break;
     case "loading":
       snapshotCatalog = undefined;
       recoveryValue = recovery({ situation: undefined, setup: undefined });
@@ -480,6 +488,7 @@ export function installMockTransport(scenarioName: string, language: "es" | "en"
 
 const SCENARIOS: Record<Scenario, true> = {
   library: true,
+  "many-games": true,
   loading: true,
   empty: true,
   error: true,

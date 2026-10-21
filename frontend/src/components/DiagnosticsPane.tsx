@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { ExternalLinkIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -347,6 +349,8 @@ function DocsLine({
             }}
           >
             {doc}
+            <ExternalLinkIcon aria-hidden="true" className="diagnostic-docs-icon" />
+            <span className="sr-only"> {t("common.opensExternal")}</span>
           </a>
         </span>
       ))}

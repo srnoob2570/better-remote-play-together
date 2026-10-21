@@ -574,11 +574,11 @@ describe("library UI", () => {
       screen.getByText("No se encontró FUSE: faltan fusermount3 y /dev/fuse."),
     ).toBeInTheDocument();
     expect(screen.getByText("Instala fuse3 o usa --appimage-extract-and-run.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "docs/appimage.md" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /docs\/appimage\.md/ })).toHaveAttribute(
       "href",
       "https://github.com/srnoob2570/better-remote-play-together/blob/main/docs/appimage.md",
     );
-    fireEvent.click(screen.getByRole("link", { name: "docs/appimage.md" }));
+    fireEvent.click(screen.getByRole("link", { name: /docs\/appimage\.md/ }));
     expect(Browser.OpenURL).toHaveBeenCalledWith(
       "https://github.com/srnoob2570/better-remote-play-together/blob/main/docs/appimage.md",
     );

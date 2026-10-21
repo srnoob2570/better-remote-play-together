@@ -27,6 +27,7 @@ export function SetupIndicator({
       type="button"
       className="setup-indicator"
       data-tone={setupTone(effective)}
+      aria-haspopup="dialog"
       onClick={onOpen}
     >
       <span className="setup-indicator-label">{translate(lang, "setup.title")}</span>
