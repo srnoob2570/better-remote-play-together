@@ -9,6 +9,10 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Changed
 
+- La versión (`v0.2.0`) y la comprobación de actualizaciones viven en la
+  esquina inferior izquierda, con un botón de solo icono, tooltip y estados con
+  iconos y spinner. El selector de idioma pasa a un botón flotante con icono y
+  menú desplegable en la esquina inferior derecha.
 - El arranque y el refresco del catálogo evitan trabajo duplicado: la
   biblioteca principal se recorre una sola vez, la detección del tipo de
   instalación se calcula una vez por proceso, las portadas se resuelven sin

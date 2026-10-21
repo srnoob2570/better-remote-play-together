@@ -94,9 +94,11 @@ fuera de Ubuntu 22.04 en esta versión.
 ## Actualizaciones
 
 Better RPT comprueba GitHub Releases al arrancar sin bloquear la interfaz y
-ofrece un botón **Buscar actualizaciones** junto a la versión. La comprobación
-de arranque reutiliza el último resultado correcto durante 24 horas; el botón
-consulta siempre la red. No requiere cuenta, token ni configuración.
+muestra la versión (`v0.2.0`) junto a un botón de actualización solo con icono
+en la esquina inferior izquierda. El tooltip y los iconos explican el estado; el
+diálogo muestra versiones, progreso y enlaces. La comprobación de arranque
+reutiliza el último resultado correcto durante 24 horas; el botón consulta
+siempre la red. No requiere cuenta, token ni configuración.
 
 La actualización solo se ofrece para instalaciones Linux amd64:
 

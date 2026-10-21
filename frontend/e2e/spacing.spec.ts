@@ -128,6 +128,9 @@ test("selection play action is visible without scrolling at 390px", async ({ pag
   const play = page.getByRole("button", { name: "Jugar" });
   await expect(play).toBeVisible();
   await expect(play).toBeInViewport();
+
+  const [playBox, dockBox] = await Promise.all([box(play), box(page.locator(".app-dock"))]);
+  expect(playBox.y + playBox.height).toBeLessThanOrEqual(dockBox.y);
 });
 
 test("compact controls meet the 44px touch target", async ({ page }) => {
@@ -140,7 +143,7 @@ test("compact controls meet the 44px touch target", async ({ page }) => {
     ".setup-indicator",
     ".diagnostics-button",
     ".update-button",
-    ".language-button",
+    ".language-trigger",
     ".search-field",
     ".refresh-button",
     ".session-tab",

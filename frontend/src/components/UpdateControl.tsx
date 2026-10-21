@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { Browser, Events } from "@wailsio/runtime";
+import {
+  CircleCheckIcon,
+  DownloadIcon,
+  FlaskConicalIcon,
+  FolderCheckIcon,
+  RefreshCwIcon,
+  RotateCcwIcon,
+  TriangleAlertIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { toBridgeError } from "../bridge/client";
 import { bridge } from "../bridge/wails";
@@ -76,6 +87,7 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
   const latestVersion = check?.latestVersion ?? "";
   const releaseUrl = check?.releaseUrl || RELEASES_URL;
   const showBadge = Boolean(check?.available && latestVersion);
+  const versionText = formatVersion(version);
 
   useEffect(() => {
     const off = Events.On("update.progress", (event) => {
@@ -208,6 +220,9 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
     }
   })();
 
+  const ariaLabel =
+    showBadge && phase === "available" ? t("update.badge", latestVersion) : buttonLabel;
+
   const statusText = (() => {
     switch (phase) {
       case "checking":
@@ -237,23 +252,27 @@ export function UpdateControl({ lang, version }: { lang: Language; version: stri
 
   return (
     <div className="update-control">
-      <Button
-        type="button"
-        variant="ghost"
-        className="update-button"
-        data-state={phase}
-        disabled={busy}
-        aria-busy={busy}
-        aria-label={
-          showBadge && phase === "available" ? t("update.badge", latestVersion) : undefined
-        }
-        onClick={onButtonClick}
-      >
-        {buttonLabel}
-      </Button>
-      <span className="update-badge" data-visible={showBadge} aria-hidden="true">
-        {latestVersion}
-      </span>
+      {versionText && <span className="app-version">{versionText}</span>}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            className="update-button"
+            data-state={phase}
+            disabled={busy}
+            aria-busy={busy}
+            aria-label={ariaLabel}
+            onClick={onButtonClick}
+          >
+            <PhaseIcon phase={phase} />
+            <span className="update-dot" data-visible={showBadge} aria-hidden="true" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start" sideOffset={8} className="app-tooltip">
+          {ariaLabel}
+        </TooltipContent>
+      </Tooltip>
       <span className="sr-only" role="status" aria-live="polite">
         {statusText}
       </span>
@@ -491,4 +510,32 @@ function bodyText({
 function errorKey(code?: string): MessageKey {
   if (!code) return "update.error.generic";
   return ERROR_KEYS[code] ?? "update.error.generic";
+}
+
+function PhaseIcon({ phase }: { phase: Phase }) {
+  switch (phase) {
+    case "checking":
+    case "downloading":
+    case "installing":
+      return <Spinner aria-hidden="true" className="update-spinner" />;
+    case "upToDate":
+      return <CircleCheckIcon aria-hidden="true" />;
+    case "available":
+      return <DownloadIcon aria-hidden="true" />;
+    case "restartPending":
+      return <RotateCcwIcon aria-hidden="true" />;
+    case "saved":
+      return <FolderCheckIcon aria-hidden="true" />;
+    case "error":
+      return <TriangleAlertIcon aria-hidden="true" />;
+    case "development":
+      return <FlaskConicalIcon aria-hidden="true" />;
+    default:
+      return <RefreshCwIcon aria-hidden="true" />;
+  }
+}
+
+function formatVersion(version: string): string {
+  if (!version || version === "dev" || version.startsWith("v")) return version;
+  return `v${version}`;
 }

@@ -240,7 +240,7 @@ describe("library UI", () => {
 
     expect(await screen.findAllByText("HELLDIVERS™ 2")).not.toHaveLength(0);
     expect(screen.getByText("3 juegos")).toBeInTheDocument();
-    expect(screen.getByText("Versión 0.2.0")).toBeInTheDocument();
+    expect(screen.getByText("v0.2.0")).toBeInTheDocument();
 
     const image = document.querySelector<HTMLImageElement>("img.game-icon");
     expect(image).not.toBeNull();
@@ -293,7 +293,11 @@ describe("library UI", () => {
     render(<App />);
     await screen.findAllByText("HELLDIVERS™ 2");
 
-    fireEvent.click(screen.getByRole("button", { name: "English" }));
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Idioma" }), {
+      button: 0,
+      ctrlKey: false,
+    });
+    fireEvent.click(await screen.findByRole("menuitemradio", { name: "English" }));
 
     expect(mocked.SetLanguage).toHaveBeenCalledWith("en");
     expect(await screen.findByRole("heading", { name: "Library" })).toBeInTheDocument();

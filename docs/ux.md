@@ -8,7 +8,11 @@ acciones y textos del MVP. El flujo de cerrar Steam ya no existe.
 
 - Tamaño inicial 1280×800; mínimo 1024×600.
 - Cabecera: **Better RPT** a la izquierda; a la derecha, estado de la
-  integración de SpaceWar, botón **Diagnóstico**, versión y selector **ES | EN**.
+  integración de SpaceWar y botón **Diagnóstico**.
+- Controles globales flotantes en las esquinas inferiores: versión y
+  actualización a la izquierda; selector de idioma a la derecha. El botón de
+  actualización es solo un icono y comunica su estado con iconos, tooltip y un
+  diálogo de progreso.
 - Cuerpo en dos columnas: biblioteca (≈60 %) y panel lateral (≈40 %, mínimo
   400 px).
 - La biblioteca y la sesión son dos campos de color distintos: tinta para la
@@ -306,7 +310,8 @@ Patrón: qué pasó, acción primaria, detalle técnico plegable. Ejemplos:
 ## Idioma
 
 - Inicial: `LANGUAGE`, `LC_ALL` o `LANG`; si no hay ninguna, español.
-- Selector en cabecera, cambio instantáneo, persistido en la configuración.
+- Selector flotante en la esquina inferior derecha, con menú desplegable,
+  cambio instantáneo y persistido en la configuración.
 - Todos los textos viven en `internal/i18n/catalogs/es.json` y
   `internal/i18n/catalogs/en.json`; no hay cadenas incrustadas en la UI.
 - Las claves ES/EN deben tener el mismo conjunto.
@@ -335,8 +340,10 @@ acciones de reintento o restauración.
 ## Accesibilidad
 
 - Navegación completa por teclado: Tab por cabecera → Diagnóstico → búsqueda →
-  filtro → biblioteca → pestañas → panel; Enter selecciona/activa; Ctrl+F
-  enfoca la búsqueda; F5 refresca; Esc cierra diálogos y devuelve el foco.
+  filtro → biblioteca → pestañas → panel → controles inferiores; Enter
+  selecciona/activa; Ctrl+F enfoca la búsqueda; F5 refresca; Esc cierra diálogos
+  y devuelve el foco. Los botones inferiores exponen su etiqueta mediante
+  tooltip y `aria-label`.
 - Los dos wizards atrapan el foco, muestran un foco visible, se cierran con Esc
   y no ejecutan acciones al cerrarse. Los estados se anuncian con `aria-live`
   cuando cambian.

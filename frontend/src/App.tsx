@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster, toast } from "@/components/ui/toast";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { artUrl } from "./art";
 import { toBridgeError } from "./bridge/client";
@@ -26,6 +27,7 @@ import { SessionPanel } from "./components/SessionPanel";
 import { SessionDialog } from "./components/SessionDialog";
 import { DiagnosticsPane } from "./components/DiagnosticsPane";
 import { SetupIndicator } from "./components/SetupIndicator";
+import { LanguageMenu } from "./components/LanguageMenu";
 import { UpdateControl } from "./components/UpdateControl";
 import { GAME_STATUS_KEY, GAME_STATUS_TONE, gameKindLabel } from "./session/gameLabels";
 import { problemText } from "./session/problem";
@@ -339,135 +341,126 @@ export default function App() {
       >
         {t("diagnostics.open")}
       </Button>
-      <span className="app-version">
-        {t("app.version")} {snapshot?.version ?? ""}
-      </span>
-      <UpdateControl lang={lang} version={snapshot?.version ?? ""} />
-      <nav className="language-switch" aria-label={t("app.language")}>
-        {(["es", "en"] as const).map((code) => (
-          <Button
-            key={code}
-            variant="ghost"
-            className="language-button"
-            data-active={lang === code}
-            onClick={() => void changeLanguage(code)}
-          >
-            {t(`language.${code}`)}
-          </Button>
-        ))}
-      </nav>
     </>
   );
 
   return (
-    <div className="app-window">
-      <header className="app-header">
-        <div className="brand">
-          <img className="brand-mark" src="/brand/icon.png" alt="" />
-          <div>
-            <p className="brand-title">{t("app.title")}</p>
-            <p className="brand-subtitle">{t("app.subtitle")}</p>
+    <TooltipProvider delayDuration={300}>
+      <div className="app-window">
+        <header className="app-header">
+          <div className="brand">
+            <img className="brand-mark" src="/brand/icon.png" alt="" />
+            <div>
+              <p className="brand-title">{t("app.title")}</p>
+              <p className="brand-subtitle">{t("app.subtitle")}</p>
+            </div>
           </div>
-        </div>
-        <div className="header-actions" ref={headerMenu}>
-          <button
-            type="button"
-            ref={menuButton}
-            className="compact-menu-button"
-            aria-label={t("app.menu")}
-            aria-expanded={menuOpen}
-            aria-controls="app-header-menu"
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            {menuOpen ? <XIcon aria-hidden="true" /> : <MenuIcon aria-hidden="true" />}
-          </button>
-          <div
-            id="app-header-menu"
-            className={compact ? "header-right header-menu-panel" : "header-right"}
-            role={compact ? "group" : undefined}
-            aria-label={compact ? t("app.menu") : undefined}
-            hidden={compact && !menuOpen}
-            onClick={(event) => {
-              if ((event.target as HTMLElement).closest("button, a")) setMenuOpen(false);
-            }}
-          >
-            {headerActions}
+          <div className="header-actions" ref={headerMenu}>
+            <button
+              type="button"
+              ref={menuButton}
+              className="compact-menu-button"
+              aria-label={t("app.menu")}
+              aria-expanded={menuOpen}
+              aria-controls="app-header-menu"
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {menuOpen ? <XIcon aria-hidden="true" /> : <MenuIcon aria-hidden="true" />}
+            </button>
+            <div
+              id="app-header-menu"
+              className={compact ? "header-right header-menu-panel" : "header-right"}
+              role={compact ? "group" : undefined}
+              aria-label={compact ? t("app.menu") : undefined}
+              hidden={compact && !menuOpen}
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest("button, a")) setMenuOpen(false);
+              }}
+            >
+              {headerActions}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main
-        className={
-          view === "library"
-            ? "app-main"
-            : view === "diagnostics"
-              ? "app-main diagnostics-main"
-              : "app-main app-main-single"
-        }
-      >
-        {view === "diagnostics" ? (
-          <DiagnosticsPane
-            lang={lang}
-            onBack={() => setView("library")}
-            onRepair={(checkId) => openRepair(checkId, "diagnostics")}
-          />
-        ) : view === "setup" ? (
-          <SetupWizard
-            lang={lang}
-            session={session}
-            onClose={() => setView(setupReturn)}
-            onOpenGuide={openGuide}
-            onOpenRepair={() => openRepair(undefined, "setup")}
-          />
-        ) : view === "repair" ? (
-          <RepairWizard
-            lang={lang}
-            session={session}
-            initialCheckId={repairCheckId}
-            onClose={() => setView(repairReturn)}
-            onOpenGuide={openGuide}
-            onOpenSetup={openSetup}
-          />
-        ) : (
-          <>
-            <LibraryPane
+        <main
+          className={
+            view === "library"
+              ? "app-main"
+              : view === "diagnostics"
+                ? "app-main diagnostics-main"
+                : "app-main app-main-single"
+          }
+        >
+          {view === "diagnostics" ? (
+            <DiagnosticsPane
               lang={lang}
-              mode={mode}
-              games={games}
-              catalog={catalog}
-              query={query}
-              filter={filter}
-              selectedId={selectedId}
-              problem={problem}
-              searchRef={searchRef}
-              onQuery={setQuery}
-              onFilter={setFilter}
-              onSelect={setSelectedId}
-              onRefresh={() => void refresh()}
-              onOpenSteam={() => void openSteam()}
-              onReset={resetFilters}
+              onBack={() => setView("library")}
+              onRepair={(checkId) => openRepair(checkId, "diagnostics")}
             />
-            <SessionPanel
+          ) : view === "setup" ? (
+            <SetupWizard
               lang={lang}
-              games={catalog?.games ?? []}
-              selected={selected}
-              donorInstalled={donorInstalled}
               session={session}
-              onSelectLast={setSelectedId}
-              guideRequest={guideRequest}
-              onGuideRequestHandled={clearGuideRequest}
-              onOpenSetup={openSetup}
-              onOpenRepair={openRepair}
+              onClose={() => setView(setupReturn)}
+              onOpenGuide={openGuide}
+              onOpenRepair={() => openRepair(undefined, "setup")}
             />
-          </>
-        )}
-      </main>
-      <SessionDialog lang={lang} session={session} />
-      <Toaster
-        closeLabel={t("common.close")}
-        viewportLabel={t("common.notifications")}
-      />
-    </div>
+          ) : view === "repair" ? (
+            <RepairWizard
+              lang={lang}
+              session={session}
+              initialCheckId={repairCheckId}
+              onClose={() => setView(repairReturn)}
+              onOpenGuide={openGuide}
+              onOpenSetup={openSetup}
+            />
+          ) : (
+            <>
+              <LibraryPane
+                lang={lang}
+                mode={mode}
+                games={games}
+                catalog={catalog}
+                query={query}
+                filter={filter}
+                selectedId={selectedId}
+                problem={problem}
+                searchRef={searchRef}
+                onQuery={setQuery}
+                onFilter={setFilter}
+                onSelect={setSelectedId}
+                onRefresh={() => void refresh()}
+                onOpenSteam={() => void openSteam()}
+                onReset={resetFilters}
+              />
+              <SessionPanel
+                lang={lang}
+                games={catalog?.games ?? []}
+                selected={selected}
+                donorInstalled={donorInstalled}
+                session={session}
+                onSelectLast={setSelectedId}
+                guideRequest={guideRequest}
+                onGuideRequestHandled={clearGuideRequest}
+                onOpenSetup={openSetup}
+                onOpenRepair={openRepair}
+              />
+            </>
+          )}
+        </main>
+
+        <footer className="app-dock">
+          <UpdateControl lang={lang} version={snapshot?.version ?? ""} />
+          <LanguageMenu lang={lang} onSelect={(next) => void changeLanguage(next)} />
+        </footer>
+
+        <SessionDialog lang={lang} session={session} />
+        <Toaster
+          closeLabel={t("common.close")}
+          viewportLabel={t("common.notifications")}
+        />
+      </div>
+    </TooltipProvider>
   );
 }
 

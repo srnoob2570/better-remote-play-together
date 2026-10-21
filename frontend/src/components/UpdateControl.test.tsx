@@ -23,6 +23,8 @@ vi.mock("../bridge/wails", () => ({
 
 import { Browser, Events } from "@wailsio/runtime";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
+
 import { bridge } from "../bridge/wails";
 import { UpdateControl } from "./UpdateControl";
 
@@ -61,6 +63,14 @@ function progressHandler(): ((event: { data: unknown }) => void) | undefined {
   return call?.[1] as unknown as ((event: { data: unknown }) => void) | undefined;
 }
 
+function renderControl(lang: "es" | "en" = "es") {
+  return render(
+    <TooltipProvider>
+      <UpdateControl lang={lang} version="0.2.0" />
+    </TooltipProvider>,
+  );
+}
+
 describe("update control", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -75,10 +85,13 @@ describe("update control", () => {
 
   it("shows a startup badge without opening a dialog", async () => {
     mocked.CheckForUpdateOnStartup.mockResolvedValue(updateCheck());
-    render(<UpdateControl lang="es" version="0.2.0" />);
+    renderControl();
 
-    expect(await screen.findByText("0.2.1")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Actualización 0.2.1 disponible" })).toBeEnabled();
+    const button = await screen.findByRole("button", {
+      name: "Actualización 0.2.1 disponible",
+    });
+    expect(button).toBeEnabled();
+    expect(button).toHaveClass("update-button");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -86,7 +99,7 @@ describe("update control", () => {
     mocked.CheckForUpdateOnStartup.mockResolvedValue(
       updateCheck({ available: false, canInstall: false, latestVersion: "0.2.0" }),
     );
-    render(<UpdateControl lang="es" version="0.2.0" />);
+    renderControl();
 
     expect(await screen.findByRole("button", { name: "Estás al día" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -97,7 +110,7 @@ describe("update control", () => {
     mocked.CheckForUpdateOnStartup.mockRejectedValue({
       problem: { code: "update_network", message: "offline" },
     });
-    render(<UpdateControl lang="es" version="0.2.0" />);
+    renderControl();
 
     await waitFor(() => expect(mocked.CheckForUpdateOnStartup).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -106,11 +119,11 @@ describe("update control", () => {
 
   it("disables the button while checking", async () => {
     mocked.CheckForUpdate.mockReturnValue(new Promise(() => {}));
-    render(<UpdateControl lang="es" version="0.2.0" />);
+    renderControl();
     fireEvent.click(screen.getByRole("button", { name: "Buscar actualizaciones" }));
 
     expect(
-      screen.getByText("Comprobando…", { selector: "button" }),
+      screen.getByLabelText("Comprobando…", { selector: "button" }),
     ).toBeDisabled();
     expect(await screen.findByText("Consultando GitHub Releases…")).toBeInTheDocument();
   });
@@ -119,7 +132,7 @@ describe("update control", () => {
     mocked.CheckForUpdate.mockResolvedValue(
       updateCheck({ available: false, canInstall: false, latestVersion: "0.2.0" }),
     );
-    render(<UpdateControl lang="es" version="0.2.0" />);
+    renderControl();
 
     fireEvent.click(screen.getByRole("button", { name: "Buscar actualizaciones" }));
     const dialog = await screen.findByRole("dialog", { name: "Actualización de Better RPT" });
@@ -133,7 +146,7 @@ describe("update control", () => {
   });
 
   it("shows versions and release notes for an available update", async () => {
-    render(<UpdateControl lang="es" version="0.2.0" />);
+    renderControl();
     fireEvent.click(screen.getByRole("button", { name: "Buscar actualizaciones" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Actualización de Better RPT" });
@@ -154,7 +167,7 @@ describe("update control", () => {
         resolveInstall = resolve;
       }),
     );
-    render(<UpdateControl lang="es" version="0.2.0" />);
+    renderControl();
     fireEvent.click(screen.getByRole("button", { name: "Buscar actualizaciones" }));
     const dialog = await screen.findByRole("dialog", { name: "Actualización de Better RPT" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Actualizar ahora" }));
@@ -179,7 +192,9 @@ describe("update control", () => {
     expect(
       await screen.findByText("Instalando la actualización. No cierres la app."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Instalando…", { selector: "button" })).toBeDisabled();
+    expect(
+      screen.getByLabelText("Instalando…", { selector: "button" }),
+    ).toBeDisabled();
 
     await act(async () => {
       resolveInstall(installResult());
@@ -195,7 +210,7 @@ describe("update control", () => {
     mocked.RestartToUpdate.mockRejectedValue({
       problem: { code: "update_restart", message: "cannot start", detail: "permission denied" },
     });
-    render(<UpdateControl lang="es" version="0.2.0" />);
+    renderControl();
     fireEvent.click(screen.getByRole("button", { name: "Buscar actualizaciones" }));
     const dialog = await screen.findByRole("dialog", { name: "Actualización de Better RPT" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Actualizar ahora" }));
@@ -219,7 +234,7 @@ describe("update control", () => {
     mocked.CheckForUpdate.mockRejectedValue({
       problem: { code: "update_rate_limited", message: "rate limited", detail: "HTTP 403" },
     });
-    render(<UpdateControl lang="es" version="0.2.0" />);
+    renderControl();
     fireEvent.click(screen.getByRole("button", { name: "Buscar actualizaciones" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Actualización de Better RPT" });
@@ -246,7 +261,7 @@ describe("update control", () => {
         latestVersion: "0.2.1",
       }),
     );
-    render(<UpdateControl lang="es" version="0.2.0" />);
+    renderControl();
     fireEvent.click(screen.getByRole("button", { name: "Buscar actualizaciones" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Actualización de Better RPT" });
@@ -267,7 +282,7 @@ describe("update control", () => {
         path: "/home/test/Descargas/BetterRPT-0.2.1-x86_64.AppImage",
       }),
     );
-    render(<UpdateControl lang="es" version="0.2.0" />);
+    renderControl();
     fireEvent.click(screen.getByRole("button", { name: "Buscar actualizaciones" }));
     const dialog = await screen.findByRole("dialog", { name: "Actualización de Better RPT" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Actualizar ahora" }));
@@ -281,7 +296,7 @@ describe("update control", () => {
   });
 
   it("opens the release page with the system browser", async () => {
-    render(<UpdateControl lang="es" version="0.2.0" />);
+    renderControl();
     fireEvent.click(screen.getByRole("button", { name: "Buscar actualizaciones" }));
     const dialog = await screen.findByRole("dialog", { name: "Actualización de Better RPT" });
     fireEvent.click(within(dialog).getByRole("link", { name: "Ver notas del release" }));
@@ -290,7 +305,7 @@ describe("update control", () => {
 
   it("renders English copy and accessible status", async () => {
     mocked.CheckForUpdateOnStartup.mockResolvedValue(updateCheck());
-    render(<UpdateControl lang="en" version="0.2.0" />);
+    renderControl("en");
 
     const button = await screen.findByRole("button", { name: "Update 0.2.1 available" });
     expect(button).toBeEnabled();
@@ -303,7 +318,7 @@ describe("update control", () => {
   });
 
   it("moves focus into the dialog and supports Escape", async () => {
-    render(<UpdateControl lang="es" version="0.2.0" />);
+    renderControl();
     const trigger = screen.getByRole("button", { name: "Buscar actualizaciones" });
     trigger.focus();
     fireEvent.click(trigger);

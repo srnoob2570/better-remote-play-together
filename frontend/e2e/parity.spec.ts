@@ -134,7 +134,8 @@ test.describe("parity states", () => {
 
   test("language switch updates the whole UI", async ({ page }) => {
     await open(page, "library");
-    await page.getByRole("button", { name: "English" }).click();
+    await page.getByRole("button", { name: "Idioma" }).click();
+    await page.getByRole("menuitemradio", { name: "English" }).click();
     await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
     await expect(page.getByText("5 games")).toBeVisible();
     await expect(page.getByRole("tab", { name: "Session" })).toBeVisible();
