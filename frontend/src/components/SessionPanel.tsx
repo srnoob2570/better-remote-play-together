@@ -143,7 +143,6 @@ export function SessionPanel({
                 lang={lang}
                 game={games.find((game) => game.appId === state.targetAppId) ?? selected}
                 state={state}
-                now={session.now}
               />
             )}
 
@@ -555,14 +554,27 @@ function ActivePanel({
   lang,
   game,
   state,
-  now,
 }: {
   lang: Language;
   game?: Game;
   state: SessionState;
-  now: number;
 }) {
   const t = (key: MessageKey) => translate(lang, key);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState === "visible") setNow(Date.now());
+    };
+    const timer = window.setInterval(tick, 1000);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
   const started = state.startedAt ? Date.parse(state.startedAt) : now;
   return (
     <>

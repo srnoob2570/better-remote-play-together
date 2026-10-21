@@ -67,6 +67,36 @@ func TestCheckStartupUsesFreshCacheWithoutNetwork(t *testing.T) {
 	}
 }
 
+func TestCheckStartupDetectsInstallOnce(t *testing.T) {
+	manager := New("0.2.0", filepath.Join(t.TempDir(), "update.json"))
+	if err := writeCache(manager.cacheFile, cacheState{
+		CheckedAt: time.Now().Add(-time.Hour),
+		Tag:       "v0.2.1",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	env := developmentEnvironment()
+	env.executable = func() (string, error) {
+		calls++
+		return "/opt/better-rpt", nil
+	}
+	manager.env = env
+
+	for range 2 {
+		check, err := manager.CheckStartup(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if check.InstallKind != KindDevelopment {
+			t.Fatalf("install kind = %v, want development", check.InstallKind)
+		}
+	}
+	if calls != 1 {
+		t.Fatalf("install detection calls = %d, want 1", calls)
+	}
+}
+
 func TestCheckStartupRefreshesExpiredCache(t *testing.T) {
 	server, _ := newReleaseServer(t, "0.2.1", []byte("new binary"), "")
 	manager := testManager(t, "0.2.0", server)

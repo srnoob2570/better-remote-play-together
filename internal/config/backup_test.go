@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -78,6 +79,28 @@ func TestBackupCorruptHash(t *testing.T) {
 	if _, err := LoadBackup(backup.Path); !errors.Is(err, ErrBackupCorrupt) {
 		t.Fatalf("error = %v, want ErrBackupCorrupt", err)
 	}
+	backups, err := ListBackups(paths)
+	if err != nil || len(backups) != 1 {
+		t.Fatalf("metadata listing = %v, %v; want one backup despite corrupt payload", backups, err)
+	}
+}
+
+func TestListBackupsWithoutPayload(t *testing.T) {
+	paths := testPaths(t)
+	backup, err := CreateBackup(paths, "source", []byte("original\n"), testBackupMeta(sessionToken, time.Now()))
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := os.Remove(backup.Path); err != nil {
+		t.Fatalf("remove payload: %v", err)
+	}
+	backups, err := ListBackups(paths)
+	if err != nil || len(backups) != 1 {
+		t.Fatalf("metadata listing = %v, %v; want one backup without payload", backups, err)
+	}
+	if _, err := LoadBackup(backup.Path); !errors.Is(err, ErrBackupMissing) {
+		t.Fatalf("load error = %v, want ErrBackupMissing", err)
+	}
 }
 
 func TestBackupCorruptMetadata(t *testing.T) {
@@ -91,6 +114,29 @@ func TestBackupCorruptMetadata(t *testing.T) {
 	}
 	if _, err := LoadBackup(backup.Path); !errors.Is(err, ErrBackupCorrupt) {
 		t.Fatalf("error = %v, want ErrBackupCorrupt", err)
+	}
+	if _, err := ListBackups(paths); !errors.Is(err, ErrBackupCorrupt) {
+		t.Fatalf("list error = %v, want ErrBackupCorrupt", err)
+	}
+}
+
+func TestRestoreBySessionVerifiesPayload(t *testing.T) {
+	paths := testPaths(t)
+	backup, err := CreateBackup(paths, "source", []byte("original\n"), testBackupMeta(sessionToken, time.Now()))
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := os.WriteFile(backup.Path, []byte("changed\n"), 0o600); err != nil {
+		t.Fatalf("corrupt backup: %v", err)
+	}
+	_, err = Restore(RestoreOptions{
+		Paths:        paths,
+		SteamRoot:    "/steam",
+		SessionToken: sessionToken,
+		SteamRunning: func() (bool, error) { return false, nil },
+	})
+	if !errors.Is(err, ErrBackupCorrupt) {
+		t.Fatalf("restore error = %v, want ErrBackupCorrupt", err)
 	}
 }
 
@@ -139,4 +185,46 @@ func TestListBackupsIgnoresUnrelated(t *testing.T) {
 	if err != nil || len(backups) != 0 {
 		t.Fatalf("backups = %v, err=%v", backups, err)
 	}
+}
+
+func BenchmarkListBackupsMetadataOnly(b *testing.B) {
+	paths := benchBackups(b)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		backups, err := ListBackups(paths)
+		if err != nil || len(backups) != 10 {
+			b.Fatalf("backups = %d, err=%v", len(backups), err)
+		}
+	}
+}
+
+func BenchmarkListBackupsVerifyPayload(b *testing.B) {
+	paths := benchBackups(b)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		backups, err := ListBackups(paths)
+		if err != nil || len(backups) != 10 {
+			b.Fatalf("backups = %d, err=%v", len(backups), err)
+		}
+		for _, backup := range backups {
+			if _, err := LoadBackup(backup.Path); err != nil {
+				b.Fatal(err)
+			}
+		}
+	}
+}
+
+func benchBackups(b *testing.B) Paths {
+	b.Helper()
+	paths := Paths{DataDir: b.TempDir()}
+	data := bytes.Repeat([]byte("x"), 1<<20)
+	for i := 0; i < 10; i++ {
+		meta := testBackupMeta(fmt.Sprintf("%032x", i), time.Date(2026, 10, 18, 12, i, 0, 0, time.UTC))
+		if _, err := CreateBackup(paths, meta.Source, data, meta); err != nil {
+			b.Fatalf("create %d: %v", i, err)
+		}
+	}
+	return paths
 }

@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/srnoob2570/better-rpt/internal/config"
 	"github.com/srnoob2570/better-rpt/internal/i18n"
@@ -59,7 +58,7 @@ func runCLI(args []string, stdout, stderr io.Writer, version string, run runner)
 		return 2
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), runTimeout)
 	defer cancel()
 	paths, pathsErr := config.ResolvePaths()
 	report, err := run(ctx, Options{

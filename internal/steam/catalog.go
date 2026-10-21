@@ -86,9 +86,6 @@ func Load(ctx context.Context, installation Installation) (Catalog, error) {
 		return Catalog{}, err
 	}
 	catalog := Catalog{Installation: Installation{Root: root, Variant: VariantNative}}
-	for _, warning := range appInfo.Warnings() {
-		catalog.Warnings = append(catalog.Warnings, Warning{Path: appInfoPath, Err: warning})
-	}
 	roots, warnings := discoverRoots(root)
 	catalog.Warnings = append(catalog.Warnings, warnings...)
 	resolver := compat.NewResolver(root, roots)
@@ -113,12 +110,17 @@ func Load(ctx context.Context, installation Installation) (Catalog, error) {
 		catalog.Libraries = append(catalog.Libraries, *lib)
 		catalog.Games = append(catalog.Games, games...)
 	}
+	for _, warning := range appInfo.Warnings() {
+		catalog.Warnings = append(catalog.Warnings, Warning{Path: appInfoPath, Err: warning})
+	}
 	catalog.Games = dedupeGames(catalog.Games)
 	return catalog, nil
 }
 
 func discoverRoots(primary string) ([]string, []Warning) {
+	primary = filepath.Clean(primary)
 	roots := []string{primary}
+	seen := map[string]bool{primary: true}
 	file := filepath.Join(primary, "steamapps", "libraryfolders.vdf")
 	f, err := os.Open(file)
 	if err != nil {
@@ -142,7 +144,12 @@ func discoverRoots(primary string) ([]string, []Warning) {
 			})
 			continue
 		}
-		roots = append(roots, filepath.Clean(path))
+		clean := filepath.Clean(path)
+		if seen[clean] {
+			continue
+		}
+		seen[clean] = true
+		roots = append(roots, clean)
 	}
 	return roots, warnings
 }

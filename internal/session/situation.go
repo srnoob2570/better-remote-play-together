@@ -1,6 +1,9 @@
 package session
 
-import "github.com/srnoob2570/better-rpt/internal/domain"
+import (
+	"github.com/srnoob2570/better-rpt/internal/config"
+	"github.com/srnoob2570/better-rpt/internal/domain"
+)
 
 // SituationKind is the explicit, user-visible lifecycle state of the launch
 // integration. It is derived from durable evidence and never from a launch
@@ -75,16 +78,17 @@ type Evidence struct {
 
 // Situation is the UI-facing result of classification.
 type Situation struct {
-	Kind         SituationKind
-	Setup        SetupState
-	Restore      RestoreState
-	Token        string
-	TargetAppID  uint32
-	Legacy       *LegacyEvidence
-	Intent       *Intent
-	State        *State
-	Last         *LastLaunch
-	SteamRunning bool
+	Kind          SituationKind
+	Setup         SetupState
+	Restore       RestoreState
+	Token         string
+	TargetAppID   uint32
+	Legacy        *LegacyEvidence
+	Intent        *Intent
+	State         *State
+	Last          *LastLaunch
+	SteamRunning  bool
+	SetupSnapshot config.SetupSnapshot
 }
 
 // Classify derives the lifecycle state from durable evidence. It deliberately

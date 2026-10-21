@@ -7,11 +7,13 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/srnoob2570/better-rpt/internal/config"
 	"github.com/srnoob2570/better-rpt/internal/domain"
+	"github.com/srnoob2570/better-rpt/internal/steam"
 )
 
 func testPaths(t *testing.T) config.Paths {
@@ -162,6 +164,50 @@ func TestRefreshCatalog(t *testing.T) {
 	}
 	if len(catalog.Games) != 1 || catalog.Games[0].Name != "Native Game" || catalog.Games[0].SizeBytes != 42 || catalog.Games[0].Status != domain.StatusReady {
 		t.Fatalf("catalog = %+v", catalog)
+	}
+	cached, ok := svc.Catalog()
+	if !ok || len(cached.Games) != 1 {
+		t.Fatalf("cached catalog = %+v, ok=%v", cached, ok)
+	}
+}
+
+func TestRefreshCatalogSingleFlight(t *testing.T) {
+	var calls atomic.Int32
+	svc := &Service{
+		log: testLogger(),
+		loadCatalog: func(context.Context) (steam.Catalog, error) {
+			calls.Add(1)
+			time.Sleep(50 * time.Millisecond)
+			return steam.Catalog{Games: []domain.Game{{AppID: 900001, Name: "Native Game"}}}, nil
+		},
+	}
+
+	type result struct {
+		catalog steam.Catalog
+		err     error
+	}
+	start := make(chan struct{})
+	results := make(chan result, 2)
+	for range 2 {
+		go func() {
+			<-start
+			catalog, err := svc.RefreshCatalog(context.Background())
+			results <- result{catalog: catalog, err: err}
+		}()
+	}
+	close(start)
+
+	for range 2 {
+		got := <-results
+		if got.err != nil {
+			t.Fatalf("refresh: %v", got.err)
+		}
+		if len(got.catalog.Games) != 1 || got.catalog.Games[0].AppID != 900001 {
+			t.Fatalf("catalog = %+v", got.catalog)
+		}
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("catalog loads = %d, want 1", calls.Load())
 	}
 	cached, ok := svc.Catalog()
 	if !ok || len(cached.Games) != 1 {

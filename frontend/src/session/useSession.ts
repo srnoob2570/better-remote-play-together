@@ -35,7 +35,6 @@ export interface SessionController {
   /** App ID whose launch is waiting for the backend or Steam confirmation. */
   launching: number | null;
   ready: boolean;
-  now: number;
   dialog: SessionDialog;
   requestStart: (game: Game) => void;
   confirmDialog: () => Promise<void>;
@@ -62,18 +61,14 @@ export function useSession(): SessionController {
   const [busy, setBusy] = useState(false);
   const [launching, setLaunching] = useState<number | null>(null);
   const [ready, setReady] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
   const [dialog, setDialog] = useState<SessionDialog>(null);
   const warned = useRef(new Set<number>());
 
   const refreshContext = useCallback(async () => {
-    const [nextSituation, nextSetup] = await Promise.all([
-      bridge.Situation(),
-      bridge.SetupSnapshot(),
-    ]);
-    setSituation(nextSituation);
-    setSetup(nextSetup);
-    if (nextSituation.last) setLast(nextSituation.last);
+    const next = await bridge.Situation();
+    setSituation(next);
+    if (next.setupSnapshot) setSetup(next.setupSnapshot);
+    if (next.last) setLast(next.last);
   }, []);
 
   useEffect(() => {
@@ -111,28 +106,29 @@ export function useSession(): SessionController {
     if (!state?.token || isTerminal(state.phase)) return;
     let alive = true;
     const tick = async () => {
+      if (document.visibilityState === "hidden") return;
       try {
         const next = await bridge.SessionState(state.token);
         if (!alive) return;
-        setState(next);
+        setState((current) =>
+          current && sameSessionState(current, next) ? current : next,
+        );
         if (isTerminal(next.phase)) await refreshContext();
       } catch {
         // A transient read failure must not discard the last known state.
       }
     };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void tick();
+    };
     const timer = window.setInterval(() => void tick(), 1000);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       alive = false;
       window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [refreshContext, state?.phase, state?.token]);
-
-  useEffect(() => {
-    if (state?.phase !== "active") return;
-    setNow(Date.now());
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [state?.phase]);
 
   useEffect(() => {
     if (!notice) return;
@@ -333,7 +329,6 @@ export function useSession(): SessionController {
       busy,
       launching,
       ready,
-      now,
       dialog,
       requestStart,
       confirmDialog,
@@ -359,7 +354,6 @@ export function useSession(): SessionController {
       last,
       launching,
       notice,
-      now,
       openSpaceWarInstall,
       problem,
       ready,
@@ -379,6 +373,21 @@ export function useSession(): SessionController {
 
 export function isTerminal(phase: SessionState["phase"]): boolean {
   return phase === "ended" || phase === "error" || phase === "idle";
+}
+
+function sameSessionState(a: SessionState, b: SessionState): boolean {
+  return (
+    a.token === b.token &&
+    a.phase === b.phase &&
+    a.outcome === b.outcome &&
+    a.exitCode === b.exitCode &&
+    a.error?.code === b.error?.code &&
+    a.error?.message === b.error?.message &&
+    a.error?.detail === b.error?.detail &&
+    a.startedAt === b.startedAt &&
+    a.endedAt === b.endedAt &&
+    a.updatedAt === b.updatedAt
+  );
 }
 
 export function isPreparing(phase: SessionState["phase"] | undefined): boolean {

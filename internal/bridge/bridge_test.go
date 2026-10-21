@@ -245,7 +245,7 @@ func TestSnapshotWithoutCatalog(t *testing.T) {
 	}
 }
 
-func TestRefreshCatalogEmitsEvent(t *testing.T) {
+func TestRefreshCatalogReturnsCatalog(t *testing.T) {
 	recorder := &eventRecorder{}
 	app := &fakeApp{refreshFn: func(context.Context) (steam.Catalog, error) {
 		return testCatalog(), nil
@@ -257,26 +257,18 @@ func TestRefreshCatalogEmitsEvent(t *testing.T) {
 	if len(got.Games) != 1 {
 		t.Fatalf("catalog = %+v", got)
 	}
-	events := recorder.snapshot()
-	if len(events) != 1 || events[0].name != EventCatalogUpdated {
-		t.Fatalf("events = %+v", events)
-	}
-	if _, ok := events[0].data.(Catalog); !ok {
-		t.Fatalf("event payload type = %T", events[0].data)
+	if events := recorder.snapshot(); len(events) != 0 {
+		t.Fatalf("catalog was delivered twice: events = %+v", events)
 	}
 }
 
-func TestRefreshCatalogErrorDoesNotEmit(t *testing.T) {
-	recorder := &eventRecorder{}
+func TestRefreshCatalogError(t *testing.T) {
 	app := &fakeApp{refreshFn: func(context.Context) (steam.Catalog, error) {
 		return steam.Catalog{}, domain.ErrSteamNotFound
 	}}
-	_, err := New(app, "dev", recorder).RefreshCatalog(context.Background())
+	_, err := New(app, "dev", nil).RefreshCatalog(context.Background())
 	if !errors.Is(err, domain.ErrSteamNotFound) {
 		t.Fatalf("err = %v", err)
-	}
-	if len(recorder.snapshot()) != 0 {
-		t.Fatalf("events = %+v", recorder.snapshot())
 	}
 }
 
@@ -543,7 +535,15 @@ func TestRecoverSessionNilHasEmptySlices(t *testing.T) {
 func TestSituationAndSetup(t *testing.T) {
 	app := &fakeApp{
 		situationFn: func() (session.Situation, error) {
-			return session.Situation{Kind: session.SituationIdle, Setup: session.SetupMissing, Restore: session.RestoreNotNeeded}, nil
+			return session.Situation{
+				Kind:    session.SituationIdle,
+				Setup:   session.SetupMissing,
+				Restore: session.RestoreNotNeeded,
+				SetupSnapshot: config.SetupSnapshot{
+					Status:  config.SetupGuide,
+					Current: config.LaunchOption{Value: "current"},
+				},
+			}, nil
 		},
 		setupFn: func() (config.SetupSnapshot, error) {
 			return config.SetupSnapshot{Status: config.SetupGuide, Current: config.LaunchOption{Value: "current"}}, nil
@@ -556,6 +556,10 @@ func TestSituationAndSetup(t *testing.T) {
 	}
 	if situation.Kind != "idle" || situation.Setup != "missing" {
 		t.Fatalf("situation = %+v", situation)
+	}
+	if situation.SetupSnapshot == nil || situation.SetupSnapshot.Status != "guide" ||
+		situation.SetupSnapshot.CurrentValue != "current" {
+		t.Fatalf("situation setup snapshot = %+v", situation.SetupSnapshot)
 	}
 	setup, err := b.SetupSnapshot()
 	if err != nil {

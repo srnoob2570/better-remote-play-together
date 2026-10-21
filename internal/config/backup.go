@@ -131,6 +131,35 @@ func CreateBackup(paths Paths, source string, data []byte, meta BackupMeta) (Bac
 
 // LoadBackup reads a backup and verifies its content against the metadata hash.
 func LoadBackup(path string) (Backup, error) {
+	backup, err := loadBackupMeta(path)
+	if err != nil {
+		return Backup{}, err
+	}
+	backupData, err := os.ReadFile(backup.Path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return Backup{}, fmt.Errorf("%w: %s", ErrBackupMissing, backup.Path)
+		}
+		return Backup{}, fmt.Errorf("%w: read %s: %v", ErrBackup, backup.Path, err)
+	}
+	sum := sha256.Sum256(backupData)
+	if hex.EncodeToString(sum[:]) != backup.Meta.OriginalSHA256 {
+		return Backup{}, fmt.Errorf("%w: hash mismatch for %s", ErrBackupCorrupt, backup.Path)
+	}
+	info, err := os.Stat(backup.Path)
+	if err != nil {
+		return Backup{}, fmt.Errorf("%w: stat %s: %v", ErrBackupCorrupt, backup.Path, err)
+	}
+	if info.Mode().Perm()&0o077 != 0 {
+		return Backup{}, fmt.Errorf("%w: backup is not private: %s", ErrBackupCorrupt, backup.Path)
+	}
+	return backup, nil
+}
+
+// loadBackupMeta reads and validates the metadata sidecar without reading the
+// backup payload. Listing and pruning only need these fields; callers that
+// restore content use LoadBackup.
+func loadBackupMeta(path string) (Backup, error) {
 	metaPath := path
 	if strings.HasSuffix(metaPath, ".vdf") {
 		metaPath = strings.TrimSuffix(metaPath, ".vdf") + ".json"
@@ -176,29 +205,12 @@ func LoadBackup(path string) (Backup, error) {
 		return Backup{}, fmt.Errorf("%w: metadata is not private: %s", ErrBackupCorrupt, metaPath)
 	}
 	backupPath := strings.TrimSuffix(metaPath, ".json") + ".vdf"
-	backupData, err := os.ReadFile(backupPath)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return Backup{}, fmt.Errorf("%w: %s", ErrBackupMissing, backupPath)
-		}
-		return Backup{}, fmt.Errorf("%w: read %s: %v", ErrBackup, backupPath, err)
-	}
-	sum := sha256.Sum256(backupData)
-	if hex.EncodeToString(sum[:]) != meta.OriginalSHA256 {
-		return Backup{}, fmt.Errorf("%w: hash mismatch for %s", ErrBackupCorrupt, backupPath)
-	}
-	info, err := os.Stat(backupPath)
-	if err != nil {
-		return Backup{}, fmt.Errorf("%w: stat %s: %v", ErrBackup, backupPath, err)
-	}
-	if info.Mode().Perm()&0o077 != 0 {
-		return Backup{}, fmt.Errorf("%w: backup is not private: %s", ErrBackupCorrupt, backupPath)
-	}
 	return Backup{Path: backupPath, MetaPath: metaPath, Meta: meta}, nil
 }
 
-// ListBackups returns backups newest first. It ignores unrelated files but
-// fails on a corrupt metadata sibling.
+// ListBackups returns backups newest first from their metadata sidecars. It
+// ignores unrelated files and fails on corrupt metadata; payload integrity is
+// checked by LoadBackup only when a backup is restored.
 func ListBackups(paths Paths) ([]Backup, error) {
 	dir := paths.BackupsDir()
 	entries, err := os.ReadDir(dir)
@@ -221,7 +233,7 @@ func ListBackups(paths Paths) ([]Backup, error) {
 			continue
 		}
 		path := filepath.Join(paths.BackupsDir(), strings.TrimSuffix(entry.Name(), ".json"))
-		backup, err := LoadBackup(path)
+		backup, err := loadBackupMeta(path)
 		if err != nil {
 			return nil, err
 		}

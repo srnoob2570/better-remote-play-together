@@ -57,7 +57,10 @@ func testManager(t *testing.T) *Manager {
 			DataDir:    paths.DataDir,
 			SystemPath: managerSource(t),
 		},
-		SetupDetect: func(config.Paths, string) (config.SetupSnapshot, error) {
+		LocalState: func(string) (config.LocalState, error) {
+			return config.LocalState{}, nil
+		},
+		SetupDetect: func(config.Paths, config.LocalState) (config.SetupSnapshot, error) {
 			return config.SetupSnapshot{Status: config.SetupInstalled}, nil
 		},
 		SetupInstall: func(config.InstallSetupOptions) (config.Setup, error) {
@@ -164,7 +167,7 @@ func TestManagerStartNeverShutsDownSteam(t *testing.T) {
 
 func TestManagerStartRequiresInstalledSetup(t *testing.T) {
 	manager := testManager(t)
-	manager.SetupDetect = func(config.Paths, string) (config.SetupSnapshot, error) {
+	manager.SetupDetect = func(config.Paths, config.LocalState) (config.SetupSnapshot, error) {
 		return config.SetupSnapshot{Status: config.SetupGuide}, nil
 	}
 	launched := false
@@ -182,7 +185,7 @@ func TestManagerStartRequiresInstalledSetup(t *testing.T) {
 
 func TestManagerStartRefusesSetupConflict(t *testing.T) {
 	manager := testManager(t)
-	manager.SetupDetect = func(config.Paths, string) (config.SetupSnapshot, error) {
+	manager.SetupDetect = func(config.Paths, config.LocalState) (config.SetupSnapshot, error) {
 		return config.SetupSnapshot{Status: config.SetupConflict}, nil
 	}
 	if _, err := manager.Start(context.Background(), StartOptions{TargetAppID: 900001}); !errors.Is(err, config.ErrSetupConflict) {
@@ -305,6 +308,26 @@ func TestManagerStartRefusesActiveSession(t *testing.T) {
 	}
 	if launched {
 		t.Fatal("donor launched while session was active")
+	}
+}
+
+func TestManagerStartRefusesHelperCleanup(t *testing.T) {
+	manager := testManager(t)
+	lock, err := manager.Store.TryLock()
+	if err != nil {
+		t.Fatalf("lock: %v", err)
+	}
+	defer func() { _ = lock.Close() }()
+	launched := false
+	manager.LaunchSession = func(context.Context, uint32, string) error {
+		launched = true
+		return nil
+	}
+	if _, err := manager.Start(context.Background(), StartOptions{TargetAppID: 900001}); !errors.Is(err, ErrSessionBusy) {
+		t.Fatalf("error = %v, want ErrSessionBusy", err)
+	}
+	if launched {
+		t.Fatal("donor launched while helper still held the session lock")
 	}
 }
 
@@ -527,8 +550,8 @@ func TestManagerSituationReconcilesNewerSteamLaunch(t *testing.T) {
 	if err := manager.Store.WriteLastLaunch(lastA); err != nil {
 		t.Fatalf("write A: %v", err)
 	}
-	manager.LastPlayed = func(string) (*config.LastPlayed, error) {
-		return &config.LastPlayed{AppID: 900002, At: now}, nil
+	manager.LocalState = func(string) (config.LocalState, error) {
+		return config.LocalState{LastPlayed: &config.LastPlayed{AppID: 900002, At: now}}, nil
 	}
 	situation, err := manager.Situation()
 	if err != nil {
@@ -549,6 +572,49 @@ func TestManagerSituationReconcilesNewerSteamLaunch(t *testing.T) {
 	}
 }
 
+func TestManagerSituationReadsLocalStateOnce(t *testing.T) {
+	manager := testManager(t)
+	calls := 0
+	manager.LocalState = func(string) (config.LocalState, error) {
+		calls++
+		return config.LocalState{}, nil
+	}
+	manager.SetupDetect = func(config.Paths, config.LocalState) (config.SetupSnapshot, error) {
+		return config.SetupSnapshot{
+			Status:  config.SetupInstalled,
+			Current: config.LaunchOption{Exists: true, Value: "dispatcher"},
+		}, nil
+	}
+
+	situation, err := manager.Situation()
+	if err != nil {
+		t.Fatalf("situation: %v", err)
+	}
+	if calls != 1 {
+		t.Fatalf("local state reads = %d, want 1", calls)
+	}
+	if situation.SetupSnapshot.Status != config.SetupInstalled ||
+		situation.SetupSnapshot.Current.Value != "dispatcher" {
+		t.Fatalf("setup snapshot = %+v", situation.SetupSnapshot)
+	}
+
+	calls = 0
+	if _, err := manager.SetupSnapshot(); err != nil {
+		t.Fatalf("setup snapshot: %v", err)
+	}
+	if calls != 1 {
+		t.Fatalf("setup local state reads = %d, want 1", calls)
+	}
+
+	calls = 0
+	if _, err := manager.Recover(context.Background()); err != nil {
+		t.Fatalf("recover: %v", err)
+	}
+	if calls != 1 {
+		t.Fatalf("recover local state reads = %d, want 1", calls)
+	}
+}
+
 func TestManagerSituationKeepsBetterRPTRecordForSameApp(t *testing.T) {
 	manager := testManager(t)
 	now := time.Now().UTC()
@@ -565,8 +631,8 @@ func TestManagerSituationKeepsBetterRPTRecordForSameApp(t *testing.T) {
 	if err := manager.Store.WriteLastLaunch(lastB); err != nil {
 		t.Fatalf("write B: %v", err)
 	}
-	manager.LastPlayed = func(string) (*config.LastPlayed, error) {
-		return &config.LastPlayed{AppID: 900002, At: now}, nil
+	manager.LocalState = func(string) (config.LocalState, error) {
+		return config.LocalState{LastPlayed: &config.LastPlayed{AppID: 900002, At: now}}, nil
 	}
 	situation, err := manager.Situation()
 	if err != nil {

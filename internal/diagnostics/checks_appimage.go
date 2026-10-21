@@ -125,7 +125,7 @@ func (e *evaluator) checkMAC(ctx context.Context) Status {
 			e.macNext = "diag.appimage.mac.next"
 			return StatusSkip
 		}
-		output, err := e.deps.Run(ctx, "ausearch", "-m", "avc", "-ts", "recent")
+		output, err := e.runCommand(ctx, "ausearch", "-m", "avc", "-ts", "recent")
 		lower := strings.ToLower(string(output))
 		if strings.Contains(lower, "no matches") {
 			return StatusOK
@@ -155,7 +155,7 @@ func (e *evaluator) checkMAC(ctx context.Context) Status {
 			e.macNext = "diag.appimage.mac.next"
 			return StatusSkip
 		}
-		output, err := e.deps.Run(ctx, "dmesg")
+		output, err := e.runCommand(ctx, "dmesg")
 		if err != nil || len(output) == 0 {
 			e.macNext = "diag.appimage.mac.next"
 			return StatusSkip

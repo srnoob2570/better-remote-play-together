@@ -12,7 +12,6 @@ import type * as bridge$0 from "../../../../srnoob2570/better-rpt/internal/bridg
 declare module "@wailsio/runtime" {
     namespace Events {
         interface CustomEvents {
-            "catalog.updated": bridge$0.Catalog;
             "session.updated": bridge$0.SessionState;
         }
     }

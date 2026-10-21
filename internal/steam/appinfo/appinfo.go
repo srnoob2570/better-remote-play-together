@@ -1,8 +1,8 @@
 // Package appinfo parses Steam's binary appinfo.vdf cache (format v41).
 //
-// It reads the cache into memory, validates the header, entry boundaries,
-// string table, binary VDF values and per-entry SHA-1, and skips a corrupt app
-// record without discarding the rest of the cache. It never writes to Steam.
+// It reads the cache into memory, validates the header, entry boundaries and
+// string table, and decodes an app record on demand. A corrupt app record is
+// skipped without discarding the rest of the cache. It never writes to Steam.
 package appinfo
 
 import (
@@ -14,6 +14,7 @@ import (
 	"io"
 	"os"
 	"sort"
+	"sync"
 	"unicode/utf8"
 )
 
@@ -86,15 +87,27 @@ func (w Warning) Unwrap() error {
 	return w.Err
 }
 
-// File is a parsed appinfo cache.
+// File is an indexed appinfo cache. Entry boundaries are validated on open;
+// each app record is decoded on demand, so callers only pay for the records
+// they actually read.
 type File struct {
-	apps     []App
-	byID     map[uint32]App
+	mu       sync.Mutex
+	strings  []string
+	entries  map[uint32]appEntry
+	ids      []uint32
+	decoded  map[uint32]App
+	failed   map[uint32]bool
 	warnings []Warning
 }
 
-// Open reads and parses an appinfo.vdf file. A file being rewritten by Steam
-// gets one retry; other failures are returned immediately.
+type appEntry struct {
+	data   []byte
+	offset int64
+}
+
+// Open reads and indexes an appinfo.vdf file. A file being rewritten by Steam
+// gets one retry; other failures are returned immediately. Records are decoded
+// by App or Apps.
 func Open(path string) (*File, error) {
 	var lastErr error
 	for attempt := 0; attempt < 2; attempt++ {
@@ -168,8 +181,10 @@ func parseData(data []byte) (*File, error) {
 	}
 
 	file := &File{
-		apps: make([]App, 0),
-		byID: make(map[uint32]App),
+		strings: strings,
+		entries: make(map[uint32]appEntry),
+		decoded: make(map[uint32]App),
+		failed:  make(map[uint32]bool),
 	}
 	pos := headerSize
 	sawFooter := false
@@ -204,23 +219,17 @@ func parseData(data []byte) (*File, error) {
 			pos = end
 			continue
 		}
-		app, appErr := parseAppRecord(appID, data[pos:end], strings, int64(pos))
-		if appErr != nil {
-			file.warnings = append(file.warnings, Warning{AppID: appID, Offset: int64(pos), Err: appErr})
-		} else {
-			file.apps = append(file.apps, app)
-		}
+		file.entries[appID] = appEntry{data: data[pos:end], offset: int64(pos)}
 		pos = end
 	}
 	if !sawFooter {
 		return nil, fmt.Errorf("%w: missing entry footer", ErrCorrupt)
 	}
-	sort.Slice(file.apps, func(i, j int) bool {
-		return file.apps[i].ID < file.apps[j].ID
-	})
-	for _, app := range file.apps {
-		file.byID[app.ID] = app
+	file.ids = make([]uint32, 0, len(file.entries))
+	for id := range file.entries {
+		file.ids = append(file.ids, id)
 	}
+	sort.Slice(file.ids, func(i, j int) bool { return file.ids[i] < file.ids[j] })
 	return file, nil
 }
 
@@ -291,28 +300,62 @@ func parseAppRecord(appID uint32, data []byte, strings []string, offset int64) (
 	}, nil
 }
 
-// Apps returns a copy of all usable records in app ID order.
+// Apps decodes and returns every usable record in app ID order. Prefer App
+// when only specific IDs are needed.
 func (f *File) Apps() []App {
 	if f == nil {
 		return nil
 	}
-	return append([]App(nil), f.apps...)
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	apps := make([]App, 0, len(f.ids))
+	for _, id := range f.ids {
+		if app, ok := f.appLocked(id); ok {
+			apps = append(apps, app)
+		}
+	}
+	return apps
 }
 
-// App returns one usable record.
+// App returns one usable record, decoding it on first use.
 func (f *File) App(id uint32) (App, bool) {
 	if f == nil {
 		return App{}, false
 	}
-	app, ok := f.byID[id]
-	return app, ok
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.appLocked(id)
 }
 
-// Warnings returns a copy of the records that were skipped.
+func (f *File) appLocked(id uint32) (App, bool) {
+	if app, ok := f.decoded[id]; ok {
+		return app, true
+	}
+	if f.failed[id] {
+		return App{}, false
+	}
+	entry, ok := f.entries[id]
+	if !ok {
+		return App{}, false
+	}
+	app, err := parseAppRecord(id, entry.data, f.strings, entry.offset)
+	if err != nil {
+		f.warnings = append(f.warnings, Warning{AppID: id, Offset: entry.offset, Err: err})
+		f.failed[id] = true
+		return App{}, false
+	}
+	f.decoded[id] = app
+	return app, true
+}
+
+// Warnings returns a copy of the records that were skipped. Per-record
+// warnings appear after the record is decoded by App or Apps.
 func (f *File) Warnings() []Warning {
 	if f == nil {
 		return nil
 	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	return append([]Warning(nil), f.warnings...)
 }
 

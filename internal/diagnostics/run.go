@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/srnoob2570/better-rpt/internal/config"
@@ -15,11 +16,21 @@ import (
 	"github.com/srnoob2570/better-rpt/internal/steam"
 )
 
+const (
+	runTimeout     = 20 * time.Second
+	commandTimeout = 5 * time.Second
+)
+
 // Run executes every check and returns a localized report. It never writes to
 // Steam or to the user's configuration.
 func Run(ctx context.Context, options Options) (report Report) {
 	if ctx == nil {
 		ctx = context.Background()
+	}
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, runTimeout)
+		defer cancel()
 	}
 	deps := options.Deps
 	if deps == nil {
@@ -121,15 +132,75 @@ func (e *evaluator) run(ctx context.Context) {
 	e.paths = e.deps.Paths
 	e.pathsErr = e.deps.PathsErr
 
-	e.checkEnvironment(ctx)
-	e.checkAppImage(ctx)
-	e.checkDependencies(ctx)
-	e.checkSteam(ctx)
-	e.checkApp(ctx)
-	e.checkSession(ctx)
+	// The system and Steam pipelines are independent; run them in parallel and
+	// merge in the original check order.
+	left := e.clone()
+	right := e.clone()
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		left.runPipeline(ctx, left.checkEnvironment, left.checkAppImage, left.checkDependencies)
+	}()
+	go func() {
+		defer wg.Done()
+		right.runPipeline(ctx, right.checkSteam, right.checkApp, right.checkSession)
+	}()
+	wg.Wait()
+
+	e.checks = append(e.checks, left.checks...)
+	e.checks = append(e.checks, right.checks...)
+	if ctx.Err() == context.DeadlineExceeded {
+		e.add("diagnostics.internal", StatusFail, "diag.internal.fail",
+			[]any{"diagnostics timed out after " + runTimeout.String()}, nil, "")
+	}
 	e.add(CheckLimits, StatusSkip, "diag.limits.skip", nil, []string{
 		e.t("diag.limits.evidence"),
 	}, "", "docs/compatibility.md", "docs/known-issues.md")
+}
+
+func (e *evaluator) clone() *evaluator {
+	clone := *e
+	clone.checks = nil
+	clone.steam = steamState{}
+	clone.setupLoaded = false
+	clone.setup = config.SetupSnapshot{}
+	clone.setupErr = nil
+	return &clone
+}
+
+func (e *evaluator) runPipeline(ctx context.Context, groups ...func(context.Context)) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			e.add("diagnostics.internal", StatusFail, "diag.internal.fail", []any{
+				fmt.Sprint(recovered),
+			}, nil, "")
+		}
+	}()
+	for _, group := range groups {
+		if ctx.Err() != nil {
+			return
+		}
+		group(ctx)
+	}
+}
+
+func (e *evaluator) runCommand(ctx context.Context, name string, args ...string) ([]byte, error) {
+	if e.deps.Run == nil {
+		return nil, fmt.Errorf("command runner unavailable")
+	}
+	commandCtx, cancel := context.WithTimeout(ctx, commandTimeout)
+	defer cancel()
+	return e.deps.Run(commandCtx, name, args...)
+}
+
+func (e *evaluator) runLDD(ctx context.Context, path string) ([]byte, error) {
+	if e.deps.LDD == nil {
+		return nil, fmt.Errorf("ldd unavailable")
+	}
+	commandCtx, cancel := context.WithTimeout(ctx, commandTimeout)
+	defer cancel()
+	return e.deps.LDD(commandCtx, path)
 }
 
 func (e *evaluator) report() Report {

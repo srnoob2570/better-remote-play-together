@@ -286,22 +286,16 @@ func RecordGuideSetup(options GuideSetupOptions) (Setup, error) {
 // DetectSetup compares the setup record with the current launch option. It
 // never writes anything.
 func DetectSetup(paths Paths, steamRoot string) (SetupSnapshot, error) {
-	if steamRoot == "" {
-		return SetupSnapshot{}, fmt.Errorf("%w: empty Steam root", ErrLocalConfigMissing)
-	}
-	account, err := SelectAccount(steamRoot)
+	state, err := ReadLocalState(steamRoot)
 	if err != nil {
 		return SetupSnapshot{}, err
 	}
-	localConfig := account.LocalConfigPath(steamRoot)
-	data, _, err := readLocalConfig(localConfig)
-	if err != nil {
-		return SetupSnapshot{}, err
-	}
-	option, err := ReadLaunchOption(data)
-	if err != nil {
-		return SetupSnapshot{}, err
-	}
+	return DetectSetupFromState(paths, state)
+}
+
+// DetectSetupFromState compares the setup record with an already-read
+// localconfig snapshot.
+func DetectSetupFromState(paths Paths, state LocalState) (SetupSnapshot, error) {
 	setup, err := LoadSetup(paths)
 	if err != nil {
 		return SetupSnapshot{}, err
@@ -309,12 +303,12 @@ func DetectSetup(paths Paths, steamRoot string) (SetupSnapshot, error) {
 	snapshot := SetupSnapshot{
 		Status:      SetupMissing,
 		Setup:       setup,
-		Account:     account,
-		LocalConfig: localConfig,
-		Current:     option,
+		Account:     state.Account,
+		LocalConfig: state.Path,
+		Current:     state.Launch,
 	}
 	if setup == nil {
-		if option.Exists && IsDispatcherMarker(option.Value) {
+		if state.Launch.Exists && IsDispatcherMarker(state.Launch.Value) {
 			// The user already pasted the dispatcher through Steam. Better RPT
 			// can launch with it, but has no original value to restore.
 			snapshot.Status = SetupInstalled
@@ -324,15 +318,15 @@ func DetectSetup(paths Paths, steamRoot string) (SetupSnapshot, error) {
 	switch setup.Status {
 	case SetupGuide, SetupInstalled:
 		switch {
-		case launchOptionMatches(option, setup.NewValue):
+		case launchOptionMatches(state.Launch, setup.NewValue):
 			snapshot.Status = SetupInstalled
-		case launchOptionMatches(option, setup.Backup.Meta.OriginalValue):
+		case launchOptionMatches(state.Launch, setup.Backup.Meta.OriginalValue):
 			snapshot.Status = SetupGuide
 		default:
 			snapshot.Status = SetupConflict
 		}
 	case SetupRestored:
-		if launchOptionMatches(option, setup.Backup.Meta.OriginalValue) {
+		if launchOptionMatches(state.Launch, setup.Backup.Meta.OriginalValue) {
 			snapshot.Status = SetupRestored
 		} else {
 			snapshot.Status = SetupConflict

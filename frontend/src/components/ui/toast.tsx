@@ -1,7 +1,7 @@
 "use client";
 
-import * as React from "react";
-import { Toast as ToastPrimitive } from "@base-ui/react/toast";
+import { useSyncExternalStore, useState, type ReactNode } from "react";
+import { Toast as ToastPrimitive } from "radix-ui";
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -11,10 +11,80 @@ import {
   XIcon,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const toast = ToastPrimitive.createToastManager();
+type ToastOptions = {
+  id?: string;
+  type?: string;
+  title?: ReactNode;
+  description?: ReactNode;
+  timeout?: number;
+};
+
+type ToastItem = ToastOptions & {
+  id: string;
+  open: boolean;
+};
+
+let items: ToastItem[] = [];
+const listeners = new Set<() => void>();
+const removals = new Map<string, ReturnType<typeof setTimeout>>();
+let nextID = 0;
+
+function emit(next: ToastItem[]) {
+  items = next;
+  for (const listener of listeners) listener();
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function getSnapshot() {
+  return items;
+}
+
+function cancelRemoval(id: string) {
+  const timer = removals.get(id);
+  if (timer === undefined) return;
+  clearTimeout(timer);
+  removals.delete(id);
+}
+
+function dismiss(id: string) {
+  const existing = items.find((item) => item.id === id);
+  if (!existing || !existing.open) return;
+  emit(items.map((item) => (item.id === id ? { ...item, open: false } : item)));
+  if (removals.has(id)) return;
+  removals.set(
+    id,
+    setTimeout(() => {
+      removals.delete(id);
+      emit(items.filter((item) => item.id !== id));
+    }, 250),
+  );
+}
+
+const toast = {
+  add(options: ToastOptions) {
+    const id = options.id ?? `toast-${++nextID}`;
+    cancelRemoval(id);
+    const next: ToastItem = { ...options, id, open: true };
+    const index = items.findIndex((item) => item.id === id);
+    if (index < 0) {
+      emit([...items, next]);
+    } else {
+      const updated = items.slice();
+      updated[index] = { ...updated[index], ...next };
+      emit(updated);
+    }
+    return id;
+  },
+  close(id: string) {
+    dismiss(id);
+  },
+};
 
 const ICON_TONE: Record<string, string> = {
   success: "text-[var(--color-mint)]",
@@ -24,130 +94,8 @@ const ICON_TONE: Record<string, string> = {
   loading: "text-[var(--color-muted-ink)]",
 };
 
-function ToastProvider({ ...props }: ToastPrimitive.Provider.Props) {
-  return <ToastPrimitive.Provider {...props} />;
-}
-
-function ToastPortal({ ...props }: ToastPrimitive.Portal.Props) {
-  return <ToastPrimitive.Portal data-slot="toast-portal" {...props} />;
-}
-
-function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
-  return (
-    <ToastPrimitive.Viewport
-      data-slot="toast-viewport"
-      className={cn(
-        "pointer-events-none fixed inset-x-4 bottom-4 z-50 mx-auto w-auto max-w-sm outline-none sm:right-4 sm:left-auto sm:mx-0 sm:w-full",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-function Toast({ className, ...props }: ToastPrimitive.Root.Props) {
-  return (
-    <ToastPrimitive.Root
-      data-slot="toast"
-      className={cn(
-        "group/toast pointer-events-auto absolute right-0 bottom-0 z-[calc(1000-var(--toast-index))] w-full origin-bottom rounded-[2px] border border-[var(--color-line)] bg-popover text-popover-foreground shadow-[0_8px_24px_rgba(0,0,0,0.28)] will-change-transform outline-none select-none focus-visible:border-[var(--color-cyan)] focus-visible:ring-[3px] focus-visible:ring-[rgba(127,200,216,0.35)]",
-        "[--gap:0.75rem] [--height:var(--toast-frontmost-height,var(--toast-height))] [--offset-y:calc(var(--toast-offset-y)*-1+calc(var(--toast-index)*var(--gap)*-1)+var(--toast-swipe-movement-y))] [--peek:0.75rem] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))]",
-        "h-(--height) [transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)-(var(--toast-index)*var(--peek))-(var(--shrink)*var(--height))))_scale(var(--scale))] [transition:transform_500ms_cubic-bezier(0.22,1,0.36,1),opacity_500ms,height_150ms]",
-        "after:absolute after:top-full after:left-0 after:h-[calc(var(--gap)+1px)] after:w-full after:content-['']",
-        "data-expanded:h-(--toast-height) data-expanded:[transform:translateX(var(--toast-swipe-movement-x))_translateY(var(--offset-y))]",
-        "data-limited:opacity-0 data-starting-style:[transform:translateY(150%)]",
-        "[&[data-ending-style]:not([data-limited]):not([data-swipe-direction])]:[transform:translateY(150%)]",
-        "data-ending-style:data-[swipe-direction=down]:[transform:translateY(calc(var(--toast-swipe-movement-y)+150%))]",
-        "data-ending-style:data-[swipe-direction=left]:[transform:translateX(calc(var(--toast-swipe-movement-x)-150%))_translateY(var(--offset-y))]",
-        "data-ending-style:data-[swipe-direction=right]:[transform:translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))]",
-        "data-ending-style:data-[swipe-direction=up]:[transform:translateY(calc(var(--toast-swipe-movement-y)-150%))]",
-        "data-expanded:data-ending-style:data-[swipe-direction=down]:[transform:translateY(calc(var(--toast-swipe-movement-y)+150%))]",
-        "data-expanded:data-ending-style:data-[swipe-direction=left]:[transform:translateX(calc(var(--toast-swipe-movement-x)-150%))_translateY(var(--offset-y))]",
-        "data-expanded:data-ending-style:data-[swipe-direction=right]:[transform:translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))]",
-        "data-expanded:data-ending-style:data-[swipe-direction=up]:[transform:translateY(calc(var(--toast-swipe-movement-y)-150%))]",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-function ToastContent({ className, ...props }: ToastPrimitive.Content.Props) {
-  return (
-    <ToastPrimitive.Content
-      data-slot="toast-content"
-      className={cn(
-        "flex h-full items-center gap-3 overflow-hidden p-3 transition-opacity duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] data-behind:opacity-0 data-expanded:opacity-100",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-function ToastTitle({ className, ...props }: ToastPrimitive.Title.Props) {
-  return (
-    <ToastPrimitive.Title
-      data-slot="toast-title"
-      className={cn("text-sm leading-5 font-medium", className)}
-      {...props}
-    />
-  );
-}
-
-function ToastDescription({ className, ...props }: ToastPrimitive.Description.Props) {
-  return (
-    <ToastPrimitive.Description
-      data-slot="toast-description"
-      className={cn(
-        "text-sm leading-5 whitespace-pre-line text-[var(--color-muted-ink)]",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-function ToastAction({
-  className,
-  render = <Button variant="outline" size="sm" />,
-  ...props
-}: ToastPrimitive.Action.Props) {
-  return (
-    <ToastPrimitive.Action
-      data-slot="toast-action"
-      render={render}
-      className={cn("shrink-0", className)}
-      {...props}
-    />
-  );
-}
-
-function ToastClose({
-  className,
-  children,
-  closeLabel,
-  render = <Button variant="ghost" size="icon-sm" />,
-  ...props
-}: ToastPrimitive.Close.Props & { closeLabel: string }) {
-  return (
-    <ToastPrimitive.Close
-      data-slot="toast-close"
-      aria-label={closeLabel}
-      render={render}
-      className={cn(
-        "relative shrink-0 text-[var(--color-muted-ink)] after:absolute after:-inset-2 after:content-[''] hover:text-[var(--color-cream)]",
-        className,
-      )}
-      {...props}
-    >
-      {children ?? <XIcon aria-hidden="true" />}
-    </ToastPrimitive.Close>
-  );
-}
-
 function ToastIcon({ type }: { type: string | undefined }) {
-  let icon: React.ReactNode = null;
+  let icon: ReactNode = null;
 
   if (type === "success") {
     icon = <CircleCheckIcon aria-hidden="true" />;
@@ -180,58 +128,92 @@ function ToastIcon({ type }: { type: string | undefined }) {
   );
 }
 
-function ToastList({ closeLabel }: { closeLabel: string }) {
-  const { toasts } = useToastManager();
+function ToastRow({ item, closeLabel }: { item: ToastItem; closeLabel: string }) {
+  const [active, setActive] = useState(false);
 
-  return toasts.map((toastItem) => (
-    <Toast key={toastItem.id} toast={toastItem}>
-      <ToastContent>
-        <ToastIcon type={toastItem.type} />
+  return (
+    <ToastPrimitive.Root
+      data-slot="toast"
+      open={item.open}
+      duration={item.timeout ?? 5000}
+      onOpenChange={(open) => {
+        if (!open) dismiss(item.id);
+      }}
+      onMouseEnter={() => setActive(true)}
+      onMouseLeave={() => setActive(false)}
+      onFocus={() => setActive(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setActive(false);
+        }
+      }}
+      className={cn(
+        "pointer-events-auto relative w-full origin-bottom rounded-[2px] border border-[var(--color-line)] bg-popover text-popover-foreground shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-[transform,opacity] duration-200 ease-out outline-none select-none",
+        "data-[state=open]:translate-y-0 data-[state=open]:opacity-100",
+        "data-[state=closed]:translate-y-2 data-[state=closed]:opacity-0",
+        "focus-visible:border-[var(--color-cyan)] focus-visible:ring-[3px] focus-visible:ring-[rgba(127,200,216,0.35)]",
+      )}
+    >
+      <div
+        data-slot="toast-content"
+        className="flex h-full items-center gap-3 overflow-hidden p-3"
+      >
+        <ToastIcon type={item.type} />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <ToastTitle />
-          <ToastDescription />
+          {item.title !== undefined && (
+            <ToastPrimitive.Title
+              data-slot="toast-title"
+              className="text-sm leading-5 font-medium"
+            >
+              {item.title}
+            </ToastPrimitive.Title>
+          )}
+          {item.description !== undefined && (
+            <ToastPrimitive.Description
+              data-slot="toast-description"
+              className="text-sm leading-5 whitespace-pre-line text-[var(--color-muted-ink)]"
+            >
+              {item.description}
+            </ToastPrimitive.Description>
+          )}
         </div>
-        {toastItem.actionProps && <ToastAction {...toastItem.actionProps} />}
-        <ToastClose closeLabel={closeLabel} />
-      </ToastContent>
-    </Toast>
-  ));
+        <ToastPrimitive.Close
+          data-slot="toast-close"
+          aria-label={closeLabel}
+          aria-hidden={!active}
+          className={cn(
+            "relative shrink-0 text-[var(--color-muted-ink)] transition-opacity after:absolute after:-inset-2 after:content-[''] hover:text-[var(--color-cream)]",
+            active ? "opacity-100" : "opacity-0",
+          )}
+        >
+          <XIcon aria-hidden="true" />
+        </ToastPrimitive.Close>
+      </div>
+    </ToastPrimitive.Root>
+  );
 }
 
 function Toaster({
   closeLabel,
   viewportLabel,
-  children,
-  toastManager = toast,
-  ...props
-}: ToastPrimitive.Provider.Props & { closeLabel: string; viewportLabel: string }) {
+}: {
+  closeLabel: string;
+  viewportLabel: string;
+}) {
+  const toasts = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
   return (
-    <ToastProvider toastManager={toastManager} {...props}>
-      {children}
-      <ToastPortal>
-        <ToastViewport aria-label={viewportLabel}>
-          <ToastList closeLabel={closeLabel} />
-        </ToastViewport>
-      </ToastPortal>
-    </ToastProvider>
+    <ToastPrimitive.Provider swipeDirection="right" label={viewportLabel}>
+      {toasts.map((item) => (
+        <ToastRow key={item.id} item={item} closeLabel={closeLabel} />
+      ))}
+      <ToastPrimitive.Viewport
+        data-slot="toast-viewport"
+        label={viewportLabel}
+        className="pointer-events-none fixed inset-x-4 bottom-4 z-50 m-0 flex list-none flex-col gap-3 p-0 outline-none sm:right-4 sm:left-auto sm:mx-0 sm:w-full sm:max-w-sm"
+      />
+    </ToastPrimitive.Provider>
   );
 }
 
-function useToastManager() {
-  return ToastPrimitive.useToastManager();
-}
-
-export {
-  Toaster,
-  Toast,
-  ToastAction,
-  ToastClose,
-  ToastContent,
-  ToastDescription,
-  ToastPortal,
-  ToastProvider,
-  ToastTitle,
-  ToastViewport,
-  toast,
-  useToastManager,
-};
+export { Toaster, toast };

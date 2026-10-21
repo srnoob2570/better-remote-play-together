@@ -361,6 +361,12 @@ func ReadLaunchOption(data []byte) (LaunchOption, error) {
 	if err != nil {
 		return LaunchOption{}, err
 	}
+	return launchOptionFromDocument(document)
+}
+
+// launchOptionFromDocument reads SpaceWar's LaunchOptions from an already
+// parsed document.
+func launchOptionFromDocument(document *vdfDocument) (LaunchOption, error) {
 	launch, app, apps, err := findLaunchOption(document)
 	if err != nil {
 		return LaunchOption{}, err
@@ -419,10 +425,11 @@ func EditLaunchOption(data []byte, newValue string) (EditResult, error) {
 	if err != nil {
 		return EditResult{}, err
 	}
-	if _, err := parseVDFDocument(updated); err != nil {
+	updatedDocument, err := parseVDFDocument(updated)
+	if err != nil {
 		return EditResult{}, fmt.Errorf("edited VDF is invalid: %w", err)
 	}
-	check, err := ReadLaunchOption(updated)
+	check, err := launchOptionFromDocument(updatedDocument)
 	if err != nil {
 		return EditResult{}, err
 	}
@@ -471,11 +478,12 @@ func RestoreLaunchOption(data []byte, spec RestoreSpec) ([]byte, error) {
 		updated = replaceSpan(data, launch.ValueStart, launch.ValueEnd, empty)
 	}
 
-	if _, err := parseVDFDocument(updated); err != nil {
+	updatedDocument, err := parseVDFDocument(updated)
+	if err != nil {
 		return nil, fmt.Errorf("restored VDF is invalid: %w", err)
 	}
 	if spec.OriginalRaw != "" {
-		check, err := ReadLaunchOption(updated)
+		check, err := launchOptionFromDocument(updatedDocument)
 		if err != nil {
 			return nil, err
 		}

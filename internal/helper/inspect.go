@@ -52,7 +52,7 @@ func Inspect(paths config.Paths) (Info, error) {
 }
 
 func inspectSource(installer *Installer, info Info) (Info, error) {
-	source, _, sum, err := installer.readSource()
+	source, _, _, sum, err := installer.readSource()
 	switch {
 	case err == nil:
 		info.ExpectedSource = source

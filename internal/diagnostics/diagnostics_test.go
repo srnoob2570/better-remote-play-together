@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -101,6 +102,128 @@ func TestRunAsRootReportsFail(t *testing.T) {
 	if !found {
 		t.Fatal("root check missing")
 	}
+}
+
+func TestRunAppliesDefaultDeadline(t *testing.T) {
+	deps := fedoraDeps()
+	var deadline time.Time
+	deps.DetectSteam = func(ctx context.Context) (steam.Installation, error) {
+		deadline, _ = ctx.Deadline()
+		return steam.Installation{}, &steam.UnsupportedError{
+			Variant: steam.VariantFlatpak,
+			Root:    deps.Home + "/.var/app/com.valvesoftware.Steam/.local/share/Steam",
+		}
+	}
+	Run(context.Background(), Options{Version: "0.2.0", Language: "en", Deps: deps,
+		Now: time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)})
+	if deadline.IsZero() {
+		t.Fatal("diagnostics did not receive a deadline")
+	}
+	if remaining := time.Until(deadline); remaining <= 0 || remaining > runTimeout {
+		t.Fatalf("deadline remaining = %s, want (0, %s]", remaining, runTimeout)
+	}
+}
+
+func TestRunAppliesCommandTimeout(t *testing.T) {
+	deps := fedoraDeps()
+	called := false
+	deps.Run = func(ctx context.Context, name string, args ...string) ([]byte, error) {
+		deadline, ok := ctx.Deadline()
+		if !ok {
+			t.Error("command context has no deadline")
+			return nil, errors.New("missing deadline")
+		}
+		if remaining := time.Until(deadline); remaining <= 0 || remaining > commandTimeout {
+			t.Errorf("command deadline remaining = %s, want (0, %s]", remaining, commandTimeout)
+		}
+		called = true
+		return []byte("ldd (GNU libc) 2.39\n"), nil
+	}
+	Run(context.Background(), Options{Version: "0.2.0", Language: "en", Deps: deps,
+		Now: time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)})
+	if !called {
+		t.Fatal("command runner was not called")
+	}
+}
+
+func TestRunPipelinesAreConcurrent(t *testing.T) {
+	deps := fedoraDeps()
+	var envOnce, steamOnce sync.Once
+	envStarted := make(chan struct{})
+	steamStarted := make(chan struct{})
+	deps.Run = func(ctx context.Context, name string, args ...string) ([]byte, error) {
+		envOnce.Do(func() { close(envStarted) })
+		select {
+		case <-steamStarted:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		return []byte("ldd (GNU libc) 2.39\n"), nil
+	}
+	deps.DetectSteam = func(ctx context.Context) (steam.Installation, error) {
+		steamOnce.Do(func() { close(steamStarted) })
+		select {
+		case <-envStarted:
+		case <-ctx.Done():
+			return steam.Installation{}, ctx.Err()
+		}
+		return steam.Installation{}, &steam.UnsupportedError{
+			Variant: steam.VariantFlatpak,
+			Root:    deps.Home + "/.var/app/com.valvesoftware.Steam/.local/share/Steam",
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	done := make(chan Report, 1)
+	go func() {
+		done <- Run(ctx, Options{Version: "0.2.0", Language: "en", Deps: deps,
+			Now: time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)})
+	}()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("diagnostics pipelines did not run concurrently")
+	}
+}
+
+func TestRunStopsAtContextDeadline(t *testing.T) {
+	deps := fedoraDeps()
+	deps.Run = func(ctx context.Context, name string, args ...string) ([]byte, error) {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	report := Run(ctx, Options{Version: "0.2.0", Language: "en", Deps: deps,
+		Now: time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)})
+	if elapsed := time.Since(start); elapsed > 2*time.Second {
+		t.Fatalf("diagnostics took %s after deadline", elapsed)
+	}
+	found := false
+	for _, check := range report.Checks {
+		if check.ID == "diagnostics.internal" && check.Status == StatusFail {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("deadline did not produce an internal timeout check")
+	}
+}
+
+func TestRunRecoversPipelinePanic(t *testing.T) {
+	deps := fedoraDeps()
+	deps.LoadConfig = func(config.Paths) (config.Config, error) {
+		panic("boom")
+	}
+	report := Run(context.Background(), Options{Version: "0.2.0", Language: "en", Deps: deps,
+		Now: time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)})
+	for _, check := range report.Checks {
+		if check.ID == "diagnostics.internal" && check.Status == StatusFail {
+			return
+		}
+	}
+	t.Fatal("pipeline panic did not produce an internal check")
 }
 
 func TestCLIExitCodesAndOutput(t *testing.T) {

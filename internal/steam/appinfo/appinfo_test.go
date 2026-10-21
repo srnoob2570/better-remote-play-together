@@ -79,6 +79,12 @@ func TestOpenCorrupt(t *testing.T) {
 
 func TestOpenBadKeyOnlySkipsThatApp(t *testing.T) {
 	file := openFixture(t, "appinfo_bad_key.vdf")
+	if got := len(file.Warnings()); got != 0 {
+		t.Fatalf("warnings before lookup = %d, want 0", got)
+	}
+	if _, ok := file.App(900013); ok {
+		t.Fatal("corrupt app was returned")
+	}
 	warnings := file.Warnings()
 	if len(warnings) != 1 {
 		t.Fatalf("warnings = %d, want 1: %v", len(warnings), warnings)
@@ -88,9 +94,6 @@ func TestOpenBadKeyOnlySkipsThatApp(t *testing.T) {
 	}
 	if _, ok := file.App(900001); !ok {
 		t.Fatal("valid app disappeared after a bad-key record")
-	}
-	if _, ok := file.App(900013); ok {
-		t.Fatal("corrupt app was returned")
 	}
 }
 
@@ -135,11 +138,12 @@ func TestParseChecksBinaryHash(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	if len(file.Warnings()) != 1 || !errors.Is(file.Warnings()[0].Err, ErrAppCorrupt) {
-		t.Fatalf("warnings = %v, want one corrupt app", file.Warnings())
+	apps := file.Apps()
+	if len(apps) != 11 {
+		t.Fatalf("apps = %d, want 11 after skipping one bad hash", len(apps))
 	}
-	if len(file.Apps()) != 11 {
-		t.Fatalf("apps = %d, want 11 after skipping one bad hash", len(file.Apps()))
+	if warnings := file.Warnings(); len(warnings) != 1 || !errors.Is(warnings[0].Err, ErrAppCorrupt) {
+		t.Fatalf("warnings = %v, want one corrupt app", warnings)
 	}
 }
 
@@ -153,6 +157,63 @@ func BenchmarkOpenFixture(b *testing.B) {
 }
 
 func BenchmarkOpenRealAppInfo(b *testing.B) {
+	path, ok := realAppInfoPath(b)
+	if !ok {
+		return
+	}
+	for i := 0; i < b.N; i++ {
+		if _, err := Open(path); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkOpenAndLookupRealAppInfo(b *testing.B) {
+	path, ok := realAppInfoPath(b)
+	if !ok {
+		return
+	}
+	benchmarkOpenAndLookup(b, path, 50)
+}
+
+func BenchmarkOpenAndLookupFixture(b *testing.B) {
+	benchmarkOpenAndLookup(b, filepath.Join(fixtureDir, "appinfo.vdf"), 0)
+}
+
+func benchmarkOpenAndLookup(b *testing.B, path string, limit int) {
+	b.Helper()
+	indexed, err := Open(path)
+	if err != nil {
+		b.Fatal(err)
+	}
+	apps := indexed.Apps()
+	if len(apps) == 0 {
+		b.Skip("no usable app records")
+	}
+	if limit <= 0 || limit > len(apps) {
+		limit = len(apps)
+	}
+	ids := make([]uint32, limit)
+	for i := range ids {
+		ids[i] = apps[i].ID
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		file, err := Open(path)
+		if err != nil {
+			b.Fatal(err)
+		}
+		for _, id := range ids {
+			if _, ok := file.App(id); !ok {
+				b.Fatalf("app %d missing after lookup", id)
+			}
+		}
+	}
+}
+
+func realAppInfoPath(b *testing.B) (string, bool) {
+	b.Helper()
 	home, err := os.UserHomeDir()
 	if err != nil {
 		b.Skip("no home directory")
@@ -161,9 +222,5 @@ func BenchmarkOpenRealAppInfo(b *testing.B) {
 	if _, err := os.Stat(path); err != nil {
 		b.Skip("real appinfo.vdf unavailable")
 	}
-	for i := 0; i < b.N; i++ {
-		if _, err := Open(path); err != nil {
-			b.Fatal(err)
-		}
-	}
+	return path, true
 }

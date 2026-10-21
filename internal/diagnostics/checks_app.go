@@ -220,7 +220,7 @@ func (e *evaluator) checkHelper(ctx context.Context) Status {
 		}
 	}
 	if e.deps.Run != nil {
-		output, runErr := e.deps.Run(ctx, info.Path, "--version")
+		output, runErr := e.runCommand(ctx, info.Path, "--version")
 		if runErr != nil {
 			e.helperEvidence = append(e.helperEvidence, "version=error")
 			e.helperNext = "diag.app.helper.next"

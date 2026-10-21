@@ -1,13 +1,10 @@
 package config
 
 import (
-	"bytes"
-	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/srnoob2570/better-rpt/internal/domain"
-	"github.com/srnoob2570/better-rpt/internal/steam/vdf"
 )
 
 // LastPlayed is Steam's most recent non-donor app launch, read from the same
@@ -20,36 +17,40 @@ type LastPlayed struct {
 // ReadLastPlayed returns the newest LastPlayed entry excluding SpaceWar. Steam
 // writes this field when a game is launched from its own UI or library.
 func ReadLastPlayed(steamRoot string) (*LastPlayed, error) {
-	if steamRoot == "" {
-		return nil, fmt.Errorf("%w: empty Steam root", ErrLocalConfigMissing)
-	}
-	account, err := SelectAccount(steamRoot)
+	state, err := ReadLocalState(steamRoot)
 	if err != nil {
 		return nil, err
 	}
-	data, _, err := readLocalConfig(account.LocalConfigPath(steamRoot))
+	return state.LastPlayed, nil
+}
+
+func lastPlayedFromDocument(document *vdfDocument) (*LastPlayed, error) {
+	apps, err := findObject(document, launchOptionPath)
 	if err != nil {
 		return nil, err
 	}
-	root, err := vdf.Parse(bytes.NewReader(data))
-	if err != nil {
-		return nil, fmt.Errorf("%w: parse %s: %v", ErrLocalConfigInvalid, account.LocalConfigPath(steamRoot), err)
-	}
-	apps, ok := vdf.Lookup(root, launchOptionPath...)
-	if !ok {
+	if apps == nil {
 		return nil, nil
 	}
 	var newest *LastPlayed
-	for key, raw := range apps {
-		appID, err := strconv.ParseUint(key, 10, 32)
+	for _, appNode := range apps.Children {
+		appID, err := strconv.ParseUint(appNode.Key, 10, 32)
 		if err != nil || appID == 0 || uint32(appID) == domain.SpaceWarAppID {
 			continue
 		}
-		app, ok := raw.(map[string]interface{})
-		if !ok {
+		if appNode.Object == nil {
 			continue
 		}
-		epoch, ok := parseEpoch(app["LastPlayed"])
+		var last *vdfNode
+		for _, child := range appNode.Object.Children {
+			if child.Key == "LastPlayed" {
+				last = child
+			}
+		}
+		if last == nil || last.Object != nil {
+			continue
+		}
+		epoch, ok := parseEpoch(last.Value)
 		if !ok {
 			continue
 		}

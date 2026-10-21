@@ -7,6 +7,43 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- El arranque y el refresco del catálogo evitan trabajo duplicado: la
+  biblioteca principal se recorre una sola vez, la detección del tipo de
+  instalación se calcula una vez por proceso, las portadas se resuelven sin
+  globs innecesarios y la edición/restauración de VDF y la verificación de la
+  release reutilizan el análisis ya hecho.
+- El catálogo se carga una sola vez aunque la interfaz y la recuperación de
+  sesión lo pidan a la vez, y se entrega una sola vez a React. El reloj de la
+  sesión activa ya no re-renderiza toda la aplicación cada segundo y se pausa
+  con la ventana oculta.
+- `appinfo.vdf` se indexa al abrirlo y cada registro se decodifica solo cuando
+  el catálogo lo consulta, de modo que los juegos no instalados ya no se
+  parsean. En una caché real de 1,5 MB, la apertura baja de ~13,8 ms a ~0,7 ms
+  y de ~18,2 MB a ~1,8 MB por refresco.
+- Listar los backups lee solo sus metadatos; el contenido se sigue verificando
+  al restaurar. Con diez backups de 1 MB, el listado baja de ~7,5 ms a ~0,2 ms
+  y de ~10,7 MB a ~38 kB por llamada.
+- La situación de sesión y el estado del dispatcher comparten una sola lectura
+  y parseo de `localconfig.vdf`, y el refresco de la interfaz hace una sola
+  llamada al bridge. En una configuración de 91 KB, el trabajo de configuración
+  baja de ~147 µs a ~76 µs y de ~61 KB a ~21 KB por refresco.
+- El diagnóstico de la aplicación tiene un límite global de 20 s y comandos
+  externos con timeout de 5 s. Los grupos de sistema y Steam se ejecutan en
+  paralelo y el informe conserva el orden original de los checks.
+- El helper guarda el estado terminal en cuanto termina el juego y deja la
+  espera del grupo de procesos para después, sin retrasar el fin visible de la
+  sesión. El historial se limita a los 20 estados terminales más recientes y el
+  arranque comprueba el bloqueo de sesión en lugar de recorrer todo el historial.
+- La instalación del helper reutiliza una huella de tamaño, fechas y SHA-256
+  para no releer ni hashear los binarios cuando no han cambiado. Una instalación
+  sin cambios baja de milisegundos a ~77 µs; cualquier cambio de contenido o
+  metadatos vuelve a verificar el archivo completo.
+- El toast usa Radix y se elimina `@base-ui/react`, la segunda librería de
+  primitivas headless. El bundle de producción baja de 548 kB a 522 kB
+  (~10 kB gzip).
+
 ## [0.2.2] - 2026-10-21 (efe5aea)
 
 ### Added

@@ -16,7 +16,10 @@ import (
 	"github.com/srnoob2570/better-rpt/internal/fsutil"
 )
 
-const maxSessionFile = 1 << 20
+const (
+	maxSessionFile    = 1 << 20
+	maxRetainedStates = 20
+)
 
 // Store owns the private session directory. Plans and states are keyed by the
 // session token and written atomically with 0600 permissions.
@@ -176,6 +179,57 @@ func (s Store) ListStates() ([]State, error) {
 		return states[i].UpdatedAt.After(states[j].UpdatedAt)
 	})
 	return states, nil
+}
+
+// PruneStates removes older terminal states, keeping the newest keep of them.
+// Non-terminal states are never pruned. It is called when no helper owns the
+// session lock, so removing history cannot race an active session.
+func (s Store) PruneStates(keep int) (int, error) {
+	if keep < 0 {
+		keep = 0
+	}
+	entries, err := os.ReadDir(s.Dir)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return 0, nil
+		}
+		return 0, fmt.Errorf("%w: read session directory: %v", ErrStore, err)
+	}
+	states := make([]State, 0, len(entries))
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasPrefix(name, "state-") || !strings.HasSuffix(name, ".json") {
+			continue
+		}
+		token := strings.TrimSuffix(strings.TrimPrefix(name, "state-"), ".json")
+		state, err := s.ReadState(token)
+		if err != nil {
+			continue
+		}
+		states = append(states, state)
+	}
+	sort.SliceStable(states, func(i, j int) bool {
+		if states[i].UpdatedAt.Equal(states[j].UpdatedAt) {
+			return states[i].Token > states[j].Token
+		}
+		return states[i].UpdatedAt.After(states[j].UpdatedAt)
+	})
+	removed := 0
+	kept := 0
+	for _, state := range states {
+		if !state.Terminal() {
+			continue
+		}
+		if kept < keep {
+			kept++
+			continue
+		}
+		if err := s.RemoveState(state.Token); err != nil {
+			return removed, err
+		}
+		removed++
+	}
+	return removed, nil
 }
 
 // ActiveState returns the newest state that has not reached a terminal phase.

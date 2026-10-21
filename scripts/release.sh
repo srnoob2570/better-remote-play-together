@@ -422,6 +422,7 @@ build_appimage() {
 }
 
 build_artifacts() {
+	artifacts_verified=0
 	info "Compilando el .deb en Ubuntu 22.04..."
 	make deb VERSION="$version"
 
@@ -463,6 +464,9 @@ build_artifacts() {
 }
 
 verify_artifacts() {
+	if [ "${artifacts_verified:-0}" = 1 ]; then
+		return 0
+	fi
 	local deb="dist/better-rpt_${version}-1_amd64.deb"
 	local app="dist/BetterRPT-${version}-x86_64.AppImage"
 	[ -f "$deb" ] || die "falta $deb; ejecuta sin --skip-build para generarlo"
@@ -475,6 +479,7 @@ verify_artifacts() {
 		cd dist
 		sha256sum -c SHA256SUMS >/dev/null
 	) || die "SHA256SUMS no coincide con los artefactos"
+	artifacts_verified=1
 }
 
 backup_repack_assets() {

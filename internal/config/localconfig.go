@@ -272,6 +272,9 @@ func Restore(options RestoreOptions) (Restored, error) {
 		backup, err = LoadBackup(options.BackupPath)
 	case options.SessionToken != "":
 		backup, err = FindBackupBySession(options.Paths, options.SessionToken)
+		if err == nil {
+			backup, err = LoadBackup(backup.Path)
+		}
 	default:
 		return Restored{}, fmt.Errorf("%w: specify a backup or session", ErrBackupMissing)
 	}
@@ -353,33 +356,28 @@ func Restore(options RestoreOptions) (Restored, error) {
 // DetectStale finds our marker in the active account's localconfig and a
 // matching backup. It does not restore anything.
 func DetectStale(paths Paths, steamRoot string, activeSession bool) (*Stale, error) {
-	if steamRoot == "" {
-		return nil, fmt.Errorf("%w: empty Steam root", ErrLocalConfigMissing)
-	}
-	account, err := SelectAccount(steamRoot)
+	state, err := ReadLocalState(steamRoot)
 	if err != nil {
 		return nil, err
 	}
-	localConfig := account.LocalConfigPath(steamRoot)
-	data, _, err := readLocalConfig(localConfig)
-	if err != nil {
-		return nil, err
-	}
-	option, err := ReadLaunchOption(data)
-	if err != nil {
-		return nil, err
-	}
+	return DetectStaleFromState(paths, state, activeSession)
+}
+
+// DetectStaleFromState finds our marker using an already-read localconfig
+// snapshot.
+func DetectStaleFromState(paths Paths, state LocalState, activeSession bool) (*Stale, error) {
+	option := state.Launch
 	if !option.Exists {
 		return nil, nil
 	}
-	backup, ok, err := findStaleBackup(paths, account, localConfig, option.Value)
+	backup, ok, err := findStaleBackup(paths, state.Account, state.Path, option.Value)
 	if err != nil {
 		return nil, err
 	}
 	if ok {
 		return &Stale{
-			Account:      account,
-			LocalConfig:  localConfig,
+			Account:      state.Account,
+			LocalConfig:  state.Path,
 			Backup:       backup,
 			CurrentRaw:   option.Raw,
 			CurrentValue: option.Value,
@@ -388,8 +386,8 @@ func DetectStale(paths Paths, steamRoot string, activeSession bool) (*Stale, err
 	}
 	if IsSessionMarker(option.Value) {
 		return &Stale{
-			Account:      account,
-			LocalConfig:  localConfig,
+			Account:      state.Account,
+			LocalConfig:  state.Path,
 			CurrentRaw:   option.Raw,
 			CurrentValue: option.Value,
 			Active:       activeSession,
@@ -454,22 +452,11 @@ func IsSessionMarker(value string) bool {
 // ReadCurrentLaunchOption reads the active account's current launch option
 // without modifying anything.
 func ReadCurrentLaunchOption(steamRoot string) (SteamAccount, LaunchOption, error) {
-	if steamRoot == "" {
-		return SteamAccount{}, LaunchOption{}, fmt.Errorf("%w: empty Steam root", ErrLocalConfigMissing)
-	}
-	account, err := SelectAccount(steamRoot)
+	state, err := ReadLocalState(steamRoot)
 	if err != nil {
 		return SteamAccount{}, LaunchOption{}, err
 	}
-	data, _, err := readLocalConfig(account.LocalConfigPath(steamRoot))
-	if err != nil {
-		return SteamAccount{}, LaunchOption{}, err
-	}
-	option, err := ReadLaunchOption(data)
-	if err != nil {
-		return SteamAccount{}, LaunchOption{}, err
-	}
-	return account, option, nil
+	return state.Account, state.Launch, nil
 }
 
 func verifyPrepared(path string, original []byte, expected string) error {
