@@ -45,8 +45,6 @@ export const GUIDE_STEPS: GuideStep[] = [
   },
 ];
 
-export const SETUP_GUIDE_STEPS = GUIDE_STEPS.slice(0, 3);
-
 export function setupMessageKey(status: SetupStatus): MessageKey {
   switch (status) {
     case "installed":

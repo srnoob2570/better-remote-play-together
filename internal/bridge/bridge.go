@@ -35,7 +35,6 @@ type Emitter interface {
 // tests provide a fake.
 type App interface {
 	Paths() config.Paths
-	Config() config.Config
 	Language() i18n.Language
 	Catalog() (steam.Catalog, bool)
 	RefreshCatalog(ctx context.Context) (steam.Catalog, error)

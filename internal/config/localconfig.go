@@ -527,9 +527,7 @@ func verifySemanticExceptLaunchOption(original, updated []byte) error {
 	return nil
 }
 
-var launchOptionFullPath = []string{
-	"UserLocalConfigStore", "Software", "Valve", "Steam", "apps", "480", "LaunchOptions",
-}
+var launchOptionFullPath = append(append([]string{}, launchOptionPath...), spaceWarKey, launchOptionKey)
 
 func setMapPath(root map[string]interface{}, path []string, value string) error {
 	current := root

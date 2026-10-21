@@ -82,7 +82,7 @@ func ReadMappings(r io.Reader) (Mappings, error) {
 	if err != nil {
 		return Mappings{}, fmt.Errorf("%w: %v", ErrConfig, err)
 	}
-	steam, ok := nestedMap(document, []string{"InstallConfigStore", "Software", "Valve", "Steam"})
+	steam, ok := vdf.Lookup(document, "InstallConfigStore", "Software", "Valve", "Steam")
 	if !ok {
 		return Mappings{}, fmt.Errorf("%w: missing InstallConfigStore/Software/Valve/Steam", ErrConfig)
 	}
@@ -141,22 +141,6 @@ func LoadMappings(path string) (Mappings, error) {
 	}
 	defer file.Close()
 	return ReadMappings(file)
-}
-
-func nestedMap(root map[string]interface{}, path []string) (map[string]interface{}, bool) {
-	current := root
-	for _, key := range path {
-		raw, ok := current[key]
-		if !ok {
-			return nil, false
-		}
-		next, ok := raw.(map[string]interface{})
-		if !ok {
-			return nil, false
-		}
-		current = next
-	}
-	return current, true
 }
 
 func field(fields map[string]interface{}, key string) string {

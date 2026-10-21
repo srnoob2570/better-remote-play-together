@@ -23,7 +23,6 @@ func helperOptions(store *Store, target uint32) HelperOptions {
 		Now:         time.Now,
 		Environ:     func() ([]string, error) { return []string{"SteamAppId=480", "SteamGameId=480"}, nil },
 		SignalGroup: func(int, syscall.Signal) error { return nil },
-		GroupAlive:  func(int) bool { return false },
 		EarlyExit:   10 * time.Millisecond,
 		GroupGrace:  30 * time.Millisecond,
 	}

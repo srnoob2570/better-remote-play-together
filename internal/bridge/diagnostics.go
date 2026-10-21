@@ -29,7 +29,6 @@ func (b *Bridge) RunDiagnostics(ctx context.Context) (DiagnosticsResult, error) 
 	}
 	if catalog, ok := b.app.Catalog(); ok {
 		options.Catalog = &catalog
-		options.CatalogKnown = true
 	}
 	report := diagnostics.Run(contextOrBackground(ctx), options)
 	return DiagnosticsResult{

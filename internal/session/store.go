@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/srnoob2570/better-rpt/internal/domain"
 	"github.com/srnoob2570/better-rpt/internal/fsutil"
 )
 
@@ -85,7 +86,7 @@ func (s Store) WritePlan(plan Plan) error {
 
 // ReadPlan reads and validates a plan for the given token.
 func (s Store) ReadPlan(token string, now time.Time) (Plan, error) {
-	if !validToken(token) {
+	if !domain.ValidSessionToken(token) {
 		return Plan{}, fmt.Errorf("%w: token", ErrPlanInvalid)
 	}
 	data, err := readPrivateFile(s.PlanPath(token))
@@ -126,7 +127,7 @@ func (s Store) WriteState(state State) error {
 
 // ReadState reads and validates a state snapshot.
 func (s Store) ReadState(token string) (State, error) {
-	if !validToken(token) {
+	if !domain.ValidSessionToken(token) {
 		return State{}, fmt.Errorf("%w: token", ErrStateInvalid)
 	}
 	data, err := readPrivateFile(s.StatePath(token))
@@ -212,7 +213,7 @@ func (s Store) RemoveExpiredPlans(now time.Time) ([]string, error) {
 			continue
 		}
 		token := strings.TrimSuffix(strings.TrimPrefix(name, "plan-"), ".json")
-		if !validToken(token) {
+		if !domain.ValidSessionToken(token) {
 			continue
 		}
 		if _, err := s.ReadPlan(token, now); err == nil {
@@ -233,7 +234,7 @@ func (s Store) RemoveExpiredPlans(now time.Time) ([]string, error) {
 
 // RemovePlan removes a consumed plan. A missing plan is not an error.
 func (s Store) RemovePlan(token string) error {
-	if !validToken(token) {
+	if !domain.ValidSessionToken(token) {
 		return fmt.Errorf("%w: token", ErrPlanInvalid)
 	}
 	if err := os.Remove(s.PlanPath(token)); err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -244,7 +245,7 @@ func (s Store) RemovePlan(token string) error {
 
 // RemoveState removes a state file. It is used only for explicit cleanup.
 func (s Store) RemoveState(token string) error {
-	if !validToken(token) {
+	if !domain.ValidSessionToken(token) {
 		return fmt.Errorf("%w: token", ErrStateInvalid)
 	}
 	if err := os.Remove(s.StatePath(token)); err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -363,16 +364,4 @@ func readPrivateFile(path string) ([]byte, error) {
 		return nil, fmt.Errorf("%w: read %s: %v", ErrStore, path, err)
 	}
 	return data, nil
-}
-
-func validToken(token string) bool {
-	if len(token) != 32 {
-		return false
-	}
-	for _, c := range token {
-		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
-			return false
-		}
-	}
-	return true
 }

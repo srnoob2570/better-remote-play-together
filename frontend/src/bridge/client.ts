@@ -40,7 +40,6 @@ export interface Bridge {
   OpenSteam(): Promise<void>;
   RunDiagnostics(): Promise<DiagnosticsResult>;
   SaveDiagnostics(markdown: string): Promise<string>;
-  Version(): Promise<string>;
   CheckForUpdate(): Promise<UpdateCheck>;
   CheckForUpdateOnStartup(): Promise<UpdateCheck>;
   InstallUpdate(): Promise<UpdateInstallResult>;

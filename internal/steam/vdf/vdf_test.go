@@ -5,9 +5,8 @@ import (
 	"testing"
 )
 
-func TestNewParser(t *testing.T) {
-	parser := NewParser(strings.NewReader(`"AppState" { "appid" "480" }`))
-	got, err := parser.Parse()
+func TestParse(t *testing.T) {
+	got, err := Parse(strings.NewReader(`"AppState" { "appid" "480" }`))
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}

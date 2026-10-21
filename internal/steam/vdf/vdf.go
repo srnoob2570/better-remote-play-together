@@ -11,9 +11,21 @@ import (
 	steamvdf "github.com/andygrunwald/vdf"
 )
 
-// NewParser returns a parser for a textual KeyValues document.
-func NewParser(r io.Reader) *steamvdf.Parser {
-	return steamvdf.NewParser(r)
+// Lookup walks nested KeyValues objects by key path.
+func Lookup(root map[string]interface{}, keys ...string) (map[string]interface{}, bool) {
+	current := root
+	for _, key := range keys {
+		raw, ok := current[key]
+		if !ok {
+			return nil, false
+		}
+		next, ok := raw.(map[string]interface{})
+		if !ok {
+			return nil, false
+		}
+		current = next
+	}
+	return current, true
 }
 
 // Parse reads and parses a complete KeyValues document. The third-party parser

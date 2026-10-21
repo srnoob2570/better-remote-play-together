@@ -28,8 +28,6 @@ var (
 	ErrNoPkexec = errors.New("update: pkexec is not available")
 	// ErrCanceled means the user or the app canceled the operation.
 	ErrCanceled = errors.New("update: operation canceled")
-	// ErrBusy means another update operation is already running.
-	ErrBusy = errors.New("update: another operation is in progress")
 	// ErrNotChecked means there is no checked release to install.
 	ErrNotChecked = errors.New("update: no update has been checked")
 	// ErrNoUpdate means the last check found no newer release.

@@ -75,8 +75,3 @@ func (l LastLaunch) Validate() error {
 	}
 	return nil
 }
-
-// Started reports whether the target actually started.
-func (l LastLaunch) Started() bool {
-	return !l.StartedAt.IsZero()
-}

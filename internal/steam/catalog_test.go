@@ -291,38 +291,3 @@ func TestOpenCanceled(t *testing.T) {
 		t.Fatalf("error = %v, want context.Canceled", err)
 	}
 }
-
-func TestFilterGames(t *testing.T) {
-	kindNative := domain.KindNative
-	kindUnknown := domain.KindUnknown
-	statusMissing := domain.StatusMissing
-	statusUnknown := domain.StatusUnknown
-	games := []domain.Game{
-		{AppID: 480, Name: "Spacewar", LibraryPath: "/one", Kind: kindUnknown, Status: statusUnknown},
-		{AppID: 900001, Name: "Native Game", LibraryPath: "/one", Kind: kindNative, Status: statusUnknown},
-		{AppID: 900007, Name: "Secondary Native", LibraryPath: "/two", Kind: kindNative, Status: statusMissing},
-	}
-	catalog := Catalog{Games: games}
-
-	if got := catalog.Search("native"); len(got) != 2 {
-		t.Fatalf("search = %v, want 2", got)
-	}
-	if got := catalog.Search("900001"); len(got) != 1 || got[0].AppID != 900001 {
-		t.Fatalf("app id search = %v", got)
-	}
-	if got := catalog.Filter(Filter{Kind: &kindNative}); len(got) != 2 {
-		t.Fatalf("native filter = %v", got)
-	}
-	if got := catalog.Filter(Filter{Kind: &kindUnknown}); len(got) != 1 || got[0].AppID != 480 {
-		t.Fatalf("unknown filter = %v", got)
-	}
-	if got := catalog.Filter(Filter{Status: &statusMissing}); len(got) != 1 || got[0].AppID != 900007 {
-		t.Fatalf("missing filter = %v", got)
-	}
-	if got := catalog.Filter(Filter{Library: "/two"}); len(got) != 1 || got[0].AppID != 900007 {
-		t.Fatalf("library filter = %v", got)
-	}
-	if got := FilterGames(nil, Filter{}); got == nil || len(got) != 0 {
-		t.Fatalf("empty filter = %#v, want non-nil empty slice", got)
-	}
-}

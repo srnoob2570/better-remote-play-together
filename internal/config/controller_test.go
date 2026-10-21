@@ -7,8 +7,6 @@ import (
 	"testing"
 )
 
-const controllerTestAccountID uint32 = 12345
-
 func controllerTestRoot(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()

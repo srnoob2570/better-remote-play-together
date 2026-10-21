@@ -96,15 +96,6 @@ func TestInstallSetupAndRestore(t *testing.T) {
 	}
 }
 
-func mustBuildDispatcher(t *testing.T, helper string) string {
-	t.Helper()
-	value, err := BuildDispatcherLaunchOption(helper)
-	if err != nil {
-		t.Fatalf("build dispatcher: %v", err)
-	}
-	return value
-}
-
 func TestDetectSetupAdoptsExistingDispatcherWithoutBackup(t *testing.T) {
 	root := transactionRoot(t, "localconfig.vdf")
 	options := setupOptions(t, root)

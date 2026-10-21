@@ -313,6 +313,7 @@ pattern = re.compile(r"(?<![\d.])" + re.escape(prev) + r"(?![\d.])")
 files = [
     "Makefile",
     "scripts/build-deb.sh",
+    "build/config.yml",
     "README.md",
     "docs/appimage.md",
     "docs/build.md",
@@ -736,7 +737,7 @@ if [ -z "$release_commit" ]; then
 	update_artifact_docs
 	timing "artefactos y docs"
 
-	git add -- Makefile scripts/build-deb.sh README.md docs/appimage.md docs/build.md \
+	git add -- Makefile scripts/build-deb.sh build/config.yml README.md docs/appimage.md docs/build.md \
 		docs/distribution.md CHANGELOG.md .release/config.json .release/conventions.md
 	git commit --message "chore(release): $tag"
 	release_commit="$(git rev-parse HEAD)"

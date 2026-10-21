@@ -227,7 +227,7 @@ func (l *Lifecycle) registryPID() (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("parse Steam registry: %w", err)
 	}
-	steam, ok := nestedMap(document, []string{"Registry", "HKCU", "Software", "Valve", "Steam"})
+	steam, ok := vdf.Lookup(document, "Registry", "HKCU", "Software", "Valve", "Steam")
 	if !ok {
 		return 0, nil
 	}
@@ -240,22 +240,6 @@ func (l *Lifecycle) registryPID() (int, error) {
 		return 0, nil
 	}
 	return pid, nil
-}
-
-func nestedMap(root map[string]interface{}, path []string) (map[string]interface{}, bool) {
-	current := root
-	for _, key := range path {
-		raw, ok := current[key]
-		if !ok {
-			return nil, false
-		}
-		next, ok := raw.(map[string]interface{})
-		if !ok {
-			return nil, false
-		}
-		current = next
-	}
-	return current, true
 }
 
 func (l *Lifecycle) start(name string, args ...string) error {

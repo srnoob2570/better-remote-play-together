@@ -23,6 +23,7 @@ import {
 import { ChevronRightIcon } from "lucide-react";
 
 import { artUrl } from "../art";
+import { GAME_STATUS_KEY, gameKindLabel } from "../session/gameLabels";
 import type {
   Game,
   LastOutcome,
@@ -322,10 +323,10 @@ function SelectionPanel({
       <div>
         <h2 className="game-title">{game.name}</h2>
         <div className="game-meta">
-          <Meta label={t("details.kind")} value={kindLabel(lang, game.kind)} />
+          <Meta label={t("details.kind")} value={gameKindLabel(lang, game.kind)} />
           <Meta
             label={t("details.problem")}
-            value={translate(lang, statusKey(game.status))}
+            value={translate(lang, GAME_STATUS_KEY[game.status])}
             tone={game.status === "ready" ? "mint" : "amber"}
           />
           {game.protonName && (
@@ -353,7 +354,7 @@ function SelectionPanel({
           </Button>
         ) : blocked ? (
           <Button className="primary-button" disabled>
-            {translate(lang, statusKey(game.status))}
+            {translate(lang, GAME_STATUS_KEY[game.status])}
           </Button>
         ) : installed ? (
           <Button
@@ -720,7 +721,7 @@ function DetailsPanel({ lang, selected }: { lang: Language; selected?: Game }) {
       <h2 className="section-title">{selected.name}</h2>
       <div className="details-list">
         <DetailRow label={t("details.appid")} value={String(selected.appId)} />
-        <DetailRow label={t("details.kind")} value={kindLabel(lang, selected.kind)} />
+        <DetailRow label={t("details.kind")} value={gameKindLabel(lang, selected.kind)} />
         {selected.protonName && (
           <DetailRow label={t("details.proton")} value={selected.protonName} />
         )}
@@ -731,7 +732,7 @@ function DetailsPanel({ lang, selected }: { lang: Language; selected?: Game }) {
           value={
             selected.problem
               ? problemText(lang, selected.problem)
-              : translate(lang, statusKey(selected.status))
+              : translate(lang, GAME_STATUS_KEY[selected.status])
           }
         />
       </div>
@@ -872,29 +873,6 @@ function Meta({
       </span>
     </span>
   );
-}
-
-function kindLabel(lang: Language, kind: Game["kind"]): string {
-  if (kind === "native") return translate(lang, "kind.native");
-  if (kind === "proton") return translate(lang, "kind.proton");
-  return translate(lang, "common.unknown");
-}
-
-function statusKey(status: Game["status"]): MessageKey {
-  switch (status) {
-    case "ready":
-      return "status.ready";
-    case "unknown":
-      return "status.unknown";
-    case "incompatible":
-      return "status.incompatible";
-    case "missing":
-      return "status.missing";
-    case "error":
-      return "status.error";
-    default:
-      return "status.active";
-  }
 }
 
 function clock(ms: number): string {

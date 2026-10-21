@@ -25,10 +25,7 @@ type Deps struct {
 	Now             func() time.Time
 	Getenv          func(string) string
 	ReadFile        func(string) ([]byte, error)
-	ReadDir         func(string) ([]os.DirEntry, error)
 	Stat            func(string) (os.FileInfo, error)
-	Lstat           func(string) (os.FileInfo, error)
-	Access          func(string, uint32) error
 	CanWrite        func(string, bool) error
 	LookPath        func(string) (string, error)
 	Run             func(context.Context, string, ...string) ([]byte, error)
@@ -58,7 +55,6 @@ type Deps struct {
 	ProcessAlive    func(int, uint64) bool
 	PIDAlive        func(int) bool
 	ReadLogTail     func(config.Paths, int) ([]string, error)
-	LogPath         func(config.Paths) string
 	ELFNeeded       func(string) ([]string, error)
 	LDD             func(context.Context, string) ([]byte, error)
 }
@@ -71,10 +67,7 @@ func DefaultDeps(paths config.Paths, pathsErr error) *Deps {
 		Now:             time.Now,
 		Getenv:          os.Getenv,
 		ReadFile:        os.ReadFile,
-		ReadDir:         os.ReadDir,
 		Stat:            os.Stat,
-		Lstat:           os.Lstat,
-		Access:          func(path string, mode uint32) error { return syscall.Access(path, mode) },
 		CanWrite:        canWrite,
 		LookPath:        exec.LookPath,
 		Run:             runCommand,
@@ -110,7 +103,6 @@ func DefaultDeps(paths config.Paths, pathsErr error) *Deps {
 		ProcessAlive: session.ProcessAlive,
 		PIDAlive:     pidAlive,
 		ReadLogTail:  logging.Tail,
-		LogPath:      logging.Path,
 		ELFNeeded:    elfNeeded,
 		LDD:          ldd,
 	}

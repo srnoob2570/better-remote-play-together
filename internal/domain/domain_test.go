@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestValidSessionToken(t *testing.T) {
@@ -72,38 +71,6 @@ func TestLaunchSpecValidate(t *testing.T) {
 		if err := spec.Validate(); !errors.Is(err, ErrInvalidLaunchSpec) {
 			t.Fatalf("spec %+v error = %v, want ErrInvalidLaunchSpec", spec, err)
 		}
-	}
-}
-
-func TestSessionValidate(t *testing.T) {
-	valid := Session{
-		Token:       "0123456789abcdef0123456789abcdef",
-		DonorAppID:  SpaceWarAppID,
-		TargetAppID: 900001,
-		Phase:       PhaseActive,
-		StartedAt:   time.Now(),
-	}
-	if err := valid.Validate(); err != nil {
-		t.Fatalf("valid session: %v", err)
-	}
-
-	tests := []struct {
-		name   string
-		mutate func(*Session)
-	}{
-		{"bad token", func(s *Session) { s.Token = "nope" }},
-		{"bad donor", func(s *Session) { s.DonorAppID = 1 }},
-		{"target is donor", func(s *Session) { s.TargetAppID = SpaceWarAppID }},
-		{"bad phase", func(s *Session) { s.Phase = Phase("bogus") }},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := valid
-			tt.mutate(&s)
-			if err := s.Validate(); !errors.Is(err, ErrInvalidSession) {
-				t.Fatalf("error = %v, want ErrInvalidSession", err)
-			}
-		})
 	}
 }
 

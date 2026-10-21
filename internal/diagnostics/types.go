@@ -96,10 +96,9 @@ type Report struct {
 
 // Options controls one diagnostic run.
 type Options struct {
-	Version      string
-	Language     string
-	Catalog      *steam.Catalog
-	CatalogKnown bool
-	Deps         *Deps
-	Now          time.Time
+	Version  string
+	Language string
+	Catalog  *steam.Catalog
+	Deps     *Deps
+	Now      time.Time
 }

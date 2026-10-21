@@ -70,8 +70,3 @@ func (i Intent) Validate(now time.Time) error {
 	}
 	return nil
 }
-
-// Expired reports whether an armed intent is past its startup window.
-func (i Intent) Expired(now time.Time) bool {
-	return !now.Before(i.ExpiresAt)
-}

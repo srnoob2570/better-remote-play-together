@@ -18,12 +18,13 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { artUrl } from "./art";
 import { toBridgeError } from "./bridge/client";
 import { bridge } from "./bridge/wails";
-import type { Catalog, Game, GameKind, GameStatus, Problem, Snapshot } from "./bridge/types";
+import type { Catalog, Game, Problem, Snapshot } from "./bridge/types";
 import { translate, type Language, type MessageKey } from "./i18n";
 import { SessionPanel } from "./components/SessionPanel";
 import { DiagnosticsPane } from "./components/DiagnosticsPane";
 import { SetupIndicator } from "./components/SetupIndicator";
 import { UpdateControl } from "./components/UpdateControl";
+import { GAME_STATUS_KEY, GAME_STATUS_TONE, gameKindLabel } from "./session/gameLabels";
 import { problemText } from "./session/problem";
 import { useSession } from "./session/useSession";
 import { RepairWizard } from "./wizards/RepairWizard";
@@ -36,24 +37,6 @@ type View = "library" | "diagnostics";
 
 const FILTERS: Filter[] = ["all", "ready", "unknown", "incompatible"];
 const ROW_HEIGHT = 42;
-
-const STATUS_KEY: Record<GameStatus, MessageKey> = {
-  ready: "status.ready",
-  unknown: "status.unknown",
-  incompatible: "status.incompatible",
-  missing: "status.missing",
-  error: "status.error",
-  active: "status.active",
-};
-
-const STATUS_TONE: Record<GameStatus, string> = {
-  ready: "success",
-  unknown: "warning",
-  incompatible: "error",
-  missing: "neutral",
-  error: "error",
-  active: "info",
-};
 
 export default function App() {
   const [lang, setLang] = useState<Language>("es");
@@ -110,7 +93,7 @@ export default function App() {
     let alive = true;
     const offCatalog = Events.On("catalog.updated", (event) => {
       if (!alive) return;
-      setCatalog(normalizeCatalog(event.data as Catalog));
+      setCatalog(event.data as Catalog);
       setStatus("ready");
       setProblem(null);
     });
@@ -122,13 +105,13 @@ export default function App() {
         setSnapshot(value);
         setLang(value.language);
         if (value.catalog) {
-          setCatalog(normalizeCatalog(value.catalog));
+          setCatalog(value.catalog);
           setStatus("ready");
           return;
         }
         const refreshed = await bridge.RefreshCatalog();
         if (!alive) return;
-        setCatalog(normalizeCatalog(refreshed));
+        setCatalog(refreshed);
         setStatus("ready");
       } catch (reason: unknown) {
         if (!alive) return;
@@ -228,7 +211,7 @@ export default function App() {
     setProblem(null);
     try {
       const refreshed = await bridge.RefreshCatalog();
-      setCatalog(normalizeCatalog(refreshed));
+      setCatalog(refreshed);
       setStatus("ready");
     } catch (reason: unknown) {
       const next = toBridgeError(reason).problem;
@@ -679,10 +662,10 @@ function GameRow({
         <span className="game-name">{game.name}</span>
       </span>
       <span className="game-kind" role="cell">
-        {kindLabel(lang, game.kind)}
+        {gameKindLabel(lang, game.kind)}
       </span>
-      <span className="game-status" role="cell" data-tone={STATUS_TONE[game.status]}>
-        {translate(lang, STATUS_KEY[game.status])}
+      <span className="game-status" role="cell" data-tone={GAME_STATUS_TONE[game.status]}>
+        {translate(lang, GAME_STATUS_KEY[game.status])}
       </span>
     </div>
   );
@@ -736,19 +719,6 @@ function LoadingTable({ lang }: { lang: Language }) {
       </div>
     </div>
   );
-}
-
-function kindLabel(lang: Language, kind: GameKind): string {
-  if (kind === "native") return translate(lang, "kind.native");
-  if (kind === "proton") return translate(lang, "kind.proton");
-  return translate(lang, "common.unknown");
-}
-
-function normalizeCatalog(catalog: Catalog): Catalog {
-  return {
-    games: catalog.games ?? [],
-    warnings: catalog.warnings ?? [],
-  };
 }
 
 function RefreshIcon() {

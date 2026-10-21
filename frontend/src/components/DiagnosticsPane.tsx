@@ -1,21 +1,15 @@
 import { useEffect, useState } from "react";
-import { Browser } from "@wailsio/runtime";
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
-import { toBridgeError } from "../bridge/client";
 import { bridge } from "../bridge/wails";
 import { copyText } from "../clipboard";
-import type {
-  DiagnosticCheck,
-  DiagnosticReport,
-  DiagnosticStatus,
-  DiagnosticsResult,
-  Problem,
-} from "../bridge/types";
+import { docsUrl, openDoc as openDocs } from "../docs";
+import { diagnosticStatusLabel } from "../diagnostics/labels";
+import type { DiagnosticCheck, DiagnosticStatus } from "../bridge/types";
+import { useDiagnostics } from "../diagnostics/useDiagnostics";
 import { translate, type Language, type MessageKey } from "../i18n";
 
-const DOCS_BASE = "https://github.com/srnoob2570/better-remote-play-together/blob/main/";
 const STATUS_RANK: Record<DiagnosticStatus, number> = {
   fail: 0,
   warn: 1,
@@ -23,7 +17,6 @@ const STATUS_RANK: Record<DiagnosticStatus, number> = {
   skip: 3,
 };
 
-type Mode = "loading" | "ready" | "error";
 type Translator = (key: MessageKey, ...args: Array<string | number>) => string;
 
 export function DiagnosticsPane({
@@ -35,57 +28,19 @@ export function DiagnosticsPane({
   onBack: () => void;
   onRepair: (checkId?: string) => void;
 }) {
-  const [mode, setMode] = useState<Mode>("loading");
-  const [result, setResult] = useState<DiagnosticsResult | null>(null);
-  const [problem, setProblem] = useState<Problem | null>(null);
+  const { mode, result, problem, refresh } = useDiagnostics(lang);
   const [actionBusy, setActionBusy] = useState(false);
 
   const t: Translator = (key, ...args) => translate(lang, key, ...args);
 
   useEffect(() => {
-    let alive = true;
-    setMode("loading");
-    setProblem(null);
-    bridge
-      .RunDiagnostics()
-      .then((value) => {
-        if (!alive) return;
-        setResult(value);
-        setMode("ready");
-      })
-      .catch((reason: unknown) => {
-        if (!alive) return;
-        const next = toBridgeError(reason).problem;
-        setProblem(next);
-        setMode("error");
-        toast.add({
-          type: "error",
-          title: t("diagnostics.error"),
-          description: next.message,
-        });
-      });
-    return () => {
-      alive = false;
-    };
-  }, [lang]);
-
-  async function refresh() {
-    setMode("loading");
-    setProblem(null);
-    try {
-      setResult(await bridge.RunDiagnostics());
-      setMode("ready");
-    } catch (reason: unknown) {
-      const next = toBridgeError(reason).problem;
-      setProblem(next);
-      setMode("error");
-      toast.add({
-        type: "error",
-        title: t("diagnostics.error"),
-        description: next.message,
-      });
-    }
-  }
+    if (!problem) return;
+    toast.add({
+      type: "error",
+      title: translate(lang, "diagnostics.error"),
+      description: problem.message,
+    });
+  }, [lang, problem]);
 
   async function copy() {
     if (!result || actionBusy) return;
@@ -115,7 +70,7 @@ export function DiagnosticsPane({
 
   async function openDoc(doc: string) {
     try {
-      await Browser.OpenURL(`${DOCS_BASE}${doc}`);
+      await openDocs(doc);
     } catch {
       toast.add({ type: "error", title: t("diagnostics.docsError") });
     }
@@ -204,7 +159,7 @@ export function DiagnosticsPane({
             <span className="diagnostics-verdict">
               <span className="diagnostics-verdict-label">{t("diagnostics.verdict")}</span>
               <strong className="diagnostics-verdict-value">
-                {statusLabel(t, result.report.summary.verdict)}
+                {diagnosticStatusLabel(t, result.report.summary.verdict)}
               </strong>
             </span>
             <span className="diagnostics-counts">
@@ -289,7 +244,7 @@ function DiagnosticCard({
   return (
     <article className="diagnostic-card" data-status={check.status}>
       <div className="diagnostic-card-head">
-        <span className="diagnostic-status">{statusLabel(t, check.status)}</span>
+        <span className="diagnostic-status">{diagnosticStatusLabel(t, check.status)}</span>
         <h4 className="diagnostic-card-title">{check.title}</h4>
         <span className="diagnostic-id mono">{check.id}</span>
       </div>
@@ -334,7 +289,7 @@ function DiagnosticRow({
 }) {
   return (
     <article className="diagnostic-row" data-status={check.status}>
-      <span className="diagnostic-row-status">{statusLabel(t, check.status)}</span>
+      <span className="diagnostic-row-status">{diagnosticStatusLabel(t, check.status)}</span>
       <div className="diagnostic-row-main">
         <div className="diagnostic-row-head">
           <h4 className="diagnostic-row-title">{check.title}</h4>
@@ -372,7 +327,7 @@ function DocsLine({
         <span key={doc}>
           {index > 0 && " · "}
           <a
-            href={`${DOCS_BASE}${doc}`}
+            href={docsUrl(doc)}
             target="_blank"
             rel="noreferrer"
             onClick={(event) => {
@@ -386,20 +341,4 @@ function DocsLine({
       ))}
     </p>
   );
-}
-
-function statusLabel(
-  t: Translator,
-  status: DiagnosticStatus | DiagnosticReport["summary"]["verdict"],
-): string {
-  switch (status) {
-    case "ok":
-      return t("diag.status.ok");
-    case "warn":
-      return t("diag.status.warn");
-    case "fail":
-      return t("diag.status.fail");
-    case "skip":
-      return t("diag.status.skip");
-  }
 }

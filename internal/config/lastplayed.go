@@ -35,8 +35,8 @@ func ReadLastPlayed(steamRoot string) (*LastPlayed, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: parse %s: %v", ErrLocalConfigInvalid, account.LocalConfigPath(steamRoot), err)
 	}
-	apps, err := nestedMap(root, "UserLocalConfigStore", "Software", "Valve", "Steam", "apps")
-	if err != nil {
+	apps, ok := vdf.Lookup(root, launchOptionPath...)
+	if !ok {
 		return nil, nil
 	}
 	var newest *LastPlayed
@@ -59,22 +59,6 @@ func ReadLastPlayed(steamRoot string) (*LastPlayed, error) {
 		}
 	}
 	return newest, nil
-}
-
-func nestedMap(root map[string]interface{}, keys ...string) (map[string]interface{}, error) {
-	current := root
-	for _, key := range keys {
-		raw, ok := current[key]
-		if !ok {
-			return nil, fmt.Errorf("missing %s", key)
-		}
-		next, ok := raw.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("%s is not an object", key)
-		}
-		current = next
-	}
-	return current, nil
 }
 
 func parseEpoch(raw interface{}) (int64, bool) {

@@ -42,7 +42,6 @@ func (r *eventRecorder) snapshot() []recordedEvent {
 
 type fakeApp struct {
 	paths      config.Paths
-	config     config.Config
 	language   i18n.Language
 	catalog    steam.Catalog
 	hasCatalog bool
@@ -65,7 +64,6 @@ type fakeApp struct {
 }
 
 func (f *fakeApp) Paths() config.Paths            { return f.paths }
-func (f *fakeApp) Config() config.Config          { return f.config }
 func (f *fakeApp) Language() i18n.Language        { return f.language }
 func (f *fakeApp) Catalog() (steam.Catalog, bool) { return f.catalog, f.hasCatalog }
 
@@ -207,7 +205,6 @@ func testState(phase domain.Phase) session.State {
 
 func TestSnapshot(t *testing.T) {
 	app := &fakeApp{
-		config:     config.Config{Language: "en"},
 		language:   i18n.English,
 		catalog:    testCatalog(),
 		hasCatalog: true,

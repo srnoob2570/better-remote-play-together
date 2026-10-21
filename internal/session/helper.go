@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -27,7 +26,6 @@ type HelperOptions struct {
 	Environ      func() ([]string, error)
 	BuildCommand func(context.Context, domain.LaunchSpec, []string) (*exec.Cmd, error)
 	SignalGroup  func(int, syscall.Signal) error
-	GroupAlive   func(int) bool
 	EarlyExit    time.Duration
 	GroupGrace   time.Duration
 }
@@ -46,7 +44,7 @@ func NewHelper(options HelperOptions) (*Helper, error) {
 	if options.TargetAppID == 0 || options.TargetAppID == domain.SpaceWarAppID {
 		return nil, fmt.Errorf("%w: invalid target %d", ErrPlanInvalid, options.TargetAppID)
 	}
-	if !validToken(options.Token) {
+	if !domain.ValidSessionToken(options.Token) {
 		return nil, fmt.Errorf("%w: invalid session token", ErrPlanInvalid)
 	}
 	return &Helper{options: options, now: options.Now}, nil
@@ -83,9 +81,6 @@ func normalizeHelperOptions(options *HelperOptions) error {
 	}
 	if options.SignalGroup == nil {
 		options.SignalGroup = SignalProcessGroup
-	}
-	if options.GroupAlive == nil {
-		options.GroupAlive = ProcessGroupAlive
 	}
 	if options.EarlyExit <= 0 {
 		options.EarlyExit = EarlyExit
@@ -284,12 +279,4 @@ func exitCode(err error) *int {
 		return &code
 	}
 	return nil
-}
-
-func (s State) String() string {
-	return s.Token + ":" + string(s.Phase)
-}
-
-func (p Plan) String() string {
-	return p.Token + ":" + strconv.FormatUint(uint64(p.TargetAppID), 10)
 }

@@ -20,13 +20,6 @@ const (
 	SourceCompatibilityTools
 )
 
-func (s Source) String() string {
-	if s == SourceCompatibilityTools {
-		return "compatibilitytools.d"
-	}
-	return "steamapps/common"
-}
-
 // Install is one Proton-capable tool directory.
 type Install struct {
 	Name       string
@@ -48,10 +41,6 @@ func (r Resolution) ProtonPath() string { return r.Install.ProtonPath }
 
 // ProtonName is the installed directory name.
 func (r Resolution) ProtonName() string { return r.Install.Name }
-
-// RequireToolAppID is diagnostic: the MVP runs Proton directly and does not
-// nest the SteamLinuxRuntime wrapper.
-func (r Resolution) RequireToolAppID() uint32 { return r.Install.Manifest.RequireToolAppID }
 
 // Resolver discovers Proton tools and applies config.vdf mappings.
 type Resolver struct {
@@ -81,14 +70,6 @@ func NewResolver(steamRoot string, libraryRoots []string) *Resolver {
 	resolver.installs = installs
 	resolver.warnings = append(resolver.warnings, warnings...)
 	return resolver
-}
-
-// Installs returns a copy of discovered Proton tools.
-func (r *Resolver) Installs() []Install {
-	if r == nil {
-		return nil
-	}
-	return append([]Install(nil), r.installs...)
 }
 
 // Warnings returns non-fatal discovery/configuration problems.

@@ -214,8 +214,6 @@ func fedoraDeps() *Deps {
 			}
 			return nil, fs.ErrNotExist
 		},
-		Lstat:    func(path string) (os.FileInfo, error) { return nil, fs.ErrNotExist },
-		Access:   func(string, uint32) error { return nil },
 		CanWrite: func(string, bool) error { return nil },
 		LookPath: func(string) (string, error) { return "", fs.ErrNotExist },
 		Run: func(_ context.Context, name string, args ...string) ([]byte, error) {
@@ -267,7 +265,6 @@ func fedoraDeps() *Deps {
 		ProcessAlive:  func(int, uint64) bool { return false },
 		PIDAlive:      func(int) bool { return false },
 		ReadLogTail:   func(config.Paths, int) ([]string, error) { return nil, fs.ErrNotExist },
-		LogPath:       func(config.Paths) string { return paths.DataDir + "/logs/better-rpt.log" },
 		ELFNeeded: func(string) ([]string, error) {
 			return []string{"libgtk-3.so.0", "libwebkit2gtk-4.1.so.0"}, nil
 		},

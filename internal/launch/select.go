@@ -115,13 +115,11 @@ func candidatesForOS(app appinfo.App, target OS) ([]candidate, error) {
 	usable := make([]candidate, 0)
 	restricted := make([]candidate, 0)
 	var templateErr error
-	matchedOS := false
 
 	for _, launch := range app.Launch {
 		if !launchMatchesOS(launch, target) {
 			continue
 		}
-		matchedOS = true
 		if launchBlocked(launch) {
 			continue
 		}
@@ -153,9 +151,6 @@ func candidatesForOS(app appinfo.App, target OS) ([]candidate, error) {
 	if len(chosen) == 0 {
 		if templateErr != nil {
 			return nil, templateErr
-		}
-		if matchedOS {
-			return nil, fmt.Errorf("%w: %s", ErrNoLaunchForOS, target)
 		}
 		return nil, fmt.Errorf("%w: %s", ErrNoLaunchForOS, target)
 	}

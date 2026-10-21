@@ -242,7 +242,7 @@ func (e *evaluator) steamInstall(ctx context.Context) (steam.Installation, error
 		return e.steam.install, e.steam.detectErr
 	}
 	e.steam.detected = true
-	if e.options.CatalogKnown && e.options.Catalog != nil {
+	if e.options.Catalog != nil {
 		e.steam.install = e.options.Catalog.Installation
 		e.steam.catalog = e.options.Catalog
 		e.steam.catalogTried = true
@@ -263,7 +263,7 @@ func (e *evaluator) steamCatalog(ctx context.Context) (*steam.Catalog, error) {
 		return e.steam.catalog, e.steam.catalogErr
 	}
 	e.steam.catalogTried = true
-	if e.options.CatalogKnown && e.options.Catalog != nil {
+	if e.options.Catalog != nil {
 		catalog := *e.options.Catalog
 		e.steam.catalog = &catalog
 		return e.steam.catalog, nil

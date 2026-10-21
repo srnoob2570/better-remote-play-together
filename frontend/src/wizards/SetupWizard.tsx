@@ -28,7 +28,7 @@ import {
   dependencyChecksFor,
   dependencyCommand,
   firstPendingStep,
-  SETUP_STEP_IDS,
+  SETUP_STEP_COUNT,
   SETUP_STEP_LABEL,
   type SetupAssessment,
   type SetupStep,
@@ -103,7 +103,7 @@ export function SetupWizard({
   }
 
   function next() {
-    setStep((value) => Math.min(value + 1, SETUP_STEP_IDS.length - 1));
+    setStep((value) => Math.min(value + 1, SETUP_STEP_COUNT - 1));
   }
 
   function back() {
@@ -214,7 +214,7 @@ export function SetupWizard({
             {t(
               "wizard.setup.stepOf",
               step + 1,
-              SETUP_STEP_IDS.length,
+              SETUP_STEP_COUNT,
             )}
           </span>
           <div className="wizard-footer-actions">
@@ -226,7 +226,7 @@ export function SetupWizard({
             >
               {t("wizard.back")}
             </Button>
-            {step < SETUP_STEP_IDS.length - 1 ? (
+            {step < SETUP_STEP_COUNT - 1 ? (
               <Button className="wizard-primary" onClick={next}>
                 {t("wizard.next")}
               </Button>

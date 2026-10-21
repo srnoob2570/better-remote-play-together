@@ -197,27 +197,11 @@ func autoLoginUser(steamRoot string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%w: parse %s: %v", ErrAccountData, path, err)
 	}
-	steam, ok := nestedObject(document, []string{"Registry", "HKCU", "Software", "Valve", "Steam"})
+	steam, ok := vdf.Lookup(document, "Registry", "HKCU", "Software", "Valve", "Steam")
 	if !ok {
 		return "", nil
 	}
 	return stringField(steam, "AutoLoginUser"), nil
-}
-
-func nestedObject(root map[string]interface{}, path []string) (map[string]interface{}, bool) {
-	current := root
-	for _, key := range path {
-		raw, ok := current[key]
-		if !ok {
-			return nil, false
-		}
-		next, ok := raw.(map[string]interface{})
-		if !ok {
-			return nil, false
-		}
-		current = next
-	}
-	return current, true
 }
 
 func stringField(fields map[string]interface{}, key string) string {

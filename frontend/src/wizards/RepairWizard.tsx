@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 
 import { toBridgeError } from "../bridge/client";
-import type { DiagnosticStatus } from "../bridge/types";
 import { copyText } from "../clipboard";
 import { DispatcherSetup } from "../components/DispatcherSetup";
+import { diagnosticStatusLabel } from "../diagnostics/labels";
 import { openDoc } from "../docs";
 import { translate, type Language, type MessageKey } from "../i18n";
 import { restoreReasonKey, type SessionController } from "../session/useSession";
@@ -357,7 +357,14 @@ export function RepairWizard({
                             key={doc}
                             variant="ghost"
                             className="wizard-secondary"
-                            onClick={() => void openDoc(doc)}
+                            onClick={() =>
+                              void openDoc(doc).catch(() =>
+                                toast.add({
+                                  type: "error",
+                                  title: t("diagnostics.docsError"),
+                                }),
+                              )
+                            }
                           >
                             {doc}
                           </Button>
@@ -399,20 +406,4 @@ export function RepairWizard({
 
 function issueKey(issue: RepairIssue): string {
   return `${issue.key}:${issue.checkId}`;
-}
-
-function diagnosticStatusLabel(
-  t: (key: MessageKey) => string,
-  status: DiagnosticStatus,
-): string {
-  switch (status) {
-    case "ok":
-      return t("diag.status.ok");
-    case "warn":
-      return t("diag.status.warn");
-    case "fail":
-      return t("diag.status.fail");
-    case "skip":
-      return t("diag.status.skip");
-  }
 }

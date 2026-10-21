@@ -60,8 +60,11 @@ export function DispatcherSetup({
   }
 
   async function verify() {
+    if (onVerify) {
+      await onVerify();
+      return;
+    }
     await session.refreshSetup();
-    await onVerify?.();
   }
 
   return (

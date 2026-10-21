@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 )
 
 const (
@@ -146,34 +145,6 @@ func (p Phase) Valid() bool {
 	default:
 		return false
 	}
-}
-
-// Session is the durable description of one donor + target session.
-type Session struct {
-	Token       string
-	DonorAppID  uint32
-	TargetAppID uint32
-	Phase       Phase
-	HelperPID   int
-	TargetPID   int
-	StartedAt   time.Time
-}
-
-// Validate checks the session identity without touching the filesystem.
-func (s Session) Validate() error {
-	if !ValidSessionToken(s.Token) {
-		return fmt.Errorf("%w: invalid token", ErrInvalidSession)
-	}
-	if s.DonorAppID != SpaceWarAppID {
-		return fmt.Errorf("%w: donor must be %d", ErrInvalidSession, SpaceWarAppID)
-	}
-	if s.TargetAppID == 0 || s.TargetAppID == SpaceWarAppID {
-		return fmt.Errorf("%w: invalid target %d", ErrInvalidSession, s.TargetAppID)
-	}
-	if !s.Phase.Valid() {
-		return fmt.Errorf("%w: invalid phase %q", ErrInvalidSession, s.Phase)
-	}
-	return nil
 }
 
 // ValidSessionToken reports whether token is exactly 32 lowercase hex digits.

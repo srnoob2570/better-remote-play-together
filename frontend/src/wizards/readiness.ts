@@ -20,10 +20,7 @@ export type SetupStepStatus = "done" | "pending" | "blocked";
 export interface SetupStep {
   id: SetupStepId;
   status: SetupStepStatus;
-  reason?: string;
   reasonKey?: MessageKey;
-  warningKey?: MessageKey;
-  checkIds: string[];
 }
 
 export interface SetupAssessment {
@@ -33,15 +30,6 @@ export interface SetupAssessment {
   blocked: boolean;
 }
 
-export const SETUP_STEP_IDS: SetupStepId[] = [
-  "welcome",
-  "steam",
-  "helper",
-  "dispatcher",
-  "dependencies",
-  "verify",
-];
-
 export const SETUP_STEP_LABEL: Record<SetupStepId, MessageKey> = {
   welcome: "wizard.step.welcome",
   steam: "wizard.step.steam",
@@ -50,6 +38,8 @@ export const SETUP_STEP_LABEL: Record<SetupStepId, MessageKey> = {
   dependencies: "wizard.step.dependencies",
   verify: "wizard.step.verify",
 };
+
+export const SETUP_STEP_COUNT = Object.keys(SETUP_STEP_LABEL).length;
 
 export function checkById(
   report: DiagnosticReport | null,
@@ -72,28 +62,21 @@ export function assessSetup(
   const activeSession = situation?.kind === "active";
   const steps: SetupStep[] = [];
 
-  steps.push({ id: "welcome", status: "done", checkIds: [] });
+  steps.push({ id: "welcome", status: "done" });
 
   const steam = checkById(report, "steam.install");
   const spacewar = checkById(report, "steam.spacewar");
   if (!report) {
-    steps.push({ id: "steam", status: "pending", checkIds: ["steam.install", "steam.spacewar"] });
+    steps.push({ id: "steam", status: "pending" });
   } else if (steam?.status === "fail" || steam?.status === "skip") {
-    steps.push({
-      id: "steam",
-      status: "blocked",
-      reason: steam.message,
-      checkIds: ["steam.install", "steam.spacewar"],
-    });
+    steps.push({ id: "steam", status: "blocked" });
   } else if (spacewar?.status === "ok") {
-    steps.push({ id: "steam", status: "done", checkIds: ["steam.install", "steam.spacewar"] });
+    steps.push({ id: "steam", status: "done" });
   } else {
     steps.push({
       id: "steam",
       status: "pending",
-      reason: spacewar?.message,
       reasonKey: "wizard.steam.recheckHint",
-      checkIds: ["steam.install", "steam.spacewar"],
     });
   }
 
@@ -103,7 +86,6 @@ export function assessSetup(
       id: "helper",
       status: "blocked",
       reasonKey: "wizard.helper.active",
-      checkIds: ["app.helper"],
     });
   } else if (
     helper?.evidence.includes("source=missing") &&
@@ -113,17 +95,11 @@ export function assessSetup(
       id: "helper",
       status: "blocked",
       reasonKey: "wizard.helper.sourceMissing",
-      checkIds: ["app.helper"],
     });
   } else if (helper?.status === "ok") {
-    steps.push({ id: "helper", status: "done", checkIds: ["app.helper"] });
+    steps.push({ id: "helper", status: "done" });
   } else {
-    steps.push({
-      id: "helper",
-      status: "pending",
-      reason: helper?.message,
-      checkIds: ["app.helper"],
-    });
+    steps.push({ id: "helper", status: "pending" });
   }
 
   const dispatcher = checkById(report, "steam.dispatcher");
@@ -131,25 +107,12 @@ export function assessSetup(
     steps.push({
       id: "dispatcher",
       status: "blocked",
-      reason: dispatcher?.message,
       reasonKey: "wizard.dispatcher.conflict",
-      checkIds: ["steam.dispatcher"],
     });
   } else if (setup?.status === "installed" && dispatcher?.status === "ok") {
-    steps.push({
-      id: "dispatcher",
-      status: "done",
-      warningKey:
-        setup.hasBackup === false ? "wizard.warning.noBackup" : undefined,
-      checkIds: ["steam.dispatcher"],
-    });
+    steps.push({ id: "dispatcher", status: "done" });
   } else {
-    steps.push({
-      id: "dispatcher",
-      status: "pending",
-      reason: dispatcher?.message,
-      checkIds: ["steam.dispatcher"],
-    });
+    steps.push({ id: "dispatcher", status: "pending" });
   }
 
   const dependencyChecks = dependencyChecksFor(report);
@@ -157,19 +120,13 @@ export function assessSetup(
     (check) => check.status === "fail" || check.status === "warn",
   );
   if (format === "deb") {
-    steps.push({ id: "dependencies", status: "done", checkIds: [] });
+    steps.push({ id: "dependencies", status: "done" });
   } else if (dependencyFailure) {
-    steps.push({
-      id: "dependencies",
-      status: "blocked",
-      reason: dependencyFailure.message,
-      checkIds: dependencyChecks.map((check) => check.id),
-    });
+    steps.push({ id: "dependencies", status: "blocked" });
   } else {
     steps.push({
       id: "dependencies",
       status: report ? "done" : "pending",
-      checkIds: dependencyChecks.map((check) => check.id),
     });
   }
 
@@ -179,7 +136,6 @@ export function assessSetup(
   steps.push({
     id: "verify",
     status: blocked ? "blocked" : pending ? "pending" : "done",
-    checkIds: [],
   });
 
   return {

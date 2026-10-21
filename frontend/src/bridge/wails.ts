@@ -106,9 +106,6 @@ export const bridge: Bridge = {
   SaveDiagnostics(markdown: string): Promise<string> {
     return generated.SaveDiagnostics(markdown);
   },
-  Version(): Promise<string> {
-    return generated.Version();
-  },
   async CheckForUpdate(): Promise<UpdateCheck> {
     return toUpdateCheck(await generated.CheckForUpdate());
   },

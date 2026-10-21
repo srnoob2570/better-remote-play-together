@@ -128,9 +128,6 @@ func TestResolverExactAndMapping(t *testing.T) {
 	if resolution.ProtonPath() != want || resolution.ProtonName() != "GE-Test" {
 		t.Fatalf("resolution = %+v, want %s", resolution, want)
 	}
-	if resolution.RequireToolAppID() != 900004 {
-		t.Fatalf("require tool = %d, want 900004", resolution.RequireToolAppID())
-	}
 	if _, ok := resolver.MappingFor(900002); !ok {
 		t.Fatal("mapping missing")
 	}
