@@ -118,7 +118,9 @@ func Load(ctx context.Context, installation Installation) (Catalog, error) {
 }
 
 func discoverRoots(primary string) ([]string, []Warning) {
+	primary = filepath.Clean(primary)
 	roots := []string{primary}
+	seen := map[string]bool{primary: true}
 	file := filepath.Join(primary, "steamapps", "libraryfolders.vdf")
 	f, err := os.Open(file)
 	if err != nil {
@@ -142,7 +144,12 @@ func discoverRoots(primary string) ([]string, []Warning) {
 			})
 			continue
 		}
-		roots = append(roots, filepath.Clean(path))
+		clean := filepath.Clean(path)
+		if seen[clean] {
+			continue
+		}
+		seen[clean] = true
+		roots = append(roots, clean)
 	}
 	return roots, warnings
 }

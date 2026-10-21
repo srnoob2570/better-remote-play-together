@@ -135,6 +135,21 @@ func TestOpenPrimaryAndSecondary(t *testing.T) {
 	}
 }
 
+func TestDiscoverRootsDeduplicatesPrimary(t *testing.T) {
+	fixtures := materializeFixtures(t)
+	primary := filepath.Join(fixtures, "primary")
+	roots, warnings := discoverRoots(primary)
+	if len(warnings) != 0 {
+		t.Fatalf("warnings = %v, want none", warnings)
+	}
+	if len(roots) != 2 {
+		t.Fatalf("roots = %v, want primary and secondary only", roots)
+	}
+	if roots[0] != filepath.Clean(primary) {
+		t.Fatalf("roots[0] = %q, want %q", roots[0], filepath.Clean(primary))
+	}
+}
+
 func TestOpenLegacyLibrary(t *testing.T) {
 	fixtures := materializeFixtures(t)
 	copyFile(t,

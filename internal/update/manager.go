@@ -71,6 +71,9 @@ type Manager struct {
 	cancel  context.CancelFunc
 	done    chan struct{}
 
+	installOnce sync.Once
+	install     installInfo
+
 	lastRelease   *Release
 	lastAvailable bool
 	restartPath   string
@@ -107,6 +110,15 @@ func newHTTPClient() *http.Client {
 	}
 }
 
+// installInfo returns the install kind detected for this process. Detection is
+// invariant for the process lifetime, so it runs at most once.
+func (m *Manager) installInfo() installInfo {
+	m.installOnce.Do(func() {
+		m.install = detectInstall(m.env)
+	})
+	return m.install
+}
+
 // Check always queries GitHub and records the result in the cache.
 func (m *Manager) Check(ctx context.Context) (Check, error) {
 	runCtx, finish, err := m.begin(ctx)
@@ -130,7 +142,7 @@ func (m *Manager) CheckStartup(ctx context.Context) (Check, error) {
 
 func (m *Manager) check(ctx context.Context, useCache bool) (Check, error) {
 	now := m.now().UTC()
-	info := detectInstall(m.env)
+	info := m.installInfo()
 	current, currentErr := ParseVersion(m.version)
 
 	if useCache && (currentErr != nil || m.version == "dev") {
@@ -238,7 +250,7 @@ func (m *Manager) Install(ctx context.Context, progress func(Progress)) (Install
 	if release.Version.Compare(current) <= 0 {
 		return InstallResult{}, ErrNoUpdate
 	}
-	info := detectInstall(m.env)
+	info := m.installInfo()
 	if info.Kind == KindDevelopment {
 		return InstallResult{}, fmt.Errorf("%w: development build", ErrUnsupported)
 	}

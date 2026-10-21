@@ -7,6 +7,14 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- El arranque y el refresco del catálogo evitan trabajo duplicado: la
+  biblioteca principal se recorre una sola vez, la detección del tipo de
+  instalación se calcula una vez por proceso, las portadas se resuelven sin
+  globs innecesarios y la edición/restauración de VDF y la verificación de la
+  release reutilizan el análisis ya hecho.
+
 ## [0.2.2] - 2026-10-21 (efe5aea)
 
 ### Added

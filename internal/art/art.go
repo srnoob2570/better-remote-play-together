@@ -90,10 +90,12 @@ func resolve(game domain.Game, kind Kind) (string, error) {
 			// could move the allowlisted tree outside the Steam cache.
 			continue
 		}
-		for _, candidate := range candidates(base, kind) {
+		var found string
+		forEachCandidate(base, kind, func(candidate string) bool {
 			path, err := validate(base, candidate)
 			if err == nil {
-				return path, nil
+				found = path
+				return true
 			}
 			switch {
 			case errors.Is(err, ErrTooLarge):
@@ -101,6 +103,10 @@ func resolve(game domain.Game, kind Kind) (string, error) {
 			case errors.Is(err, ErrUnsafe):
 				unsafe = true
 			}
+			return false
+		})
+		if found != "" {
+			return found, nil
 		}
 	}
 	if tooLarge {
@@ -138,22 +144,34 @@ func artRoots(game domain.Game) []string {
 	return unique
 }
 
-func candidates(base string, kind Kind) []string {
+// forEachCandidate visits artwork candidates in preference order. It stops
+// when visit returns true, so the cache directory is only globbed when a
+// higher-preference candidate was not usable.
+func forEachCandidate(base string, kind Kind, visit func(string) bool) {
 	if kind == Icon {
-		return iconCandidates(base)
+		for _, candidate := range iconCandidates(base) {
+			if visit(candidate) {
+				return
+			}
+		}
+		return
 	}
 
-	out := make([]string, 0, len(coverNames)*2)
 	for _, name := range coverNames {
-		out = append(out, filepath.Join(base, name))
+		if visit(filepath.Join(base, name)) {
+			return
+		}
 		matches, err := filepath.Glob(filepath.Join(base, "*", name))
 		if err != nil {
 			continue
 		}
 		sort.Strings(matches)
-		out = append(out, matches...)
+		for _, match := range matches {
+			if visit(match) {
+				return
+			}
+		}
 	}
-	return out
 }
 
 func iconCandidates(base string) []string {
