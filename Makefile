@@ -5,7 +5,7 @@ BINARY ?= dist/better-rpt
 HELPER ?= dist/better-rpt-helper
 ARGS ?=
 
-.PHONY: setup setup-check dev build frontend helper deb test test-race vet release release-plan
+.PHONY: setup setup-check dev dev-stop build frontend helper deb test test-race vet release release-plan
 
 # Instala los paquetes del sistema necesarios para compilar. No gestiona Go,
 # Node/npm ni el CLI de Wails; consulta el README. Requiere root para instalar
@@ -17,7 +17,12 @@ setup-check:
 	./scripts/setup.sh --check
 
 dev:
-	PATH="$(dir $(WAILS3)):$$PATH" $(WAILS3) dev -config ./build/config.yml -port 9245
+	PATH="$(dir $(WAILS3)):$$PATH" WAILS3="$(WAILS3)" ./scripts/dev.sh
+
+# Fuerza la liberación del 9245 si `make dev` se niega a tocar una sesión que
+# no puede identificar como huérfana. Solo detiene procesos de este repositorio.
+dev-stop:
+	./scripts/dev.sh --stop
 
 build:
 	PATH="$(dir $(WAILS3)):$$PATH" VERSION=$(VERSION) $(WAILS3) build

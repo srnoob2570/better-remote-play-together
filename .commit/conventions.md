@@ -81,3 +81,7 @@
   que está ignorado; no se versiona ningún `GATES*.md` en la raíz.
 - `.code-health-state.json` es estado local de las auditorías de `code-health`; está
   ignorado y no se versiona.
+- `make dev` pasa por `scripts/dev.sh`, que aísla `wails3` en su propio grupo de
+  procesos y retira restos huérfanos (Vite en 9245, `wails3 task run` y la app)
+  antes de arrancar; `make dev-stop` fuerza esa limpieza. No volver a invocar
+  `wails3 dev` directamente desde el Makefile.

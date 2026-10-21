@@ -437,7 +437,9 @@ Los targets de compilación usan `GOTOOLCHAIN=go1.27.2` y no necesitan `sudo`;
 solo `sudo make setup` eleva privilegios para instalar paquetes del sistema.
 La versión en desarrollo se muestra como `dev`; la versión publicada (`0.2.2`)
 se inyecta con `-ldflags` al compilar. `make dev` recarga Go y el frontend;
-detén con `Ctrl+C`.
+detén con `Ctrl+C`. Si el terminal se cierra de golpe, el siguiente `make dev`
+retira los procesos huérfanos de este repositorio antes de arrancar;
+`make dev-stop` fuerza esa limpieza.
 
 Si prefieres instalar los paquetes a mano en Ubuntu/Debian:
 
@@ -456,6 +458,7 @@ Comandos de desarrollo:
 make setup-check                 # estado de los prerrequisitos del sistema
 sudo make setup                  # instala los paquetes del sistema que falten
 make dev                         # Wails dev + Vite, recarga en caliente
+make dev-stop                    # libera restos huérfanos de `make dev`
 make build                       # frontend + dist/better-rpt con assets embebidos
 make frontend                    # solo bindings + frontend, sin binario host
 make helper                      # dist/better-rpt-helper, estático

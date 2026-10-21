@@ -59,7 +59,9 @@ make all       # compila la app y el helper
 ```
 
 `make dev` arranca Vite en el puerto 9245 y el binario con el proxy de Wails;
-`make build` ejecuta `npm run build`, genera los bindings y compila con
+si el terminal se cierra de golpe, el siguiente `make dev` retira los procesos
+huérfanos de este repositorio antes de arrancar. `make dev-stop` fuerza esa
+limpieza. `make build` ejecuta `npm run build`, genera los bindings y compila con
 `-tags 'gtk3 production'`. `go test ./...` funciona sin GTK porque el paquete
 `cmd/better-rpt` tiene un stub sin tag; para compilar el shell real usa
 `go test -tags gtk3 ./cmd/better-rpt`.
