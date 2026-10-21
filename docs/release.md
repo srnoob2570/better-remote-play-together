@@ -71,10 +71,11 @@ recompilar guarda una copia local en `dist/repack-backup-<fecha>/`. Con
 ## Tiempo
 
 Con la caché de Docker y npm caliente, en el equipo de desarrollo la primera
-pasada tarda unos 12 s y la verificación de reproducibilidad otros 3 s; el
+pasada tarda unos 12-14 s y la verificación de reproducibilidad otros 3 s; el
 AppImage añade menos de un segundo. El script imprime el tiempo de cada fase y
-el total. La espera de aprobación y la subida a GitHub no forman parte del build
-y suelen explicar la mayor parte de una release lenta.
+el total. La espera de aprobación no forma parte del build. En la prueba de
+reempaquetado de v0.2.1, la subida de los tres assets tardó 3 s; el desglose
+permite distinguir push, subida y aprobación cuando una release tarda.
 
 ## Reanudar
 
