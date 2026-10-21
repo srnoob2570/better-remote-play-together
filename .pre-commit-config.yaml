@@ -1,4 +1,3 @@
-# =============================================================================
 # Pre-commit de Better RPT
 #
 # Basado en las plantillas de /home/srnoob/Documentos/pre-commit (2026-10):
@@ -14,19 +13,16 @@
 #
 # Los hooks de auto-fix modifican archivos y fallan el commit: revisa el diff,
 # vuelve a hacer `git add` y repite el commit.
-# =============================================================================
 
 default_language_version:
   python: python3
 
 repos:
-  # ---------------------------------------------------------------------------
   # Normalización y saneamiento de texto (base común)
-  # ---------------------------------------------------------------------------
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
-      # --- Formato / normalización (auto-fix) --------------------------------
+      # Formato / normalización (auto-fix)
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
       - id: end-of-file-fixer
@@ -35,13 +31,13 @@ repos:
         args: [--fix=lf]
       - id: fix-byte-order-marker
 
-      # --- Validación de sintaxis --------------------------------------------
+      # Validación de sintaxis
       - id: check-yaml
       - id: check-json
       - id: check-toml
       - id: check-xml
 
-      # --- Saneamiento de metadatos / riesgos --------------------------------
+      # Saneamiento de metadatos / riesgos
       - id: check-added-large-files
         args: [--maxkb=500]
       - id: check-case-conflict
@@ -54,40 +50,32 @@ repos:
       - id: no-commit-to-branch
         args: [--branch, main, --branch, master]
 
-  # ---------------------------------------------------------------------------
   # Secretos: bloquea commits con credenciales hardcodeadas
-  # ---------------------------------------------------------------------------
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
     hooks:
       - id: gitleaks
 
-  # ---------------------------------------------------------------------------
   # Formato + organización de imports
   #   gofmt + goimports con local-prefixes en .golangci.yml. pre-commit instala
   #   golangci-lint en su entorno aislado, así que no hace falta goimports en
   #   PATH. El hook reescribe los archivos y el commit falla para re-stagearlos.
-  # ---------------------------------------------------------------------------
   - repo: https://github.com/golangci/golangci-lint
     rev: v2.14.0
     hooks:
       - id: golangci-lint-fmt
 
-  # ---------------------------------------------------------------------------
   # Lint integral con golangci-lint
   #   Solo analiza los cambios desde HEAD, para que el commit sea rápido.
   #   En CI usa `golangci-lint-full` para escanear todo el módulo.
-  # ---------------------------------------------------------------------------
   - repo: https://github.com/golangci/golangci-lint
     rev: v2.14.0
     hooks:
       - id: golangci-lint
 
-  # ---------------------------------------------------------------------------
   # go mod tidy: mantiene go.mod / go.sum consistentes
   #   Auto-corrige; si el commit contiene .go con dependencias sin declarar,
   #   tidy regenera go.mod/go.sum y el commit falla hasta re-git-add.
-  # ---------------------------------------------------------------------------
   - repo: https://github.com/TekWizely/pre-commit-golang
     rev: v1.0.0-rc.4
     hooks:

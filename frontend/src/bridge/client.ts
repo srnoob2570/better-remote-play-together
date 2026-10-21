@@ -16,8 +16,8 @@ import type {
 } from "./types";
 
 /**
- * Manual facade over the Wails-generated bindings. Ticket 08 supplies the
- * implementation; components depend on this interface so tests can mock it.
+ * Manual facade over the Wails-generated bindings. Components depend on this
+ * interface so tests can mock it.
  */
 export interface Bridge {
   Snapshot(): Promise<Snapshot>;

@@ -94,9 +94,8 @@ func ReadAccounts(steamRoot string) ([]SteamAccount, error) {
 	return accounts, nil
 }
 
-// SelectAccount applies the ticket-01 order: MostRecent, AutoLoginUser, then a
-// unique highest Timestamp. A single account is unambiguous even without those
-// fields.
+// SelectAccount tries MostRecent, then AutoLoginUser, then a unique highest
+// Timestamp. A single account is unambiguous even without those fields.
 func SelectAccount(steamRoot string) (SteamAccount, error) {
 	accounts, err := ReadAccounts(steamRoot)
 	if err != nil {

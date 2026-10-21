@@ -124,9 +124,7 @@ if [ "$force" = 1 ] && [ "$repack" = 0 ]; then
 	die "--force solo se usa con --repack"
 fi
 
-# ---------------------------------------------------------------------------
 # Estado del repositorio y de la release
-# ---------------------------------------------------------------------------
 
 branch="$(git rev-parse --abbrev-ref HEAD)"
 [ "$branch" = "main" ] || die "la release se prepara desde main, no desde $branch"
@@ -239,9 +237,7 @@ if [ "$no_push" = 0 ]; then
 	fi
 fi
 
-# ---------------------------------------------------------------------------
 # Cambios locales
-# ---------------------------------------------------------------------------
 
 new_section() {
 	python3 - "$version" "$prev_version" "$(date +%F)" "$(git rev-parse --short HEAD)" <<'PY'
@@ -372,9 +368,7 @@ run_checks() {
 	fi
 }
 
-# ---------------------------------------------------------------------------
 # Artefactos
-# ---------------------------------------------------------------------------
 
 appimagetool=""
 appimage_runtime=""
@@ -584,9 +578,7 @@ path.write_text(text, encoding="utf-8")
 PY
 }
 
-# ---------------------------------------------------------------------------
 # Git y GitHub
-# ---------------------------------------------------------------------------
 
 create_tag() {
 	local message
@@ -648,9 +640,7 @@ publish() {
 	info "Publicada: $repo_url/releases/tag/$tag"
 }
 
-# ---------------------------------------------------------------------------
 # Plan y ejecución
-# ---------------------------------------------------------------------------
 
 if [ "$changelog_has_section" = 1 ] && [ -z "$release_commit" ]; then
 	die "ya existe la sección $version en el changelog pero no el commit de release; revisa el árbol"
