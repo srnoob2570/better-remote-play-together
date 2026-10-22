@@ -7,7 +7,7 @@ info:
   description: "Remote Play Together for games that do not include it"
   copyright: "(c) 2026, srnoob2570"
   comments: "Better RPT desktop shell"
-  version: "0.2.3"
+  version: "0.2.4"
 
 dev_mode:
   root_path: .

@@ -7,6 +7,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-10-21 (ee26c7c)
+
 ### Changed
 
 - El aviso de lanzamiento de Steam incluye la captura del diálogo de
@@ -21,6 +23,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - La vista de sesión terminada ya no muestra el aviso de Steam abierto cuando
   la restauración no está disponible, para no confundirlo con un error de la
   sesión.
+
+**Full changelog:** [v0.2.3...v0.2.4][0.2.4]
 
 ## [0.2.3] - 2026-10-21 (0321e4a)
 
@@ -324,7 +328,8 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Cierre y reapertura automática de Steam durante la preparación.
 - Diálogo «Cerrar Steam para preparar» y textos asociados.
 
-[Unreleased]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/srnoob2570/better-remote-play-together/compare/v0.2.0...v0.2.1
