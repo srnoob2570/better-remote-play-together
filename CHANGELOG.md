@@ -7,6 +7,12 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Fixed
+
+- La auditoría de code-health corrige la retención de backups, la restauración
+  con otra cuenta de Steam, la instalación de actualizaciones y varios fallos
+  de sesión, accesibilidad y estabilidad del frontend.
+
 ## [0.2.4] - 2026-10-21 (ee26c7c)
 
 ### Changed
@@ -20,9 +26,6 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Fixed
 
-- La auditoría de code-health corrige la retención de backups, la restauración
-  con otra cuenta de Steam, la instalación de actualizaciones y varios fallos
-  de sesión, accesibilidad y estabilidad del frontend.
 - La vista de sesión terminada ya no muestra el aviso de Steam abierto cuando
   la restauración no está disponible, para no confundirlo con un error de la
   sesión.

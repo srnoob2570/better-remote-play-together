@@ -80,7 +80,7 @@ sudo make install
 `make all` antes de `sudo make install` para que la compilación se haga como tu
 usuario.
 
-Los targets de compilación fijan `GOTOOLCHAIN=go1.27.3` y no usan `sudo`; solo
+Los targets de compilación usan Go 1.27.3 y no usan `sudo`; solo
 `make setup` lo requiere para instalar paquetes del sistema. `make dev` usa el
 `HOME`/XDG reales; para una prueba aislada con los fixtures sintéticos, consulta
 la sección «Desarrollo local» del [`README.md`](../README.md). La build de
@@ -92,12 +92,12 @@ Ubuntu 22.04 empaqueta Go 1.18; Ubuntu 26.04, Go 1.26. El proyecto declara
 `go 1.27.3` y usa Go 1.27.3:
 
 ```bash
-GOTOOLCHAIN=go1.27.3 go version
+go version
 ```
 
-Go 1.26 puede descargar Go 1.27.3 automáticamente si `GOTOOLCHAIN` está en
-`auto`. Para compilar sin conexión, instala Go 1.27.3 desde go.dev o copia esa
-versión al repositorio. El usuario final no compila: solo instala el `.deb`.
+Go 1.26 o anterior puede descargar Go 1.27.3 automáticamente si hay conexión.
+Para compilar sin conexión, instala Go 1.27.3 desde go.dev o copia esa versión
+al repositorio. El usuario final no compila: solo instala el `.deb`.
 
 ## Contenedor Ubuntu 22.04
 
@@ -131,7 +131,6 @@ docker run --rm -v "$PWD:/src" -w /src ubuntu:22.04 bash -c '
   curl -fsSL https://go.dev/dl/go1.27.3.linux-amd64.tar.gz -o /tmp/go.tgz
   tar -C /usr/local -xzf /tmp/go.tgz
   export PATH=/usr/local/go/bin:$PATH
-  export GOTOOLCHAIN=local
   go version
   CGO_ENABLED=1 go build -tags "gtk3 production" -trimpath -buildvcs=false \
     -ldflags "-s -w -X main.version=0.2.4" \
@@ -152,12 +151,12 @@ Ubuntu 22.04 se completó; no fue necesario usar Ubuntu 24.04 como alternativa.
 
 ```bash
 mkdir -p dist
-CGO_ENABLED=1 GOTOOLCHAIN=go1.27.3 \
+CGO_ENABLED=1 \
   go build -tags "gtk3 production" -trimpath -buildvcs=false \
   -ldflags "-s -w -X main.version=${VERSION}" \
   -o dist/better-rpt ./cmd/better-rpt
 
-CGO_ENABLED=0 GOTOOLCHAIN=go1.27.3 \
+CGO_ENABLED=0 \
   go build -trimpath -buildvcs=false \
   -ldflags "-s -w -X main.version=${VERSION}" \
   -o dist/better-rpt-helper ./cmd/better-rpt-helper
@@ -174,7 +173,7 @@ la reproducibilidad; `-s -w` reduce el binario. El binario Wails final mide
 ## nfpm
 
 ```bash
-GOTOOLCHAIN=go1.27.3 go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
+go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
 VERSION=0.2.4 SOURCE_DATE_EPOCH=1700000000 \
   "$HOME/go/bin/nfpm" package --config packaging/nfpm.yaml --packager deb \
   --target dist/

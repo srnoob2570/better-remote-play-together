@@ -433,7 +433,8 @@ cd frontend && npm ci && cd ..
 make dev
 ```
 
-Los targets de compilación usan `GOTOOLCHAIN=go1.27.3` y no necesitan `sudo`;
+Los targets de compilación usan el Go 1.27.3 del `PATH` (o el que `go.mod`
+descargue automáticamente) y no necesitan `sudo`;
 solo `sudo make setup` eleva privilegios para instalar paquetes del sistema.
 La versión en desarrollo se muestra como `dev`; la versión publicada (`0.2.4`)
 se inyecta con `-ldflags` al compilar. `make dev` recarga Go y el frontend;
@@ -555,9 +556,9 @@ y AppImage 6,6 MB.
 Pruebas automatizadas:
 
 ```bash
-GOTOOLCHAIN=go1.27.3 go test ./...
-GOTOOLCHAIN=go1.27.3 go vet ./...
-GOTOOLCHAIN=go1.27.3 go test -race ./internal/...
+go test ./...
+go vet ./...
+go test -race ./internal/...
 ```
 
 Las pruebas usan datos de Steam simulados y dobles de prueba; nunca lanzan

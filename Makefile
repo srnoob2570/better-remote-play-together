@@ -1,4 +1,4 @@
-GO ?= GOTOOLCHAIN=go1.27.3 go
+GO ?= go
 WAILS3 ?= $(shell command -v wails3 2>/dev/null || printf '%s/bin/wails3' "$$(go env GOPATH)")
 VERSION ?= 0.2.4
 BINARY ?= dist/better-rpt
