@@ -369,6 +369,9 @@ describe("library UI", () => {
     expect(within(sessionPanel).getByRole("status")).toHaveTextContent(
       "Acepta «¿Permitir iniciar el juego?»",
     );
+    expect(
+      within(sessionPanel).getByRole("img", { name: "Aviso de confirmación de Steam" }),
+    ).toBeInTheDocument();
   });
 
   it("renders the active session timer and guide", async () => {
@@ -407,6 +410,32 @@ describe("library UI", () => {
     expect(within(dialog).getByText("Restaurar SpaceWar")).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "Restaurar" }));
     expect(mocked.RestoreSetup).toHaveBeenCalled();
+  });
+
+  it("does not warn about Steam being open after a finished session", async () => {
+    mocked.RecoverSession.mockResolvedValue(
+      recovery({
+        state: session({
+          phase: "ended",
+          outcome: "ok",
+          startedAt: "2026-10-20T10:00:00Z",
+          endedAt: "2026-10-20T10:30:00Z",
+        }),
+        situation: situation({
+          kind: "finished",
+          setup: "installed",
+          restore: "steam_running",
+          steamRunning: true,
+        }),
+        setup: { status: "installed", hasBackup: true },
+        last: lastSession({ startedAt: "2026-10-20T10:00:00Z", endedAt: "2026-10-20T10:30:00Z" }),
+      }),
+    );
+    render(<App />);
+
+    const sessionPanel = screen.getByRole("complementary", { name: "Sesión" });
+    expect(await within(sessionPanel).findByText("Última sesión")).toBeInTheDocument();
+    expect(within(sessionPanel).queryByText(/Steam está abierto/)).not.toBeInTheDocument();
   });
 
   it("warns once before starting an unknown game and then starts it", async () => {

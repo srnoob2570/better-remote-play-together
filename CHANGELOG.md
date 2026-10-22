@@ -7,6 +7,17 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- El aviso de lanzamiento de Steam incluye la captura del diálogo de
+  confirmación de la guía para reconocerlo de un vistazo.
+
+### Fixed
+
+- La vista de sesión terminada ya no muestra el aviso de Steam abierto cuando
+  la restauración no está disponible, para no confundirlo con un error de la
+  sesión.
+
 ## [0.2.3] - 2026-10-21 (0321e4a)
 
 ### Added

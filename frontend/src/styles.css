@@ -644,6 +644,16 @@ button {
   line-height: 1.5;
 }
 
+.launch-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.launch-prompt .guide-image {
+  margin-top: 0;
+}
+
 .primary-button {
   width: 100%;
   min-height: 48px;

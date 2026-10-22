@@ -709,11 +709,13 @@ function EndedPanel({
           )}
         </div>
       )}
-      {!error && session.situation?.restore !== "available" && (
-        <p className="hint-amber">
-          {t(restoreReasonKey(session.situation?.restore ?? "not_needed"))}
-        </p>
-      )}
+      {!error &&
+        session.situation?.restore !== "available" &&
+        session.situation?.restore !== "steam_running" && (
+          <p className="hint-amber">
+            {t(restoreReasonKey(session.situation?.restore ?? "not_needed"))}
+          </p>
+        )}
       {session.launching === state.targetAppId && <LaunchPrompt lang={lang} />}
     </>
   );
@@ -821,9 +823,19 @@ function GuidePanel({ lang, session }: { lang: Language; session: SessionControl
 
 function LaunchPrompt({ lang }: { lang: Language }) {
   return (
-    <p className="hint-amber" role="status">
-      {translate(lang, "launch.steamPrompt")}
-    </p>
+    <div className="launch-prompt">
+      <p className="hint-amber" role="status">
+        {translate(lang, "launch.steamPrompt")}
+      </p>
+      <img
+        className="guide-image"
+        src="/guide/popup.png"
+        alt={translate(lang, "guide.image.popup")}
+        width={1200}
+        height={480}
+        decoding="async"
+      />
+    </div>
   );
 }
 
