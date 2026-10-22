@@ -33,10 +33,13 @@
   lugar de commitear sobre el detached.
 - De `.codegraph/` solo se versiona su `.gitignore`; el índice (`codegraph.db`)
   es local de cada máquina y nunca debe entrar al repositorio.
-- La versión publicada se define en `Makefile` (`VERSION`) y en
-  `packaging/nfpm.yaml`; al preparar una versión nueva, mueve las entradas de
-  `[Unreleased]` a la sección de la versión con su fecha y actualiza los enlaces
-  de comparación del final de `CHANGELOG.md`.
+- La versión publicada se define solo en `Makefile` (`VERSION`).
+  `build/config.yml` es un espejo generado por `scripts/release.sh` que Wails
+  necesita literal, y `packaging/nfpm.yaml` recibe la versión por `VERSION`. El
+  paquete privado del frontend usa `0.0.0` fijo; no es una fuente de versión. Al
+  preparar una versión nueva, mueve las entradas de `[Unreleased]` a la sección
+  de la versión con su fecha y actualiza los enlaces de comparación del final de
+  `CHANGELOG.md`.
 - El updater vive en `internal/update`: el frontend nunca llama a la API de
   GitHub. La caché se guarda en `$XDG_CONFIG_HOME/better-rpt/update.json`
   (24 h). Al reiniciar tras actualizar, el proceso nuevo recibe

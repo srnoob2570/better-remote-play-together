@@ -7,6 +7,7 @@ info:
   description: "Remote Play Together for games that do not include it"
   copyright: "(c) 2026, srnoob2570"
   comments: "Better RPT desktop shell"
+  # Espejo generado por scripts/release.sh desde Makefile VERSION.
   version: "0.2.4"
 
 dev_mode:

@@ -43,17 +43,19 @@ automático es opcional y no cierra Steam.
 
 ## Instalación
 
+En los ejemplos, sustituye `<version>` por la versión publicada en el release.
+
 ### Paquete `.deb` (recomendado)
 
 ```bash
 sha256sum -c SHA256SUMS
-sudo apt install ./better-rpt_0.2.4-1_amd64.deb
+sudo apt install ./better-rpt_<version>-1_amd64.deb
 ```
 
 Si `apt` no acepta el archivo local:
 
 ```bash
-sudo dpkg -i ./better-rpt_0.2.4-1_amd64.deb
+sudo dpkg -i ./better-rpt_<version>-1_amd64.deb
 sudo apt-get install -f
 ```
 
@@ -73,16 +75,16 @@ para funcionar.
 ### AppImage (otras distribuciones)
 
 ```bash
-chmod +x BetterRPT-0.2.4-x86_64.AppImage
-./BetterRPT-0.2.4-x86_64.AppImage
+chmod +x BetterRPT-<version>-x86_64.AppImage
+./BetterRPT-<version>-x86_64.AppImage
 ```
 
 Si FUSE no está disponible:
 
 ```bash
-./BetterRPT-0.2.4-x86_64.AppImage --appimage-extract-and-run
+./BetterRPT-<version>-x86_64.AppImage --appimage-extract-and-run
 # o
-APPIMAGE_EXTRACT_AND_RUN=1 ./BetterRPT-0.2.4-x86_64.AppImage
+APPIMAGE_EXTRACT_AND_RUN=1 ./BetterRPT-<version>-x86_64.AppImage
 ```
 
 El AppImage y el `.deb` comparten el helper estable y la configuración. No uses
@@ -94,7 +96,7 @@ fuera de Ubuntu 22.04 en esta versión.
 ## Actualizaciones
 
 Better RPT comprueba GitHub Releases al arrancar sin bloquear la interfaz y
-muestra la versión (`v0.2.0`) junto a un botón de actualización solo con icono
+muestra la versión (`vX.Y.Z`) junto a un botón de actualización solo con icono
 en la esquina inferior izquierda. El tooltip y los iconos explican el estado; el
 diálogo muestra versiones, progreso y un botón para abrir las notas del release.
 Se cierra con la X superior o con **Aceptar**. La comprobación de arranque
@@ -341,7 +343,7 @@ parámetros.
 Ejecuta primero el diagnóstico; si FUSE no está disponible, usa la extracción:
 
 ```bash
-APPIMAGE_EXTRACT_AND_RUN=1 ./BetterRPT-0.2.4-x86_64.AppImage --diagnose
+APPIMAGE_EXTRACT_AND_RUN=1 ./BetterRPT-<version>-x86_64.AppImage --diagnose
 ```
 
 Instala `fuse3` o ejecuta con `--appimage-extract-and-run`. En Wayland, si hay
@@ -436,7 +438,7 @@ make dev
 Los targets de compilación usan el Go 1.27.3 del `PATH` (o el que `go.mod`
 descargue automáticamente) y no necesitan `sudo`;
 solo `sudo make setup` eleva privilegios para instalar paquetes del sistema.
-La versión en desarrollo se muestra como `dev`; la versión publicada (`0.2.4`)
+La versión en desarrollo se muestra como `dev`; la versión publicada (`<version>`)
 se inyecta con `-ldflags` al compilar. `make dev` recarga Go y el frontend;
 detén con `Ctrl+C`. Si el terminal se cierra de golpe, el siguiente `make dev`
 retira los procesos huérfanos de este repositorio antes de arrancar;
@@ -535,10 +537,10 @@ conjunto incluye SpaceWar y targets nativo/Proton simulados.
 Solo para validar la integración real del paquete:
 
 ```bash
-sudo apt install ./dist/better-rpt_0.2.4-1_amd64.deb
+sudo apt install ./dist/better-rpt_<version>-1_amd64.deb
 better-rpt
 # o
-./dist/BetterRPT-0.2.4-x86_64.AppImage
+./dist/BetterRPT-<version>-x86_64.AppImage
 ```
 
 ## Compilación reproducible

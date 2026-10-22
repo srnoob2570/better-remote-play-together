@@ -308,12 +308,7 @@ prev, new = sys.argv[1:3]
 pattern = re.compile(r"(?<![\d.])" + re.escape(prev) + r"(?![\d.])")
 files = [
     "Makefile",
-    "scripts/build-deb.sh",
     "build/config.yml",
-    "README.md",
-    "docs/appimage.md",
-    "docs/build.md",
-    "docs/distribution.md",
 ]
 changed = []
 for name in files:
@@ -323,15 +318,6 @@ for name in files:
     if updated != old:
         path.write_text(updated, encoding="utf-8")
         changed.append(name)
-
-path = pathlib.Path(".release/conventions.md")
-old = path.read_text(encoding="utf-8")
-updated = re.sub(
-    r"(VERSION \?= )" + re.escape(prev) + r"(?![\d.])", r"\g<1>" + new, old
-)
-if updated != old:
-    path.write_text(updated, encoding="utf-8")
-    changed.append(str(path))
 
 if not changed:
     sys.exit(f"no se encontró {prev} en los archivos de versión")
@@ -675,7 +661,7 @@ if [ "$dry_run" = 1 ]; then
 	else
 		info "  1. mover [Unreleased] a [$version] y actualizar enlaces"
 		info "  2. ejecutar tests, vet y govulncheck (si está instalado)"
-		info "  3. reemplazar $prev_version por $version en Makefile, script y docs"
+		info "  3. reemplazar $prev_version por $version en Makefile y build/config.yml"
 		info "  4. compilar .deb y AppImage, generar dist/SHA256SUMS"
 		info "  5. actualizar hash/tamaños y .release/config.json"
 		info "  6. commit chore(release): $tag, tag anotado y rama $release_branch"
@@ -734,8 +720,8 @@ if [ -z "$release_commit" ]; then
 	update_artifact_docs
 	timing "artefactos y docs"
 
-	git add -- Makefile scripts/build-deb.sh build/config.yml README.md docs/appimage.md docs/build.md \
-		docs/distribution.md CHANGELOG.md .release/config.json .release/conventions.md
+	git add -- Makefile build/config.yml docs/appimage.md docs/build.md \
+		CHANGELOG.md .release/config.json
 	# El commit de release va a main por diseño; el resto de hooks sigue activo.
 	SKIP=no-commit-to-branch git commit --message "chore(release): $tag"
 	release_commit="$(git rev-parse HEAD)"

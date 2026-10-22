@@ -5,7 +5,7 @@ BINARY ?= dist/better-rpt
 HELPER ?= dist/better-rpt-helper
 ARGS ?=
 
-.PHONY: setup setup-check dev dev-stop build frontend helper deb test test-race vet release release-plan
+.PHONY: setup setup-check dev dev-stop build sync-version frontend helper deb test test-race vet release release-plan
 
 # Instala los paquetes del sistema necesarios para compilar. No gestiona Go,
 # Node/npm ni el CLI de Wails; consulta el README. Requiere root para instalar
@@ -24,7 +24,11 @@ dev:
 dev-stop:
 	./scripts/dev.sh --stop
 
-build:
+# Sincroniza el espejo que Wails necesita literal con la fuente única VERSION.
+sync-version:
+	@sed -i -E 's/^  version: "[^"]*"/  version: "$(VERSION)"/' build/config.yml
+
+build: sync-version
 	PATH="$(dir $(WAILS3)):$$PATH" VERSION=$(VERSION) $(WAILS3) build
 
 frontend:
@@ -36,7 +40,7 @@ helper:
 		-ldflags "-s -w -X main.version=$(VERSION)" \
 		-o $(HELPER) ./cmd/better-rpt-helper
 
-deb: frontend
+deb: frontend sync-version
 	VERSION="$(VERSION)" ./scripts/build-deb.sh
 
 test:

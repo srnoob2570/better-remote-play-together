@@ -110,8 +110,8 @@ ambos binarios dentro de Ubuntu 22.04, los copia a `dist/` y empaqueta con nfpm
 en el host.
 
 ```bash
-make deb                 # dist/better-rpt_0.2.4-1_amd64.deb
-make deb VERSION=0.2.4   # otra versión
+make deb                 # dist/better-rpt_<version>-1_amd64.deb
+make deb VERSION=<version>   # otra versión
 ```
 
 Requiere Docker y nfpm v2.48.0 en `$HOME/go/bin/nfpm`, en `PATH` o en la ruta
@@ -133,10 +133,10 @@ docker run --rm -v "$PWD:/src" -w /src ubuntu:22.04 bash -c '
   export PATH=/usr/local/go/bin:$PATH
   go version
   CGO_ENABLED=1 go build -tags "gtk3 production" -trimpath -buildvcs=false \
-    -ldflags "-s -w -X main.version=0.2.4" \
+    -ldflags "-s -w -X main.version=<version>" \
     -o dist/better-rpt ./cmd/better-rpt
   CGO_ENABLED=0 go build -trimpath -buildvcs=false \
-    -ldflags "-s -w -X main.version=0.2.4" \
+    -ldflags "-s -w -X main.version=<version>" \
     -o dist/better-rpt-helper ./cmd/better-rpt-helper
 '
 ```
@@ -166,21 +166,24 @@ El binario de la app necesita `cmd/better-rpt/dist` (frontend y assets); usa
 `make frontend` para generarlo, o copia el resultado de `cd frontend && npm run
 build` en ese directorio. El helper no tiene interfaz gráfica, es estático y no enlaza GTK ni WebKit; la
 app lo copia a `$XDG_DATA_HOME/better-rpt/bin/better-rpt-helper`.
-La versión final es `0.2.4`. `-trimpath` y `-buildvcs=false` son necesarios para
+La versión final es `<version>`. `-trimpath` y `-buildvcs=false` son necesarios para
 la reproducibilidad; `-s -w` reduce el binario. El binario Wails final mide
-11,5 MB y el helper estático 3,4 MB; `--version` reporta `0.2.4` en ambos.
+11,5 MB y el helper estático 3,4 MB; `--version` reporta `<version>` en ambos.
+La fuente única de la versión es `Makefile` (`VERSION`); `build/config.yml` es
+un espejo generado por `make sync-version`/`scripts/release.sh` que Wails
+necesita literal. No edites ese espejo a mano.
 
 ## nfpm
 
 ```bash
 go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
-VERSION=0.2.4 SOURCE_DATE_EPOCH=1700000000 \
+VERSION=<version> SOURCE_DATE_EPOCH=1700000000 \
   "$HOME/go/bin/nfpm" package --config packaging/nfpm.yaml --packager deb \
   --target dist/
 ```
 
 El destino es un directorio, así que nfpm genera
-`dist/better-rpt_0.2.4-1_amd64.deb`. `packaging/nfpm.yaml` toma `version` de la
+`dist/better-rpt_<version>-1_amd64.deb`. `packaging/nfpm.yaml` toma `version` de la
 variable `VERSION`; nfpm expande
 `${VERSION}` del entorno al leer la configuración. `make deb` ya define esa
 variable.
@@ -316,7 +319,7 @@ declara, además de `libc6 (>= 2.35)`:
 - `libdecor-0-0` y `libdecor-0-plugin-1-gtk` quedan en `Recommends`; sin ellos
   GTK puede usar decoraciones de servidor o X11.
 
-`dpkg-deb -I dist/better-rpt_0.2.4-1_amd64.deb` confirma esas dependencias y
+`dpkg-deb -I dist/better-rpt_<version>-1_amd64.deb` confirma esas dependencias y
 recomendaciones. La instalación limpia en Ubuntu 22.04 resolvió GTK3 y
 WebKit2GTK 4.1 desde los repositorios.
 
