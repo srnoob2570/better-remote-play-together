@@ -88,9 +88,9 @@
   temporal con `go install golang.org/x/vuln/cmd/govulncheck@latest` y añade ese
   directorio al `PATH` al ejecutar `scripts/release.sh`; si falta, el script
   omite el escaneo.
-- El hook `no-commit-to-branch` bloquea los commits directos a `main`; el commit
-  de release es la excepción y `scripts/release.sh` lo hace con
-  `SKIP=no-commit-to-branch` para que el resto de hooks siga ejecutándose.
+- El hook `no-commit-to-branch` está desactivado: el commit de release puede ir
+  directo a `main`. `scripts/release.sh` sigue usando
+  `SKIP=no-commit-to-branch`, un no-op que deja el resto de hooks activos.
 
 ## Preferencias
 

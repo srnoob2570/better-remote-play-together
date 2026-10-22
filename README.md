@@ -490,8 +490,8 @@ pre-commit run --all-files
 ```
 
 Los hooks de auto-fix modifican archivos y hacen fallar el commit: revisa el
-diff, vuelve a `git add` y repite. `no-commit-to-branch` bloquea los commits
-directos a `main` y `master`; usa una rama de trabajo.
+diff, vuelve a `git add` y repite. El hook `no-commit-to-branch` está
+desactivado: se permiten los commits directos a `main` y `master`.
 
 ### Probar con Steam simulado
 

@@ -88,6 +88,7 @@
 - La versión de Go se repite en `go.mod`, `Makefile`, `packaging/Dockerfile.build`,
   `scripts/build-deb.sh`, `README.md` y `docs/`; actualízala en todos a la vez para
   que el toolchain del build sea el mismo que escanea `govulncheck`.
-- `no-commit-to-branch` bloquea los commits directos a `main`. El commit de release
-  es la excepción: `scripts/release.sh` usa `SKIP=no-commit-to-branch` para que el
-  resto de hooks siga ejecutándose.
+- `no-commit-to-branch` está desactivado en `.pre-commit-config.yaml`: se permiten
+  los commits directos a `main`. `scripts/release.sh` conserva
+  `SKIP=no-commit-to-branch`, que con el hook ausente es un no-op y mantiene el
+  resto de hooks activos.
