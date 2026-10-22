@@ -87,7 +87,7 @@ func TestSessionMethodsDelegate(t *testing.T) {
 	}
 	service := &Service{sessions: fake}
 
-	active, err := service.StartSession(nil, session.StartOptions{TargetAppID: 900001})
+	active, err := service.StartSession(context.Background(), session.StartOptions{TargetAppID: 900001})
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}

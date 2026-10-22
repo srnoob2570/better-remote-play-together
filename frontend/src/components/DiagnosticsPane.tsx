@@ -14,6 +14,7 @@ import { diagnosticStatusLabel } from "../diagnostics/labels";
 import type { DiagnosticCheck, DiagnosticStatus } from "../bridge/types";
 import { useDiagnostics } from "../diagnostics/useDiagnostics";
 import { translate, type Language, type MessageKey } from "../i18n";
+import { problemText } from "../session/problem";
 
 const STATUS_RANK: Record<DiagnosticStatus, number> = {
   fail: 0,
@@ -43,7 +44,7 @@ export function DiagnosticsPane({
     toast.add({
       type: "error",
       title: translate(lang, "diagnostics.error"),
-      description: problem.message,
+      description: problemText(lang, problem),
     });
   }, [lang, problem]);
 

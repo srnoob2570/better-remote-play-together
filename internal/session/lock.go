@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 	"syscall"
-
-	"github.com/srnoob2570/better-rpt/internal/fsutil"
 )
 
 // Lock is the global helper lock. The helper holds it for the whole target
@@ -56,13 +54,4 @@ func (l *Lock) Close() error {
 	err := l.file.Close()
 	l.file = nil
 	return err
-}
-
-// EnsureSessionDir exposes private-directory setup for callers that need to
-// create the lock before a full Store method.
-func EnsureSessionDir(dir string) error {
-	if err := fsutil.EnsurePrivateDir(dir); err != nil {
-		return fmt.Errorf("%w: %v", ErrStore, err)
-	}
-	return nil
 }

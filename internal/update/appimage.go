@@ -34,13 +34,13 @@ func (m *Manager) installAppImage(
 		}
 	}
 	tempName := temp.Name()
-	defer os.Remove(tempName)
+	defer func() { _ = os.Remove(tempName) }()
 	if err := temp.Chmod(0o600); err != nil {
-		temp.Close()
+		_ = temp.Close()
 		return InstallResult{}, fmt.Errorf("%w: set temporary permissions: %v", ErrDownload, err)
 	}
 	if err := m.downloadVerified(ctx, checksumURL, asset, temp, progress); err != nil {
-		temp.Close()
+		_ = temp.Close()
 		return InstallResult{}, err
 	}
 	m.report(StageInstalling, 0, 0, progress)
@@ -72,7 +72,7 @@ func syncDir(dir string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	if err := file.Sync(); err != nil && !errors.Is(err, syscall.EINVAL) {
 		return err
 	}

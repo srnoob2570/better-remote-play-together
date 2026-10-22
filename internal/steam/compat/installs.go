@@ -12,20 +12,11 @@ import (
 	"strings"
 )
 
-// Source says where a Proton-like tool was installed.
-type Source uint8
-
-const (
-	SourceOfficial Source = iota
-	SourceCompatibilityTools
-)
-
 // Install is one Proton-capable tool directory.
 type Install struct {
 	Name       string
 	Dir        string
 	ProtonPath string
-	Source     Source
 	Official   bool
 	Manifest   ToolManifest
 }
@@ -137,10 +128,10 @@ func (r *Resolver) ResolveName(name string) (Install, error) {
 	}
 
 	lower := strings.ToLower(name)
-	switch {
-	case lower == "proton-stable":
+	switch lower {
+	case "proton-stable":
 		return r.newestStable()
-	case lower == "proton-experimental" || lower == "proton_experimental":
+	case "proton-experimental", "proton_experimental":
 		return r.uniqueOfficial("Proton - Experimental")
 	default:
 		if major, ok := protonMajorAlias(lower); ok {
@@ -280,7 +271,7 @@ func DiscoverInstalls(steamRoot string, libraryRoots []string) ([]Install, []War
 	warnings := make([]Warning, 0)
 	seenDirs := make(map[string]bool)
 
-	addDir := func(dir string, source Source, official bool) {
+	addDir := func(dir string, official bool) {
 		canonical, err := filepath.EvalSymlinks(dir)
 		if err != nil {
 			warnings = append(warnings, Warning{Path: dir, Err: fmt.Errorf("%w: %v", ErrConfig, err)})
@@ -292,11 +283,8 @@ func DiscoverInstalls(steamRoot string, libraryRoots []string) ([]Install, []War
 		protonPath := filepath.Join(canonical, "proton")
 		info, err := os.Stat(protonPath)
 		if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0o111 == 0 {
-			if official || source == SourceCompatibilityTools {
-				// A directory without a usable proton is not a Proton tool; do
-				// not turn every unrelated compatibility directory into a warning.
-				return
-			}
+			// A directory without a usable proton is not a Proton tool; do not
+			// turn every unrelated compatibility directory into a warning.
 			return
 		}
 		manifest, err := LoadToolManifest(filepath.Join(canonical, "toolmanifest.vdf"))
@@ -309,7 +297,6 @@ func DiscoverInstalls(steamRoot string, libraryRoots []string) ([]Install, []War
 			Name:       filepath.Base(canonical),
 			Dir:        canonical,
 			ProtonPath: protonPath,
-			Source:     source,
 			Official:   official,
 			Manifest:   manifest,
 		})
@@ -321,10 +308,10 @@ func DiscoverInstalls(steamRoot string, libraryRoots []string) ([]Install, []War
 		switch {
 		case err == nil:
 			for _, entry := range entries {
-				if !entry.IsDir() {
+				if !entry.IsDir() && entry.Type()&os.ModeSymlink == 0 {
 					continue
 				}
-				addDir(filepath.Join(toolsDir, entry.Name()), SourceCompatibilityTools, false)
+				addDir(filepath.Join(toolsDir, entry.Name()), false)
 			}
 		case errors.Is(err, fs.ErrNotExist):
 		default:
@@ -342,10 +329,10 @@ func DiscoverInstalls(steamRoot string, libraryRoots []string) ([]Install, []War
 			continue
 		}
 		for _, entry := range entries {
-			if !entry.IsDir() || !strings.HasPrefix(entry.Name(), "Proton") {
+			if (!entry.IsDir() && entry.Type()&os.ModeSymlink == 0) || !strings.HasPrefix(entry.Name(), "Proton") {
 				continue
 			}
-			addDir(filepath.Join(common, entry.Name()), SourceOfficial, true)
+			addDir(filepath.Join(common, entry.Name()), true)
 		}
 	}
 

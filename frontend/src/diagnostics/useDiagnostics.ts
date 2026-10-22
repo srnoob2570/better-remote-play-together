@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { toBridgeError } from "../bridge/client";
 import { bridge } from "../bridge/wails";
@@ -21,9 +21,11 @@ export function useDiagnostics(
   const [mode, setMode] = useState<DiagnosticsMode>("loading");
   const [result, setResult] = useState<DiagnosticsResult | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
+  const requestID = useRef(0);
 
   const refresh = useCallback(
     async (options?: { refreshCatalog?: boolean }) => {
+      const id = ++requestID.current;
       setMode("loading");
       setProblem(null);
       try {
@@ -31,9 +33,11 @@ export function useDiagnostics(
           await bridge.RefreshCatalog();
         }
         const next = await bridge.RunDiagnostics();
+        if (id !== requestID.current) return;
         setResult(next);
         setMode("ready");
       } catch (reason: unknown) {
+        if (id !== requestID.current) return;
         setProblem(toBridgeError(reason).problem);
         setMode("error");
       }
@@ -44,6 +48,9 @@ export function useDiagnostics(
   useEffect(() => {
     if (!enabled) return;
     void refresh();
+    return () => {
+      requestID.current++;
+    };
   }, [enabled, lang, refresh]);
 
   return useMemo(

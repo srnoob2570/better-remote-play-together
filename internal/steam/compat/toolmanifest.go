@@ -57,7 +57,7 @@ func LoadToolManifest(path string) (ToolManifest, error) {
 	if err != nil {
 		return ToolManifest{}, fmt.Errorf("%w: open %s: %v", ErrToolManifest, path, err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	return ReadToolManifest(file)
 }
 

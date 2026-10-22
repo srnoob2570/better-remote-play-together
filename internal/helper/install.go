@@ -17,6 +17,7 @@ import (
 )
 
 const installRecordVersion = 1
+const maxHelperSize = 64 << 20
 
 type fileSignature struct {
 	Size       int64     `json:"size"`
@@ -72,7 +73,7 @@ func NewInstaller(paths config.Paths) *Installer {
 
 // Destination returns the stable helper path.
 func (i *Installer) Destination() string {
-	return filepath.Join(i.DataDir, "bin", "better-rpt-helper")
+	return config.HelperPath(i.DataDir)
 }
 
 // Sources returns candidate packaged helpers in preference order. An AppImage
@@ -137,18 +138,28 @@ func (i *Installer) Install(activeSession bool) (Installed, error) {
 }
 
 func (i *Installer) findSource() (string, fs.FileInfo, error) {
+	var firstErr error
 	for _, candidate := range i.Sources() {
 		info, err := os.Lstat(candidate)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				continue
 			}
-			return "", nil, fmt.Errorf("%w: inspect %s: %v", ErrSourceInvalid, candidate, err)
+			if firstErr == nil {
+				firstErr = fmt.Errorf("%w: inspect %s: %v", ErrSourceInvalid, candidate, err)
+			}
+			continue
 		}
 		if !info.Mode().IsRegular() || info.Mode().Perm()&0o111 == 0 || info.Mode().Perm()&0o022 != 0 {
-			return "", nil, fmt.Errorf("%w: %s", ErrSourceInvalid, candidate)
+			if firstErr == nil {
+				firstErr = fmt.Errorf("%w: %s", ErrSourceInvalid, candidate)
+			}
+			continue
 		}
 		return candidate, info, nil
+	}
+	if firstErr != nil {
+		return "", nil, firstErr
 	}
 	return "", nil, ErrSourceMissing
 }
@@ -252,6 +263,16 @@ func validHash(value string) bool {
 }
 
 func hashFile(path string) (string, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return "", err
+	}
+	if !info.Mode().IsRegular() {
+		return "", fmt.Errorf("%w: %s is not a regular file", ErrInstall, path)
+	}
+	if info.Size() > maxHelperSize {
+		return "", fmt.Errorf("%w: %s exceeds %d bytes", ErrInstall, path, maxHelperSize)
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err

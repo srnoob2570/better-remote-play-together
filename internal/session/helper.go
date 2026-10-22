@@ -109,7 +109,7 @@ func (h *Helper) Run(ctx context.Context) (State, error) {
 	if err != nil {
 		return State{}, err
 	}
-	defer lock.Close()
+	defer func() { _ = lock.Close() }()
 
 	now := h.now().UTC()
 	plan, err := h.options.Store.ReadPlan(h.options.Token, now)

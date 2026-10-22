@@ -109,6 +109,26 @@ func TestEnsureGenericControllerLayoutsAddsMissingTemplateOnce(t *testing.T) {
 	}
 }
 
+func TestEnsureGenericControllerLayoutsRejectsDuplicateEntry(t *testing.T) {
+	root := controllerTestRoot(t)
+	configDir := controllerTestConfigDir(root)
+	path := filepath.Join(configDir, "configset_controller_generic.vdf")
+	original := "\"controller_config\"\n{\n\t\"480\"\n\t{\n\t\t\"template\"\t\t\"custom_gamepad.vdf\"\n\t}\n\t\"480\"\n\t{\n\t\t\"template\"\t\t\"other_gamepad.vdf\"\n\t}\n}\n"
+	writeControllerTestFile(t, path, original)
+	writeControllerTestFile(t, filepath.Join(controllerTestTemplatesDir(root), "controller_generic_gamepad_joystick.vdf"), "\"controller_mappings\"\n{\n}\n")
+
+	result, err := EnsureGenericControllerLayouts(root)
+	if err != nil {
+		t.Fatalf("ensure layouts: %v", err)
+	}
+	if len(result.Warnings) == 0 {
+		t.Fatal("duplicate entry was not reported")
+	}
+	if got := readControllerTestFile(t, path); got != original {
+		t.Fatalf("duplicate entry was edited:\n%s", got)
+	}
+}
+
 func TestEnsureGenericControllerLayoutsPreservesExistingEntry(t *testing.T) {
 	root := controllerTestRoot(t)
 	configDir := controllerTestConfigDir(root)

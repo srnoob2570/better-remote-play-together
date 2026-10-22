@@ -64,8 +64,10 @@ type Manager struct {
 	client       *http.Client
 	now          func() time.Time
 	env          environment
+	pkexecPath   string
 
-	opMu    sync.Mutex
+	opCh    chan struct{}
+	opOnce  sync.Once
 	stateMu sync.Mutex
 	closed  bool
 	cancel  context.CancelFunc
@@ -93,6 +95,8 @@ func New(version, cacheFile string) *Manager {
 		client:       newHTTPClient(),
 		now:          time.Now,
 		env:          defaultEnvironment(),
+		pkexecPath:   "/usr/bin/pkexec",
+		opCh:         make(chan struct{}, 1),
 	}
 }
 
@@ -207,7 +211,7 @@ func (m *Manager) fetchLatest(ctx context.Context) (Release, error) {
 	if err != nil {
 		return Release{}, mapRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.Request == nil || response.Request.URL == nil || response.Request.URL.Scheme != "https" {
 		return Release{}, fmt.Errorf("%w: final API URL is not HTTPS", ErrInvalidResponse)
 	}
@@ -333,15 +337,24 @@ func (m *Manager) Close() {
 }
 
 func (m *Manager) begin(ctx context.Context) (context.Context, func(), error) {
-	m.opMu.Lock()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	m.opOnce.Do(func() {
+		if m.opCh == nil {
+			m.opCh = make(chan struct{}, 1)
+		}
+	})
+	select {
+	case m.opCh <- struct{}{}:
+	case <-ctx.Done():
+		return nil, nil, ctx.Err()
+	}
 	m.stateMu.Lock()
 	if m.closed {
 		m.stateMu.Unlock()
-		m.opMu.Unlock()
+		<-m.opCh
 		return nil, nil, ErrCanceled
-	}
-	if ctx == nil {
-		ctx = context.Background()
 	}
 	runCtx, cancel := context.WithCancel(ctx)
 	done := make(chan struct{})
@@ -358,7 +371,7 @@ func (m *Manager) begin(ctx context.Context) (context.Context, func(), error) {
 		m.stateMu.Unlock()
 		cancel()
 		close(done)
-		m.opMu.Unlock()
+		<-m.opCh
 	}
 	return runCtx, finish, nil
 }
@@ -397,11 +410,4 @@ func (m *Manager) report(stage string, downloaded, total int64, progress func(Pr
 		Total:      total,
 		Percent:    percent,
 	})
-}
-
-func (m *Manager) lookup(name string) (string, error) {
-	if m.env.lookPath == nil {
-		return exec.LookPath(name)
-	}
-	return m.env.lookPath(name)
 }

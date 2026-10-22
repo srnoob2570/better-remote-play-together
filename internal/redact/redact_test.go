@@ -24,6 +24,14 @@ func TestSanitizerText(t *testing.T) {
 	}
 }
 
+func TestSanitizerKeepsTimestamps(t *testing.T) {
+	s := New("/home/alice", "alice")
+	input := "2026-10-21T12:34:56Z level=info ts=12:34:56"
+	if got := s.Text(input); got != input {
+		t.Fatalf("timestamp changed: %q", got)
+	}
+}
+
 func TestSanitizerKeepsShortUsernamesAndEmpty(t *testing.T) {
 	s := New("", "ab")
 	if got := s.Text("ab is not a username boundary"); got != "ab is not a username boundary" {

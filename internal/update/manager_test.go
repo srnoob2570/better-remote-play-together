@@ -338,6 +338,7 @@ func TestInstallDebUsesPkexecArguments(t *testing.T) {
 			return []byte("better-rpt: /usr/bin/better-rpt\n"), nil
 		},
 	}
+	manager.pkexecPath = script
 	if _, err := manager.Check(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -353,7 +354,7 @@ func TestInstallDebUsesPkexecArguments(t *testing.T) {
 		t.Fatal(err)
 	}
 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
-	if len(lines) != 3 || lines[0] != "dpkg" || lines[1] != "-i" || !strings.HasSuffix(lines[2], ".deb") {
+	if len(lines) != 3 || lines[0] != "/usr/bin/dpkg" || lines[1] != "-i" || !strings.HasSuffix(lines[2], ".deb") {
 		t.Fatalf("pkexec args = %q", lines)
 	}
 }

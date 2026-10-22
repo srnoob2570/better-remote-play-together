@@ -163,9 +163,13 @@ func TestPruneKeepsNewest(t *testing.T) {
 		t.Fatalf("backups = %d, want 10", len(backups))
 	}
 	found := false
+	oldestKept := time.Date(2026, 10, 18, 12, 2, 0, 0, time.UTC)
 	for _, backup := range backups {
 		if backup.Path == newest {
 			found = true
+		}
+		if backup.Meta.CreatedAt.Before(oldestKept) {
+			t.Fatalf("prune kept an old backup: %s", backup.Path)
 		}
 	}
 	if !found {

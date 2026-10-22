@@ -28,7 +28,7 @@ func ReadManifest(path string) (Manifest, error) {
 	if err != nil {
 		return Manifest{}, fmt.Errorf("%w: open %s: %v", domain.ErrLibraryUnreadable, path, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return ParseManifest(filepath.Base(path), f)
 }
 

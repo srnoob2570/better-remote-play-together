@@ -16,15 +16,15 @@ import (
 
 var (
 	// ErrConfig means config.vdf or its compatibility section is unreadable.
-	ErrConfig = errors.New("Steam compatibility configuration is unreadable")
+	ErrConfig = errors.New("compatibility configuration is unreadable")
 	// ErrMapping means a CompatToolMapping entry is malformed.
-	ErrMapping = errors.New("Steam compatibility mapping is invalid")
+	ErrMapping = errors.New("compatibility mapping is invalid")
 	// ErrProtonNotFound means the configured Proton installation is not present.
 	ErrProtonNotFound = errors.New("configured Proton is not installed")
 	// ErrProtonAmbiguous means more than one installation matches the mapping.
 	ErrProtonAmbiguous = errors.New("configured Proton is ambiguous")
 	// ErrToolManifest means a Proton toolmanifest.vdf is invalid.
-	ErrToolManifest = errors.New("Proton tool manifest is invalid")
+	ErrToolManifest = errors.New("tool manifest is invalid")
 	// ErrNativeTool means a mapping explicitly selects native launching.
 	ErrNativeTool = errors.New("compatibility mapping selects native")
 )
@@ -139,7 +139,7 @@ func LoadMappings(path string) (Mappings, error) {
 	if err != nil {
 		return Mappings{}, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	return ReadMappings(file)
 }
 

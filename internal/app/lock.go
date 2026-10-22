@@ -40,11 +40,11 @@ func acquireInstanceLock(dir string) (*instanceLock, error) {
 			break
 		}
 		if !errors.Is(err, syscall.EWOULDBLOCK) {
-			file.Close()
+			_ = file.Close()
 			return nil, fmt.Errorf("%w: lock instance: %v", domain.ErrPaths, err)
 		}
 		if os.Getenv(waitForInstanceLockEnv) != "1" || time.Now().After(deadline) {
-			file.Close()
+			_ = file.Close()
 			return nil, domain.ErrInstanceLocked
 		}
 		time.Sleep(50 * time.Millisecond)

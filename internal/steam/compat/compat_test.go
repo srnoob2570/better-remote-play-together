@@ -59,7 +59,7 @@ func TestReadMappingsFixture(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open fixture: %v", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	mappings, err := ReadMappings(file)
 	if err != nil {
 		t.Fatalf("read: %v", err)

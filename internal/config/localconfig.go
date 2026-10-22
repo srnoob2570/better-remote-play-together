@@ -23,6 +23,9 @@ import (
 // write while Steam is open.
 type RunningFunc func() (bool, error)
 
+// maxLocalConfigSize bounds the Steam config file read into memory.
+const maxLocalConfigSize = 32 << 20
+
 // PrepareOptions describes one per-session SpaceWar launch-option edit.
 type PrepareOptions struct {
 	Paths        Paths
@@ -122,7 +125,7 @@ func prepareLaunchOption(options prepareRequest) (Prepared, error) {
 	}
 	running, err := options.SteamRunning()
 	if err != nil {
-		return Prepared{}, fmt.Errorf("Steam running check failed: %w", err)
+		return Prepared{}, fmt.Errorf("running Steam check failed: %w", err)
 	}
 	if running {
 		return Prepared{}, fmt.Errorf("%w: close Steam before preparing", domain.ErrSteamRunning)
@@ -200,7 +203,7 @@ func prepareLaunchOption(options prepareRequest) (Prepared, error) {
 		return Prepared{}, err
 	}
 	if running, err := options.SteamRunning(); err != nil {
-		return Prepared{}, fmt.Errorf("Steam running check failed: %w", err)
+		return Prepared{}, fmt.Errorf("running Steam check failed: %w", err)
 	} else if running {
 		return Prepared{}, fmt.Errorf("%w: Steam started during preparation", domain.ErrSteamRunning)
 	}
@@ -260,7 +263,7 @@ func Restore(options RestoreOptions) (Restored, error) {
 	}
 	running, err := options.SteamRunning()
 	if err != nil {
-		return Restored{}, fmt.Errorf("Steam running check failed: %w", err)
+		return Restored{}, fmt.Errorf("running Steam check failed: %w", err)
 	}
 	if running {
 		return Restored{}, fmt.Errorf("%w: close Steam before restoring", domain.ErrSteamRunning)
@@ -314,7 +317,7 @@ func Restore(options RestoreOptions) (Restored, error) {
 		return Restored{}, err
 	}
 	if running, err := options.SteamRunning(); err != nil {
-		return Restored{}, fmt.Errorf("Steam running check failed: %w", err)
+		return Restored{}, fmt.Errorf("running Steam check failed: %w", err)
 	} else if running {
 		return Restored{}, fmt.Errorf("%w: Steam started during restore", domain.ErrSteamRunning)
 	}
@@ -556,7 +559,7 @@ func readLocalConfig(path string) ([]byte, os.FileMode, error) {
 		}
 	}
 	file := os.NewFile(uintptr(fd), path)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	info, err := file.Stat()
 	if err != nil {
@@ -575,9 +578,15 @@ func readLocalConfig(path string) ([]byte, os.FileMode, error) {
 	if info.Mode().Perm()&0o200 == 0 {
 		return nil, 0, fmt.Errorf("%w: %s is not writable by its owner", ErrLocalConfigUnsafe, path)
 	}
-	data, err := io.ReadAll(file)
+	if info.Size() > maxLocalConfigSize {
+		return nil, 0, fmt.Errorf("%w: %s exceeds %d bytes", ErrLocalConfigUnsafe, path, maxLocalConfigSize)
+	}
+	data, err := io.ReadAll(io.LimitReader(file, maxLocalConfigSize+1))
 	if err != nil {
 		return nil, 0, fmt.Errorf("%w: read %s: %v", ErrLocalConfigUnsafe, path, err)
+	}
+	if len(data) > maxLocalConfigSize {
+		return nil, 0, fmt.Errorf("%w: %s exceeds %d bytes", ErrLocalConfigUnsafe, path, maxLocalConfigSize)
 	}
 	after, err := file.Stat()
 	if err != nil || after.Size() != int64(len(data)) || !after.ModTime().Equal(info.ModTime()) {

@@ -84,11 +84,6 @@ type Game struct {
 	Problem     error // why the game is not ready, when known
 }
 
-// Valid reports whether the game has the minimum identity fields.
-func (g Game) Valid() bool {
-	return g.AppID != 0 && strings.TrimSpace(g.Name) != ""
-}
-
 // LaunchSpec is a pure description of how to start a target. It does not hold
 // an exec.Cmd; the launch layer turns it into a process.
 type LaunchSpec struct {

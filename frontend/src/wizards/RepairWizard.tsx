@@ -9,11 +9,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 
 import { toBridgeError } from "../bridge/client";
+import type { Problem } from "../bridge/types";
 import { copyText } from "../clipboard";
 import { DispatcherSetup } from "../components/DispatcherSetup";
 import { diagnosticStatusLabel } from "../diagnostics/labels";
 import { openDoc } from "../docs";
 import { translate, type Language, type MessageKey } from "../i18n";
+import { problemText } from "../session/problem";
 import { restoreReasonKey, type SessionController } from "../session/useSession";
 import { useDiagnostics } from "../diagnostics/useDiagnostics";
 import { buildRepairIssues, type RepairIssue } from "./repair";
@@ -39,7 +41,7 @@ export function RepairWizard({
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [copying, setCopying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Problem | null>(null);
   const [notice, setNotice] = useState<MessageKey | null>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
 
@@ -83,7 +85,7 @@ export function RepairWizard({
     try {
       await session.refreshContext();
     } catch (reason: unknown) {
-      setError(toBridgeError(reason).problem.message);
+      setError(toBridgeError(reason).problem);
     }
     await diagnostics.refresh({ refreshCatalog: true });
     setChecking(false);
@@ -143,7 +145,7 @@ export function RepairWizard({
           break;
       }
     } catch (reason: unknown) {
-      setError(toBridgeError(reason).problem.message);
+      setError(toBridgeError(reason).problem);
     }
   }
 
@@ -384,7 +386,7 @@ export function RepairWizard({
                   {notice && <p className="wizard-note">{t(notice)}</p>}
                   {error && (
                     <p className="wizard-error" role="alert">
-                      {error}
+                      {problemText(lang, error)}
                     </p>
                   )}
                 </div>

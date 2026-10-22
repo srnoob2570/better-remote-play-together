@@ -31,5 +31,5 @@ var (
 	ErrCommand = errors.New("invalid launch command")
 	// ErrCompatDataUnwritable means Proton's compatdata prefix cannot be created
 	// or written by this user.
-	ErrCompatDataUnwritable = errors.New("Steam compat data path is not writable")
+	ErrCompatDataUnwritable = errors.New("compatdata path is not writable")
 )

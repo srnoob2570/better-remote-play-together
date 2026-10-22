@@ -7,8 +7,6 @@ import (
 	"syscall"
 	"testing"
 	"time"
-
-	"github.com/srnoob2570/better-rpt/internal/domain"
 )
 
 func TestProcessStartTimeAndAlive(t *testing.T) {
@@ -73,27 +71,5 @@ func TestProcessGroupHelpers(t *testing.T) {
 	}
 	if err := WaitProcessGroupGone(context.Background(), 999999, 50*time.Millisecond); err != nil {
 		t.Fatalf("wait invalid group: %v", err)
-	}
-}
-
-func TestTargetState(t *testing.T) {
-	pid := os.Getpid()
-	start, err := ProcessStartTime(pid)
-	if err != nil {
-		t.Fatalf("start: %v", err)
-	}
-	phase, err := TargetState(pid, start)
-	if err != nil {
-		t.Fatalf("target state: %v", err)
-	}
-	if phase != domain.PhaseActive {
-		t.Fatalf("phase = %q, want active", phase)
-	}
-	phase, err = TargetState(pid, start+1)
-	if err != nil {
-		t.Fatalf("stale target state: %v", err)
-	}
-	if phase != domain.PhaseEnded {
-		t.Fatalf("stale phase = %q, want ended", phase)
 	}
 }

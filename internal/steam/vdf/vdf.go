@@ -28,13 +28,24 @@ func Lookup(root map[string]interface{}, keys ...string) (map[string]interface{}
 	return current, true
 }
 
+const (
+	// maxVDFSize bounds a local KeyValues file so a corrupt or malicious file
+	// cannot exhaust memory before the parser rejects it.
+	maxVDFSize = 32 << 20
+	// maxVDFDepth bounds nesting; Steam's own files stay far below this.
+	maxVDFDepth = 64
+)
+
 // Parse reads and parses a complete KeyValues document. The third-party parser
 // is deliberately tolerant of a missing closing brace, so this adapter
 // validates the brace and quote balance first and fails closed.
 func Parse(r io.Reader) (map[string]interface{}, error) {
-	data, err := io.ReadAll(r)
+	data, err := io.ReadAll(io.LimitReader(r, maxVDFSize+1))
 	if err != nil {
 		return nil, fmt.Errorf("read VDF: %w", err)
+	}
+	if len(data) > maxVDFSize {
+		return nil, fmt.Errorf("VDF exceeds %d bytes", maxVDFSize)
 	}
 	if err := validateStructure(data); err != nil {
 		return nil, err
@@ -76,6 +87,9 @@ func validateStructure(data []byte) error {
 			}
 		case '{':
 			depth++
+			if depth > maxVDFDepth {
+				return fmt.Errorf("invalid VDF: nesting exceeds %d", maxVDFDepth)
+			}
 		case '}':
 			depth--
 			if depth < 0 {

@@ -129,7 +129,7 @@ func discoverRoots(primary string) ([]string, []Warning) {
 		}
 		return roots, []Warning{{Path: file, Err: fmt.Errorf("%w: %v", domain.ErrLibraryUnreadable, err)}}
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	paths, err := library.ParseLibraryFolders(f)
 	if err != nil {
@@ -191,10 +191,6 @@ func loadLibrary(ctx context.Context, rawRoot string, appInfo *appinfo.File, res
 			warnings = append(warnings, Warning{Path: path, Err: err})
 			continue
 		}
-		app, hasAppInfo := appInfo.App(manifest.AppID)
-		if hasAppInfo && strings.EqualFold(strings.TrimSpace(app.Common.Type), "Tool") {
-			continue
-		}
 		game := domain.Game{
 			AppID:       manifest.AppID,
 			Name:        manifest.Name,
@@ -204,13 +200,17 @@ func loadLibrary(ctx context.Context, rawRoot string, appInfo *appinfo.File, res
 			Kind:        domain.KindUnknown,
 			Status:      domain.StatusUnknown,
 		}
-		if hasAppInfo && strings.TrimSpace(app.Common.Name) != "" {
-			game.Name = app.Common.Name
-		}
 		if !manifest.Installed {
 			game.Status = domain.StatusMissing
 			games = append(games, game)
 			continue
+		}
+		app, hasAppInfo := appInfo.App(manifest.AppID)
+		if hasAppInfo && strings.EqualFold(strings.TrimSpace(app.Common.Type), "Tool") {
+			continue
+		}
+		if hasAppInfo && strings.TrimSpace(app.Common.Name) != "" {
+			game.Name = app.Common.Name
 		}
 		info, err := os.Stat(installDir)
 		switch {

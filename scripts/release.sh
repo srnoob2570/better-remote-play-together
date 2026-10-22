@@ -359,10 +359,12 @@ PY
 run_checks() {
 	info "Ejecutando tests y vet..."
 	make test
+	make test-race
 	make vet
+	(cd frontend && npm test)
 	if command -v govulncheck >/dev/null 2>&1; then
 		info "Ejecutando govulncheck..."
-		govulncheck ./...
+		govulncheck -tags gtk3 ./...
 	else
 		info "aviso: govulncheck no está instalado; se omite"
 	fi

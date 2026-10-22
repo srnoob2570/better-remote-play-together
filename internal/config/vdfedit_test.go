@@ -83,6 +83,23 @@ func TestEditExistingLaunchOptionAndRestore(t *testing.T) {
 	}
 }
 
+func TestRestoreRejectsMissingOriginalToken(t *testing.T) {
+	data := []byte(`"UserLocalConfigStore" { "Software" { "Valve" { "Steam" { "apps" { "480" { "LaunchOptions" "old value" } } } } } }`)
+	edit, err := EditLaunchOption(data, "marker")
+	if err != nil {
+		t.Fatalf("edit: %v", err)
+	}
+	if edit.OriginalRaw == "" || edit.OriginalValue != "old value" {
+		t.Fatalf("original = %q/%q", edit.OriginalRaw, edit.OriginalValue)
+	}
+	if _, err := RestoreLaunchOption(edit.Data, RestoreSpec{
+		NewValue:      "marker",
+		OriginalValue: "old value",
+	}); !errors.Is(err, ErrBackupCorrupt) {
+		t.Fatalf("restore error = %v, want ErrBackupCorrupt", err)
+	}
+}
+
 func TestEditMissingAppAndRestore(t *testing.T) {
 	original := fixtureLocalConfig(t, "localconfig_missing.vdf")
 	marker := "marker-missing-app"
@@ -169,6 +186,13 @@ func TestEditFailsClosedOnMalformed(t *testing.T) {
 func TestEditFailsClosedOnConditional(t *testing.T) {
 	data := []byte(`"UserLocalConfigStore" { "Software" { "Valve" { "Steam" { "apps" { "480" { "LaunchOptions" "" [$WIN32] } } } } } }`)
 	if _, err := EditLaunchOption(data, "x"); !errors.Is(err, ErrLocalConfigUnsafe) {
+		t.Fatalf("error = %v, want ErrLocalConfigUnsafe", err)
+	}
+}
+
+func TestEditFailsClosedOnUnterminatedBlockComment(t *testing.T) {
+	data := []byte("\"UserLocalConfigStore\" { /* comment")
+	if _, err := ReadLaunchOption(data); !errors.Is(err, ErrLocalConfigUnsafe) {
 		t.Fatalf("error = %v, want ErrLocalConfigUnsafe", err)
 	}
 }

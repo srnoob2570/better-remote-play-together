@@ -289,3 +289,38 @@ func TestRecordGuideSetupWithoutLaunchOption(t *testing.T) {
 		t.Fatal("guide restore did not reproduce the original without a launch option")
 	}
 }
+
+func TestSetupRejectsDifferentSteamAccount(t *testing.T) {
+	root := transactionRoot(t, "localconfig.vdf")
+	options := setupOptions(t, root)
+	if _, err := InstallSetup(options); err != nil {
+		t.Fatalf("install: %v", err)
+	}
+	setup, err := LoadSetup(options.Paths)
+	if err != nil || setup == nil {
+		t.Fatalf("load setup: %+v, err=%v", setup, err)
+	}
+	if setup.Account.SteamID64 == "" {
+		t.Fatal("setup has no Steam account")
+	}
+	setup.Account = SteamAccount{SteamID64: "76561198000000000", AccountID: 22222222}
+	if err := SaveSetup(options.Paths, *setup); err != nil {
+		t.Fatalf("save setup: %v", err)
+	}
+	snapshot, err := DetectSetup(options.Paths, root)
+	if err != nil || snapshot.Status != SetupConflict {
+		t.Fatalf("snapshot = %+v, err=%v; want SetupConflict", snapshot, err)
+	}
+	before := readFixture(t, root)
+	_, err = RestoreSetup(RestoreSetupOptions{
+		Paths:        options.Paths,
+		SteamRoot:    root,
+		SteamRunning: func() (bool, error) { return false, nil },
+	})
+	if !errors.Is(err, ErrSetupConflict) {
+		t.Fatalf("restore error = %v, want ErrSetupConflict", err)
+	}
+	if after := readFixture(t, root); !bytes.Equal(after, before) {
+		t.Fatal("restore with a different account modified localconfig")
+	}
+}

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import re
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
@@ -72,10 +71,7 @@ def svg_colors(root: ET.Element) -> set[str]:
         value = value.strip().lower()
         if value in {"none", "transparent", "currentcolor"} or value.startswith("url("):
             return
-        if value.startswith("#"):
-            colors.add(value)
-        else:
-            colors.add(value)
+        colors.add(value)
 
     for node in root.iter():
         add(node.get("fill"))

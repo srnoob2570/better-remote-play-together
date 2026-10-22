@@ -26,6 +26,7 @@ type Deps struct {
 	Getenv          func(string) string
 	ReadFile        func(string) ([]byte, error)
 	Stat            func(string) (os.FileInfo, error)
+	Lstat           func(string) (os.FileInfo, error)
 	CanWrite        func(string, bool) error
 	LookPath        func(string) (string, error)
 	Run             func(context.Context, string, ...string) ([]byte, error)
@@ -68,6 +69,7 @@ func DefaultDeps(paths config.Paths, pathsErr error) *Deps {
 		Getenv:          os.Getenv,
 		ReadFile:        os.ReadFile,
 		Stat:            os.Stat,
+		Lstat:           os.Lstat,
 		CanWrite:        canWrite,
 		LookPath:        exec.LookPath,
 		Run:             runCommand,
@@ -137,7 +139,7 @@ func elfNeeded(path string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	return file.ImportedLibraries()
 }
 

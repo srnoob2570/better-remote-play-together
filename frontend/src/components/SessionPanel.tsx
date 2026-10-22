@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
@@ -524,13 +524,20 @@ function PreparingPanel({
   const cancelable = state.phase === "preparing";
   const showLaunchPrompt =
     state.phase === "launching" || state.phase === "donor_starting";
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
 
   return (
     <>
       <Hero game={game} title={game?.name ?? `#${state.targetAppId}`} />
       <div>
-        <h2 className="section-title">{t("prep.title")}</h2>
-        <p className="prep-current">
+        <h2 ref={headingRef} tabIndex={-1} className="section-title">
+          {t("prep.title")}
+        </h2>
+        <p className="prep-current" role="status" aria-live="polite">
           {t("prep.current", index + 1, PREP_STEPS.length, t(PREP_STEPS[index]))}
         </p>
       </div>

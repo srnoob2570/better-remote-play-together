@@ -53,9 +53,10 @@ func (e *evaluator) checkAppImage(ctx context.Context) {
 
 	mountStatus := e.checkAppImageMount()
 	mountKey := "diag.appimage.mount.ok"
-	if mountStatus == StatusFail {
+	switch mountStatus {
+	case StatusFail:
 		mountKey = "diag.appimage.mount.fail"
-	} else if mountStatus == StatusSkip {
+	case StatusSkip:
 		mountKey = "diag.appimage.mount.skip"
 	}
 	e.add(CheckMount, mountStatus, mountKey, nil, e.mountEvidence, e.mountNext,

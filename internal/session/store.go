@@ -106,6 +106,9 @@ func (s Store) ReadPlan(token string, now time.Time) (Plan, error) {
 	if err := plan.Validate(now); err != nil {
 		return Plan{}, err
 	}
+	if plan.Token != token {
+		return Plan{}, fmt.Errorf("%w: token mismatch", ErrPlanInvalid)
+	}
 	return plan, nil
 }
 
@@ -147,6 +150,9 @@ func (s Store) ReadState(token string) (State, error) {
 	if err := state.Validate(); err != nil {
 		return State{}, err
 	}
+	if state.Token != token {
+		return State{}, fmt.Errorf("%w: token mismatch", ErrStateInvalid)
+	}
 	return state, nil
 }
 
@@ -168,6 +174,9 @@ func (s Store) ListStates() ([]State, error) {
 		token := strings.TrimSuffix(strings.TrimPrefix(name, "state-"), ".json")
 		state, err := s.ReadState(token)
 		if err != nil {
+			if errors.Is(err, ErrStateMissing) || errors.Is(err, ErrStateInvalid) {
+				continue
+			}
 			return nil, err
 		}
 		states = append(states, state)
@@ -188,32 +197,10 @@ func (s Store) PruneStates(keep int) (int, error) {
 	if keep < 0 {
 		keep = 0
 	}
-	entries, err := os.ReadDir(s.Dir)
+	states, err := s.ListStates()
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return 0, nil
-		}
-		return 0, fmt.Errorf("%w: read session directory: %v", ErrStore, err)
+		return 0, err
 	}
-	states := make([]State, 0, len(entries))
-	for _, entry := range entries {
-		name := entry.Name()
-		if entry.IsDir() || !strings.HasPrefix(name, "state-") || !strings.HasSuffix(name, ".json") {
-			continue
-		}
-		token := strings.TrimSuffix(strings.TrimPrefix(name, "state-"), ".json")
-		state, err := s.ReadState(token)
-		if err != nil {
-			continue
-		}
-		states = append(states, state)
-	}
-	sort.SliceStable(states, func(i, j int) bool {
-		if states[i].UpdatedAt.Equal(states[j].UpdatedAt) {
-			return states[i].Token > states[j].Token
-		}
-		return states[i].UpdatedAt.After(states[j].UpdatedAt)
-	})
 	removed := 0
 	kept := 0
 	for _, state := range states {
@@ -272,10 +259,11 @@ func (s Store) RemoveExpiredPlans(now time.Time) ([]string, error) {
 		}
 		if _, err := s.ReadPlan(token, now); err == nil {
 			continue
-		} else if !errors.Is(err, ErrPlanExpired) {
-			if errors.Is(err, ErrPlanMissing) {
-				continue
-			}
+		} else if errors.Is(err, ErrPlanExpired) || errors.Is(err, ErrPlanInvalid) {
+			// Expired and unusable plans are removed; neither can arm a launch.
+		} else if errors.Is(err, ErrPlanMissing) {
+			continue
+		} else {
 			return nil, err
 		}
 		if err := s.RemovePlan(token); err != nil {

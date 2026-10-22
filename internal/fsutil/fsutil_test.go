@@ -103,6 +103,21 @@ func TestEnsurePrivateDir(t *testing.T) {
 	if got := info.Mode().Perm(); got != 0o700 {
 		t.Fatalf("tightened mode = %o, want 700", got)
 	}
+
+	readonly := filepath.Join(t.TempDir(), "readonly")
+	if err := os.Mkdir(readonly, 0o500); err != nil {
+		t.Fatalf("mkdir readonly: %v", err)
+	}
+	if err := EnsurePrivateDir(readonly); err != nil {
+		t.Fatalf("restore owner write: %v", err)
+	}
+	info, err = os.Stat(readonly)
+	if err != nil {
+		t.Fatalf("stat readonly: %v", err)
+	}
+	if got := info.Mode().Perm(); got != 0o700 {
+		t.Fatalf("readonly mode = %o, want 700", got)
+	}
 }
 
 func TestEnsurePrivateDirRejectsSymlink(t *testing.T) {

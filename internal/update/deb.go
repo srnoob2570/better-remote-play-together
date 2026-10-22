@@ -24,7 +24,7 @@ func (m *Manager) installDeb(
 	if err != nil {
 		return InstallResult{}, fmt.Errorf("%w: create temporary directory: %v", ErrDownload, err)
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 	if err := os.Chmod(dir, 0o700); err != nil {
 		return InstallResult{}, fmt.Errorf("%w: secure temporary directory: %v", ErrDownload, err)
 	}
@@ -34,16 +34,26 @@ func (m *Manager) installDeb(
 		return InstallResult{}, fmt.Errorf("%w: create package: %v", ErrDownload, err)
 	}
 	if err := m.downloadVerified(ctx, checksumURL, asset, file, progress); err != nil {
-		file.Close()
+		_ = file.Close()
 		return InstallResult{}, err
 	}
 	m.report(StageInstalling, 0, 0, progress)
 
-	pkexec, err := m.lookup("pkexec")
-	if err != nil {
-		return InstallResult{}, fmt.Errorf("%w: %v", ErrNoPkexec, err)
+	pkexec := m.pkexecPath
+	if pkexec == "" {
+		pkexec = "/usr/bin/pkexec"
 	}
-	command := exec.Command(pkexec, "dpkg", "-i", packagePath)
+	stat := m.env.stat
+	if stat == nil {
+		stat = os.Stat
+	}
+	info, err := stat(pkexec)
+	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0o111 == 0 {
+		return InstallResult{}, fmt.Errorf("%w: %s", ErrNoPkexec, pkexec)
+	}
+	// Pass an absolute, packaged dpkg path. Resolving "dpkg" here would let a
+	// PATH entry choose the program pkexec runs as root.
+	command := exec.Command(pkexec, "/usr/bin/dpkg", "-i", packagePath)
 	command.Stdin = nil
 	var output bytes.Buffer
 	command.Stdout = &output

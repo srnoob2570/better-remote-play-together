@@ -37,7 +37,7 @@ func TestInstanceLockWaitsForRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("first service: %v", err)
 	}
-	defer first.Close()
+	defer func() { _ = first.Close() }()
 	t.Setenv(waitForInstanceLockEnv, "1")
 	go func() {
 		time.Sleep(150 * time.Millisecond)
@@ -59,7 +59,7 @@ func TestInstanceLock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("first service: %v", err)
 	}
-	defer first.Close()
+	defer func() { _ = first.Close() }()
 
 	if _, err := NewWithPaths(paths, testLogger()); !errors.Is(err, domain.ErrInstanceLocked) {
 		t.Fatalf("second service error = %v, want ErrInstanceLocked", err)
@@ -89,9 +89,6 @@ func TestSetLanguagePersists(t *testing.T) {
 	if got := svc.Language(); got != "en" {
 		t.Fatalf("language = %q, want en", got)
 	}
-	if got := svc.Config().Language; got != "en" {
-		t.Fatalf("config language = %q, want en", got)
-	}
 	if err := svc.SetLanguage("fr"); !errors.Is(err, domain.ErrUnsupported) {
 		t.Fatalf("unsupported error = %v", err)
 	}
@@ -103,7 +100,7 @@ func TestSetLanguagePersists(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reopen: %v", err)
 	}
-	defer reopened.Close()
+	defer func() { _ = reopened.Close() }()
 	if got := reopened.Language(); got != "en" {
 		t.Fatalf("reopened language = %q, want en", got)
 	}
@@ -153,7 +150,7 @@ func TestRefreshCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("service: %v", err)
 	}
-	defer svc.Close()
+	defer func() { _ = svc.Close() }()
 
 	if _, ok := svc.Catalog(); ok {
 		t.Fatal("catalog available before refresh")

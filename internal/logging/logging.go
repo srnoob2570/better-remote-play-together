@@ -65,7 +65,7 @@ func Tail(paths config.Paths, lines int) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	info, err := file.Stat()
 	if err != nil {
 		return nil, err
@@ -147,9 +147,12 @@ func (w *rotatingWriter) Write(data []byte) (int, error) {
 		return 0, errors.New("log file is closed")
 	}
 	if w.size > 0 && w.size+int64(len(data)) > w.maxBytes {
-		if err := w.rotateLocked(); err != nil {
-			return 0, err
+		if rotateErr := w.rotateLocked(); rotateErr != nil && w.file == nil {
+			return 0, rotateErr
 		}
+	}
+	if w.file == nil {
+		return 0, errors.New("log file is closed")
 	}
 	n, err := w.file.Write(data)
 	w.size += int64(n)
@@ -168,6 +171,16 @@ func (w *rotatingWriter) Close() error {
 }
 
 func (w *rotatingWriter) openLocked() error {
+	if err := w.reopenLocked(); err != nil {
+		return err
+	}
+	if w.size > w.maxBytes {
+		return w.rotateLocked()
+	}
+	return nil
+}
+
+func (w *rotatingWriter) reopenLocked() error {
 	file, err := os.OpenFile(w.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return fmt.Errorf("open log: %w", err)
@@ -179,19 +192,24 @@ func (w *rotatingWriter) openLocked() error {
 	}
 	w.file = file
 	w.size = info.Size()
-	if w.size > w.maxBytes {
-		return w.rotateLocked()
-	}
 	return nil
 }
 
-func (w *rotatingWriter) rotateLocked() error {
+func (w *rotatingWriter) rotateLocked() (err error) {
 	if w.file != nil {
-		if err := w.file.Close(); err != nil {
-			return fmt.Errorf("close log for rotation: %w", err)
-		}
+		closeErr := w.file.Close()
 		w.file = nil
+		if closeErr != nil {
+			return fmt.Errorf("close log for rotation: %w", closeErr)
+		}
 	}
+	defer func() {
+		if err != nil {
+			if reopenErr := w.reopenLocked(); reopenErr != nil {
+				err = fmt.Errorf("%w; reopen log: %v", err, reopenErr)
+			}
+		}
+	}()
 	for index := w.backups - 1; index >= 1; index-- {
 		from := fmt.Sprintf("%s.%d", w.path, index)
 		to := fmt.Sprintf("%s.%d", w.path, index+1)

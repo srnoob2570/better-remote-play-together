@@ -67,7 +67,10 @@ func (e *evaluator) checkSteam(ctx context.Context) {
 	} else {
 		spaceWar := false
 		for _, game := range catalog.Games {
-			if game.AppID == domain.SpaceWarAppID {
+			if game.AppID == domain.SpaceWarAppID &&
+				game.Status != domain.StatusMissing &&
+				game.Status != domain.StatusError &&
+				game.Status != domain.StatusIncompatible {
 				spaceWar = true
 				break
 			}

@@ -42,7 +42,7 @@ func TestRotatingWriterKeepsBackups(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer writer.Close()
+	defer func() { _ = writer.Close() }()
 	for i := 0; i < 5; i++ {
 		if _, err := writer.Write([]byte(strings.Repeat("x", 15) + "\n")); err != nil {
 			t.Fatal(err)

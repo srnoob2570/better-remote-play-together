@@ -41,17 +41,3 @@ func TestStoreLockContention(t *testing.T) {
 		t.Fatalf("lock mode = %o, want 600", info.Mode().Perm())
 	}
 }
-
-func TestEnsureSessionDir(t *testing.T) {
-	dir := t.TempDir() + "/sessions"
-	if err := EnsureSessionDir(dir); err != nil {
-		t.Fatalf("ensure: %v", err)
-	}
-	info, err := os.Stat(dir)
-	if err != nil {
-		t.Fatalf("stat: %v", err)
-	}
-	if info.Mode().Perm() != 0o700 {
-		t.Fatalf("mode = %o, want 700", info.Mode().Perm())
-	}
-}

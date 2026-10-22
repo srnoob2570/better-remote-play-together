@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"sync"
 
 	"github.com/srnoob2570/better-rpt/internal/config"
@@ -41,19 +40,6 @@ type catalogRefresh struct {
 	err     error
 }
 
-// New resolves the user paths, loads the configuration and takes the
-// single-instance lock. It refuses to run as root.
-func New(logger *slog.Logger) (*Service, error) {
-	if err := domain.RefuseRoot(os.Geteuid()); err != nil {
-		return nil, err
-	}
-	paths, err := config.ResolvePaths()
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", domain.ErrPaths, err)
-	}
-	return NewWithPaths(paths, logger)
-}
-
 // NewWithPaths is the testable constructor. It does not check the effective
 // uid; the command entry points own that policy.
 func NewWithPaths(paths config.Paths, logger *slog.Logger) (*Service, error) {
@@ -69,7 +55,7 @@ func NewWithPaths(paths config.Paths, logger *slog.Logger) (*Service, error) {
 	}
 	cfg, err := config.Load(paths)
 	if err != nil {
-		lock.Close()
+		_ = lock.Close()
 		return nil, fmt.Errorf("%w: %v", domain.ErrConfig, err)
 	}
 	lang := cfg.Language
@@ -120,13 +106,6 @@ func (s *Service) EnsureHelper() error {
 		return fmt.Errorf("ensure helper: %w", err)
 	}
 	return nil
-}
-
-// Config returns a copy of the current configuration.
-func (s *Service) Config() config.Config {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.cfg
 }
 
 // Language returns the effective UI language.

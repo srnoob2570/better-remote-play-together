@@ -179,6 +179,9 @@ func (m *Manager) Start(ctx context.Context, options StartOptions) (Active, erro
 		return Active{}, fmt.Errorf("%w: install or paste the dispatcher from the guide first", config.ErrSetupMissing)
 	}
 
+	if err := ctx.Err(); err != nil {
+		return Active{}, err
+	}
 	token, err := NewToken()
 	if err != nil {
 		return Active{}, err
@@ -186,6 +189,10 @@ func (m *Manager) Start(ctx context.Context, options StartOptions) (Active, erro
 	now := m.now()
 	plan := NewPlan(token, options.TargetAppID, *game.Launch, now)
 	if err := m.Store.WritePlan(plan); err != nil {
+		return Active{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		_ = m.Store.RemovePlan(token)
 		return Active{}, err
 	}
 	preparing := NewState(plan, domain.PhasePreparing, now)
@@ -196,8 +203,19 @@ func (m *Manager) Start(ctx context.Context, options StartOptions) (Active, erro
 	if options.OnState != nil {
 		options.OnState(preparing)
 	}
+	if err := ctx.Err(); err != nil {
+		_ = m.Store.RemovePlan(token)
+		_ = m.Store.RemoveState(token)
+		return Active{}, err
+	}
 	intent := NewIntent(token, options.TargetAppID, now)
 	if err := m.Store.WriteIntent(intent); err != nil {
+		_ = m.Store.RemovePlan(token)
+		_ = m.Store.RemoveState(token)
+		return Active{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		_ = m.Store.ClearIntent()
 		_ = m.Store.RemovePlan(token)
 		_ = m.Store.RemoveState(token)
 		return Active{}, err
@@ -252,7 +270,7 @@ func (m *Manager) Start(ctx context.Context, options StartOptions) (Active, erro
 		return result, err
 	}
 
-	deadline := now.Add(m.startupTimeout())
+	deadline := m.now().Add(m.startupTimeout())
 	for {
 		state, readErr := m.Store.ReadState(token)
 		if readErr == nil {
@@ -325,10 +343,8 @@ func (m *Manager) Replay(ctx context.Context) (Active, error) {
 	if !ok || game.Launch == nil {
 		return Active{}, fmt.Errorf("%w: last app %d is no longer installed", domain.ErrInvalidLaunchSpec, last.AppID)
 	}
-	if len(last.Parameters) > 0 {
-		if !sameStrings(last.Parameters, game.Launch.Arguments) {
-			return Active{}, fmt.Errorf("%w: last launch parameters changed for app %d", domain.ErrInvalidLaunchSpec, last.AppID)
-		}
+	if !sameStrings(last.Parameters, game.Launch.Arguments) {
+		return Active{}, fmt.Errorf("%w: last launch parameters changed for app %d", domain.ErrInvalidLaunchSpec, last.AppID)
 	}
 	return m.Start(ctx, StartOptions{TargetAppID: last.AppID})
 }
@@ -337,6 +353,11 @@ func (m *Manager) Replay(ctx context.Context) (Active, error) {
 // while the helper is alive and never closes Steam; with Steam open the caller
 // must show the manual guide.
 func (m *Manager) Restore(ctx context.Context, token string) error {
+	if locked, err := m.Store.Locked(); err != nil {
+		return err
+	} else if locked {
+		return ErrSessionBusy
+	}
 	state, err := m.Store.ReadState(token)
 	if err != nil && !errors.Is(err, ErrStateMissing) {
 		return err
@@ -365,6 +386,11 @@ func (m *Manager) InstallSetup(ctx context.Context) (config.Setup, error) {
 		if err := ctx.Err(); err != nil {
 			return config.Setup{}, err
 		}
+	}
+	if locked, err := m.Store.Locked(); err != nil {
+		return config.Setup{}, err
+	} else if locked {
+		return config.Setup{}, ErrSessionBusy
 	}
 	if m.Installer == nil {
 		m.Installer = helper.NewInstaller(m.Paths)
@@ -643,7 +669,7 @@ func (m *Manager) reconcileSteamLast(last *LastLaunch, local config.LocalState) 
 	if last != nil {
 		// A Better RPT record for the same app carries the token and exact
 		// parameters needed by Replay. Steam's LastPlayed must not erase them.
-		if last.AppID == played.AppID {
+		if last.AppID == played.AppID && last.Source == SourceBetterRPT {
 			return last
 		}
 		if !played.At.After(last.StartedAt) {
@@ -689,11 +715,15 @@ func (m *Manager) reconcileLast(last *LastLaunch) *LastLaunch {
 			changed = true
 		}
 	case domain.PhaseEnded:
-		last.Outcome = LaunchOK
-		changed = true
+		if last.Outcome != LaunchOK {
+			last.Outcome = LaunchOK
+			changed = true
+		}
 	case domain.PhaseError:
-		last.Outcome = LaunchError
-		changed = true
+		if last.Outcome != LaunchError {
+			last.Outcome = LaunchError
+			changed = true
+		}
 	}
 	if !state.EndedAt.IsZero() && !state.EndedAt.Equal(last.EndedAt) {
 		last.EndedAt = state.EndedAt

@@ -25,9 +25,10 @@ func (e *evaluator) checkEnvironment(ctx context.Context) {
 
 	osStatus := e.checkOS()
 	osKey := "diag.system.os.ok"
-	if osStatus == StatusSkip {
+	switch osStatus {
+	case StatusSkip:
 		osKey = "diag.system.os.skip"
-	} else if osStatus == StatusWarn {
+	case StatusWarn:
 		osKey = "diag.system.os.warn"
 	}
 	e.add(CheckOS, osStatus, osKey, nil, e.osEvidence, "")
@@ -49,20 +50,22 @@ func (e *evaluator) checkEnvironment(ctx context.Context) {
 
 	glibcStatus := e.checkGlibc(ctx)
 	glibcKey := "diag.system.glibc.ok"
-	if glibcStatus == StatusSkip {
+	switch glibcStatus {
+	case StatusSkip:
 		glibcKey = "diag.system.glibc.skip"
-	} else if glibcStatus == StatusFail {
+	case StatusFail:
 		glibcKey = "diag.system.glibc.fail"
 	}
 	e.add(CheckGlibc, glibcStatus, glibcKey, nil, e.glibcEvidence, e.glibcNext, "docs/appimage.md")
 
 	locale := firstNonEmpty(e.env("LC_ALL"), e.env("LC_MESSAGES"), e.env("LANG"))
-	if locale == "" {
+	switch locale {
+	case "":
 		e.add(CheckLocale, StatusSkip, "diag.system.locale.skip", nil, nil, "")
-	} else if locale == "C" || locale == "POSIX" {
+	case "C", "POSIX":
 		e.add(CheckLocale, StatusWarn, "diag.system.locale.warn", []any{locale}, []string{"locale=" + locale},
 			"diag.system.locale.next")
-	} else {
+	default:
 		e.add(CheckLocale, StatusOK, "", nil, []string{"locale=" + locale}, "")
 	}
 
@@ -80,9 +83,9 @@ func (e *evaluator) checkEnvironment(ctx context.Context) {
 		evidence = append(evidence, "DISPLAY="+display)
 	}
 	switch {
-	case wayland != "" || sessionType == "wayland":
+	case wayland != "":
 		e.add(CheckSessionEnv, StatusOK, "diag.system.session.wayland", nil, evidence, "")
-	case display != "" || sessionType == "x11":
+	case display != "":
 		e.add(CheckSessionEnv, StatusOK, "diag.system.session.x11", nil, evidence, "")
 	default:
 		e.add(CheckSessionEnv, StatusFail, "diag.system.session.fail", nil, evidence,

@@ -100,14 +100,13 @@ func RenderMarkdown(report Report) string {
 	out.WriteString(tr.T("diag.markdown.language") + ": " + report.Language + "\n\n")
 	out.WriteString("## " + tr.T("diag.markdown.summary") + "\n\n")
 	out.WriteString(tr.T("diag.markdown.verdict") + ": **" + tr.T("diag.status."+string(report.Summary.Verdict)) + "**\n\n")
-	out.WriteString(fmt.Sprintf("%s: %d / %d / %d / %d / %d\n\n",
+	fmt.Fprintf(&out, "%s: %d / %d / %d / %d / %d\n\n",
 		tr.T("diag.markdown.counts"),
 		report.Summary.Counts.OK,
 		report.Summary.Counts.Warn,
 		report.Summary.Counts.Fail,
 		report.Summary.Counts.Skip,
-		report.Summary.Total,
-	))
+		report.Summary.Total)
 	out.WriteString("## " + tr.T("diag.markdown.checks") + "\n\n")
 	for _, check := range report.Checks {
 		out.WriteString("### " + check.Title + " (`" + check.ID + "`)\n\n")

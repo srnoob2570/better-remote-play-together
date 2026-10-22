@@ -80,6 +80,7 @@ export function useSession(): SessionController {
   const [dialog, setDialog] = useState<SessionDialog>(null);
   const warned = useRef(new Set<number>());
   const dialogInvoker = useRef<HTMLElement | null>(null);
+  const pollInFlight = useRef(false);
 
   const openDialog = useCallback((next: Exclude<SessionDialog, null>) => {
     const active = document.activeElement;
@@ -133,7 +134,8 @@ export function useSession(): SessionController {
     if (!state?.token || isTerminal(state.phase)) return;
     let alive = true;
     const tick = async () => {
-      if (document.visibilityState === "hidden") return;
+      if (pollInFlight.current || document.visibilityState === "hidden") return;
+      pollInFlight.current = true;
       try {
         const next = await bridge.SessionState(state.token);
         if (!alive) return;
@@ -143,6 +145,8 @@ export function useSession(): SessionController {
         if (isTerminal(next.phase)) await refreshContext();
       } catch {
         // A transient read failure must not discard the last known state.
+      } finally {
+        pollInFlight.current = false;
       }
     };
     const onVisibility = () => {

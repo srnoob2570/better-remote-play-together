@@ -22,8 +22,11 @@ const (
 	magicV41 = 0x07564429
 	magicV40 = 0x07564428
 
-	headerSize     = 16
-	fixedEntrySize = 60
+	headerSize        = 16
+	fixedEntrySize    = 60
+	maxAppEntries     = 1 << 20
+	maxStringEntries  = 1 << 20
+	maxParserWarnings = 100
 )
 
 var (
@@ -34,11 +37,11 @@ var (
 	ErrUnsupportedVersion = errors.New("unsupported Steam appinfo version")
 	// ErrCorrupt means the file-level structure (header, footer, string table
 	// or entry boundaries) is invalid.
-	ErrCorrupt = errors.New("Steam appinfo file is corrupt")
+	ErrCorrupt = errors.New("appinfo file is corrupt")
 	// ErrAppCorrupt means one app record is invalid; other records remain usable.
-	ErrAppCorrupt = errors.New("Steam appinfo record is corrupt")
+	ErrAppCorrupt = errors.New("appinfo record is corrupt")
 	// ErrAppNotFound means the cache has no usable record for an app ID.
-	ErrAppNotFound = errors.New("Steam appinfo record not found")
+	ErrAppNotFound = errors.New("appinfo record not found")
 )
 
 // Common is the app's common metadata.
@@ -188,6 +191,7 @@ func parseData(data []byte) (*File, error) {
 	}
 	pos := headerSize
 	sawFooter := false
+	entryCount := 0
 	for pos < tableOffset {
 		if tableOffset-pos < 4 {
 			return nil, fmt.Errorf("%w: truncated app id", ErrCorrupt)
@@ -211,13 +215,17 @@ func parseData(data []byte) (*File, error) {
 		}
 		end := pos + size
 		if size < fixedEntrySize {
-			file.warnings = append(file.warnings, Warning{
+			file.addWarning(Warning{
 				AppID:  appID,
 				Offset: int64(pos),
 				Err:    fmt.Errorf("%w: entry is %d bytes, need at least %d", ErrAppCorrupt, size, fixedEntrySize),
 			})
 			pos = end
 			continue
+		}
+		entryCount++
+		if entryCount > maxAppEntries {
+			return nil, fmt.Errorf("%w: too many app entries", ErrCorrupt)
 		}
 		file.entries[appID] = appEntry{data: data[pos:end], offset: int64(pos)}
 		pos = end
@@ -233,6 +241,13 @@ func parseData(data []byte) (*File, error) {
 	return file, nil
 }
 
+func (f *File) addWarning(warning Warning) {
+	if len(f.warnings) >= maxParserWarnings {
+		return
+	}
+	f.warnings = append(f.warnings, warning)
+}
+
 func parseStringTable(data []byte) ([]string, error) {
 	if len(data) < 4 {
 		return nil, fmt.Errorf("%w: truncated string table", ErrCorrupt)
@@ -241,7 +256,14 @@ func parseStringTable(data []byte) ([]string, error) {
 	if uint64(count) > uint64(len(data)-4) {
 		return nil, fmt.Errorf("%w: impossible string count %d", ErrCorrupt, count)
 	}
-	strings := make([]string, 0, count)
+	if count > maxStringEntries {
+		return nil, fmt.Errorf("%w: too many strings %d", ErrCorrupt, count)
+	}
+	capacity := count
+	if capacity > 4096 {
+		capacity = 4096
+	}
+	strings := make([]string, 0, capacity)
 	pos := 4
 	for i := uint32(0); i < count; i++ {
 		n := bytes.IndexByte(data[pos:], 0)
@@ -340,7 +362,7 @@ func (f *File) appLocked(id uint32) (App, bool) {
 	}
 	app, err := parseAppRecord(id, entry.data, f.strings, entry.offset)
 	if err != nil {
-		f.warnings = append(f.warnings, Warning{AppID: id, Offset: entry.offset, Err: err})
+		f.addWarning(Warning{AppID: id, Offset: entry.offset, Err: err})
 		f.failed[id] = true
 		return App{}, false
 	}

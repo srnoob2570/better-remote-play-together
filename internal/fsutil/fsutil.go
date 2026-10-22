@@ -27,7 +27,7 @@ func EnsurePrivateDir(dir string) error {
 	if !info.IsDir() {
 		return fmt.Errorf("%s is not a directory", dir)
 	}
-	if info.Mode().Perm()&0o077 != 0 {
+	if info.Mode().Perm() != 0o700 {
 		if err := os.Chmod(dir, 0o700); err != nil {
 			return fmt.Errorf("tighten directory %s: %w", dir, err)
 		}
@@ -50,22 +50,22 @@ func AtomicWriteFile(path string, data []byte, perm os.FileMode) error {
 		return fmt.Errorf("create temporary file for %s: %w", path, err)
 	}
 	tmpName := tmp.Name()
-	defer os.Remove(tmpName)
+	defer func() { _ = os.Remove(tmpName) }()
 
 	if err := tmp.Chmod(perm); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return fmt.Errorf("set permissions on temporary file: %w", err)
 	}
 	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return fmt.Errorf("write temporary file: %w", err)
 	}
 	if err := copyXattrs(path, tmpName); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return err
 	}
 	if err := tmp.Sync(); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return fmt.Errorf("sync temporary file: %w", err)
 	}
 	if err := tmp.Close(); err != nil {
@@ -184,7 +184,7 @@ func syncDir(dir string) error {
 	if err != nil {
 		return fmt.Errorf("open directory %s: %w", dir, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	if err := f.Sync(); err != nil && !errors.Is(err, syscall.EINVAL) {
 		return fmt.Errorf("sync directory %s: %w", dir, err)
 	}

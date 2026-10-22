@@ -315,6 +315,10 @@ func DetectSetupFromState(paths Paths, state LocalState) (SetupSnapshot, error) 
 		}
 		return snapshot, nil
 	}
+	if !sameSteamAccount(setup.Account, state.Account) {
+		snapshot.Status = SetupConflict
+		return snapshot, nil
+	}
 	switch setup.Status {
 	case SetupGuide, SetupInstalled:
 		switch {
@@ -357,6 +361,9 @@ func RestoreSetup(options RestoreSetupOptions) (Restored, error) {
 	if err != nil {
 		return Restored{}, err
 	}
+	if !sameSteamAccount(setup.Account, account) {
+		return Restored{}, fmt.Errorf("%w: setup belongs to another Steam account", ErrSetupConflict)
+	}
 	originalRaw, err := base64.StdEncoding.DecodeString(setup.Backup.Meta.OriginalRawTokenBase64)
 	if err != nil {
 		return Restored{}, fmt.Errorf("%w: decode original token: %v", ErrBackupCorrupt, err)
@@ -394,4 +401,11 @@ func RestoreSetup(options RestoreSetupOptions) (Restored, error) {
 		return restored, err
 	}
 	return restored, nil
+}
+
+func sameSteamAccount(a, b SteamAccount) bool {
+	if a.SteamID64 == "" || b.SteamID64 == "" {
+		return true
+	}
+	return a.SteamID64 == b.SteamID64 && a.AccountID == b.AccountID
 }

@@ -132,7 +132,7 @@ func (h *artHandler) serveFile(w http.ResponseWriter, r *http.Request, path stri
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	info, err := file.Stat()
 	if err != nil {

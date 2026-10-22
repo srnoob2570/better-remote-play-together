@@ -286,19 +286,18 @@ func PruneBackups(paths Paths, keep int, protect string) error {
 		return err
 	}
 	removed := 0
-	for _, backup := range backups {
-		if removed < len(backups)-keep {
-			if backup.Path == protect || backup.MetaPath == protect {
-				continue
-			}
-			if err := os.Remove(backup.Path); err != nil && !errors.Is(err, fs.ErrNotExist) {
-				return fmt.Errorf("%w: remove %s: %v", ErrBackup, backup.Path, err)
-			}
-			if err := os.Remove(backup.MetaPath); err != nil && !errors.Is(err, fs.ErrNotExist) {
-				return fmt.Errorf("%w: remove %s: %v", ErrBackup, backup.MetaPath, err)
-			}
-			removed++
+	for index := len(backups) - 1; index >= 0 && removed < len(backups)-keep; index-- {
+		backup := backups[index]
+		if backup.Path == protect || backup.MetaPath == protect {
+			continue
 		}
+		if err := os.Remove(backup.Path); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("%w: remove %s: %v", ErrBackup, backup.Path, err)
+		}
+		if err := os.Remove(backup.MetaPath); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("%w: remove %s: %v", ErrBackup, backup.MetaPath, err)
+		}
+		removed++
 	}
 	return nil
 }

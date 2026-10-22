@@ -122,8 +122,16 @@ func ensureControllerConfigSet(path, template string) (controllerConfigOutcome, 
 	if err != nil {
 		return 0, err
 	}
-	if entry := findVDFChild(root, controllerAppID); entry != nil {
-		if value, ok := scalarVDFChild(entry, controllerTemplateKey); ok && value == template {
+	entry, err := uniqueVDFChild(root, controllerAppID)
+	if err != nil {
+		return 0, err
+	}
+	if entry != nil {
+		value, ok, err := uniqueScalarVDFChild(entry, controllerTemplateKey)
+		if err != nil {
+			return 0, err
+		}
+		if ok && value == template {
 			return controllerConfigAlready, nil
 		}
 		autosave, ok := autosaveVDFChild(entry)
@@ -198,24 +206,32 @@ func controllerConfigObject(document *vdfDocument) (*vdfNode, error) {
 	return root, nil
 }
 
-func findVDFChild(object *vdfNode, key string) *vdfNode {
+func uniqueVDFChild(object *vdfNode, key string) (*vdfNode, error) {
 	if object == nil || object.Object == nil {
-		return nil
+		return nil, nil
 	}
+	var found *vdfNode
 	for _, child := range object.Object.Children {
-		if child.Key == key {
-			return child
+		if child.Key != key {
+			continue
 		}
+		if found != nil {
+			return nil, fmt.Errorf("%w: duplicate %q key", ErrControllerConfig, key)
+		}
+		found = child
 	}
-	return nil
+	return found, nil
 }
 
-func scalarVDFChild(object *vdfNode, key string) (string, bool) {
-	child := findVDFChild(object, key)
-	if child == nil || child.Object != nil {
-		return "", false
+func uniqueScalarVDFChild(object *vdfNode, key string) (string, bool, error) {
+	child, err := uniqueVDFChild(object, key)
+	if err != nil {
+		return "", false, err
 	}
-	return child.Value, true
+	if child == nil || child.Object != nil {
+		return "", false, nil
+	}
+	return child.Value, true, nil
 }
 
 func insertControllerTemplate(data []byte, object *vdfObject, template string) ([]byte, error) {
@@ -258,8 +274,14 @@ func verifyControllerTemplate(data []byte, template string) error {
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrControllerConfigVerify, err)
 	}
-	entry := findVDFChild(root, controllerAppID)
-	value, ok := scalarVDFChild(entry, controllerTemplateKey)
+	entry, err := uniqueVDFChild(root, controllerAppID)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrControllerConfigVerify, err)
+	}
+	value, ok, err := uniqueScalarVDFChild(entry, controllerTemplateKey)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrControllerConfigVerify, err)
+	}
 	if !ok || value != template {
 		return fmt.Errorf("%w: %s template missing after edit", ErrControllerConfigVerify, controllerAppID)
 	}

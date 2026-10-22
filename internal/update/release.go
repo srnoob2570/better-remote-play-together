@@ -177,7 +177,7 @@ func verifyFile(path, expected string) error {
 	if err != nil {
 		return fmt.Errorf("%w: open %s: %v", ErrChecksum, path, err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
 		return fmt.Errorf("%w: read %s: %v", ErrChecksum, path, err)
@@ -250,7 +250,7 @@ func (m *Manager) downloadTo(
 	if err != nil {
 		return mapRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.Request == nil || response.Request.URL == nil || response.Request.URL.Scheme != "https" {
 		return fmt.Errorf("%w: final download URL is not HTTPS", ErrInvalidResponse)
 	}
@@ -296,7 +296,7 @@ func fetchBytes(ctx context.Context, client *http.Client, target, userAgent stri
 	if err != nil {
 		return nil, mapRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.Request == nil || response.Request.URL == nil || response.Request.URL.Scheme != "https" {
 		return nil, fmt.Errorf("%w: final URL is not HTTPS", ErrInvalidResponse)
 	}
@@ -340,6 +340,8 @@ func mapRequestError(err error) error {
 		return fmt.Errorf("%w: %v", ErrTimeout, err)
 	case errors.Is(err, context.Canceled):
 		return fmt.Errorf("%w: %v", ErrCanceled, err)
+	case errors.Is(err, ErrInvalidResponse):
+		return err
 	default:
 		return fmt.Errorf("%w: %v", ErrNetwork, err)
 	}

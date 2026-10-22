@@ -25,6 +25,7 @@ type vdfToken struct {
 type vdfLexer struct {
 	data []byte
 	pos  int
+	err  error
 }
 
 type vdfNode struct {
@@ -93,6 +94,9 @@ func parseVDFDocument(data []byte) (*vdfDocument, error) {
 	root := &vdfObject{Open: 0, Close: len(data)}
 	for {
 		lexer.skipSpace()
+		if lexer.err != nil {
+			return nil, lexer.err
+		}
 		if lexer.pos >= len(data) {
 			break
 		}
@@ -117,6 +121,9 @@ func parseVDFPair(lexer *vdfLexer) (*vdfNode, error) {
 		return nil, fmt.Errorf("%w: expected key at byte %d", ErrLocalConfigUnsafe, key.start)
 	}
 	lexer.skipSpace()
+	if lexer.err != nil {
+		return nil, lexer.err
+	}
 	value, err := lexer.next()
 	if err != nil {
 		return nil, err
@@ -147,6 +154,9 @@ func parseVDFPair(lexer *vdfLexer) (*vdfNode, error) {
 		return nil, fmt.Errorf("%w: key %q has no scalar or object value", ErrLocalConfigUnsafe, node.Key)
 	}
 	lexer.skipSpace()
+	if lexer.err != nil {
+		return nil, lexer.err
+	}
 	if lexer.pos < len(lexer.data) && lexer.data[lexer.pos] == '[' {
 		condition, err := lexer.next()
 		if err != nil {
@@ -165,6 +175,9 @@ func parseVDFObject(lexer *vdfLexer, open int) (*vdfObject, error) {
 	object := &vdfObject{Open: open}
 	for {
 		lexer.skipSpace()
+		if lexer.err != nil {
+			return nil, lexer.err
+		}
 		if lexer.pos >= len(lexer.data) {
 			return nil, fmt.Errorf("%w: unterminated object at byte %d", ErrLocalConfigUnsafe, open)
 		}
@@ -196,11 +209,13 @@ func (l *vdfLexer) skipSpace() {
 				l.pos++
 			}
 		case '*':
+			start := l.pos
 			l.pos += 2
-			for l.pos+1 < len(l.data) && !(l.data[l.pos] == '*' && l.data[l.pos+1] == '/') {
+			for l.pos+1 < len(l.data) && (l.data[l.pos] != '*' || l.data[l.pos+1] != '/') {
 				l.pos++
 			}
 			if l.pos+1 >= len(l.data) {
+				l.err = fmt.Errorf("%w: unterminated block comment at byte %d", ErrLocalConfigUnsafe, start)
 				return
 			}
 			l.pos += 2
@@ -212,6 +227,9 @@ func (l *vdfLexer) skipSpace() {
 
 func (l *vdfLexer) next() (vdfToken, error) {
 	l.skipSpace()
+	if l.err != nil {
+		return vdfToken{}, l.err
+	}
 	if l.pos >= len(l.data) {
 		return vdfToken{kind: vdfTokenEOF, start: len(l.data), end: len(l.data)}, nil
 	}
@@ -471,6 +489,11 @@ func RestoreLaunchOption(data []byte, spec RestoreSpec) ([]byte, error) {
 	case spec.CreatedLaunchOptions:
 		updated = removeNode(data, launch)
 	default:
+		// A legacy backup without the original raw token cannot restore a
+		// non-empty launch option; clearing it would destroy user data.
+		if spec.OriginalValue != "" {
+			return nil, fmt.Errorf("%w: original launch option token is missing", ErrBackupCorrupt)
+		}
 		empty, err := encodeVDFValue("")
 		if err != nil {
 			return nil, err

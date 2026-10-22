@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 func (e *evaluator) checkApp(ctx context.Context) {
@@ -24,9 +26,10 @@ func (e *evaluator) checkApp(ctx context.Context) {
 
 	configStatus := e.checkConfig()
 	configKey := "diag.app.config.ok"
-	if configStatus == StatusFail {
+	switch configStatus {
+	case StatusFail:
 		configKey = "diag.app.config.fail"
-	} else if configStatus == StatusSkip {
+	case StatusSkip:
 		configKey = "diag.app.config.skip"
 	}
 	e.add(CheckConfig, configStatus, configKey, nil, e.configEvidence, e.configNext,
@@ -42,9 +45,10 @@ func (e *evaluator) checkApp(ctx context.Context) {
 
 	lockStatus := e.checkLock()
 	lockKey := "diag.app.lock.ok"
-	if lockStatus == StatusWarn {
+	switch lockStatus {
+	case StatusWarn:
 		lockKey = "diag.app.lock.warn"
-	} else if lockStatus == StatusSkip {
+	case StatusSkip:
 		lockKey = "diag.app.lock.skip"
 	}
 	e.add(CheckLock, lockStatus, lockKey, nil, e.lockEvidence, e.lockNext,
@@ -65,9 +69,10 @@ func (e *evaluator) checkApp(ctx context.Context) {
 
 	logsStatus := e.checkLogs()
 	logsKey := "diag.app.logs.ok"
-	if logsStatus == StatusWarn {
+	switch logsStatus {
+	case StatusWarn:
 		logsKey = "diag.app.logs.warn"
-	} else if logsStatus == StatusSkip {
+	case StatusSkip:
 		logsKey = "diag.app.logs.skip"
 	}
 	e.add(CheckLogs, logsStatus, logsKey, nil, e.logsEvidence, e.logsNext,
@@ -108,10 +113,24 @@ func (e *evaluator) checkXDG() Status {
 			failed++
 			continue
 		}
-		info, err := e.deps.Stat(dir.path)
+		lstat := e.deps.Lstat
+		if lstat == nil {
+			lstat = e.deps.Stat
+		}
+		info, err := lstat(dir.path)
 		if err == nil {
+			if info.Mode()&os.ModeSymlink != 0 {
+				e.xdgEvidence = append(e.xdgEvidence, dir.name+"=symlink")
+				failed++
+				continue
+			}
 			if !info.IsDir() {
 				e.xdgEvidence = append(e.xdgEvidence, dir.name+"=not a directory")
+				failed++
+				continue
+			}
+			if stat, ok := info.Sys().(*syscall.Stat_t); ok && int(stat.Uid) != e.deps.EUID {
+				e.xdgEvidence = append(e.xdgEvidence, fmt.Sprintf("%s=owner uid %d", dir.name, stat.Uid))
 				failed++
 				continue
 			}

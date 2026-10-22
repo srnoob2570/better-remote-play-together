@@ -16,7 +16,7 @@ tasks:
       - task: build:frontend
         vars:
           DEV: '{{.DEV}}'
-      - CGO_ENABLED=1 go build -tags '{{if eq .DEV "true"}}gtk3{{else}}gtk3 production{{end}}' -trimpath -buildvcs=false -ldflags '-s -w -X main.version={{.VERSION}}' -o {{.BIN_DIR}}/{{.APP_NAME}} ./cmd/better-rpt
+      - GOTOOLCHAIN=local CGO_ENABLED=1 go build -tags '{{if eq .DEV "true"}}gtk3{{else}}gtk3 production{{end}}' -trimpath -buildvcs=false -ldflags '-s -w -X main.version={{.VERSION}}' -o {{.BIN_DIR}}/{{.APP_NAME}} ./cmd/better-rpt
 
   frontend:
     cmds:
@@ -26,8 +26,11 @@ tasks:
 
   install:frontend:
     dir: frontend
-    status:
-      - test -d node_modules
+    sources:
+      - package.json
+      - package-lock.json
+    generates:
+      - node_modules/.package-lock.json
     cmds:
       - npm ci
 
@@ -42,7 +45,7 @@ tasks:
 
   dev:
     cmds:
-      - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
+      - ./scripts/dev.sh
 
   dev:frontend:
     dir: frontend

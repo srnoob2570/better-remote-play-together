@@ -46,8 +46,13 @@ func (p Paths) BackupsDir() string {
 }
 
 // HelperPath is the stable helper location shared by .deb and AppImage.
+func HelperPath(dataDir string) string {
+	return filepath.Join(dataDir, "bin", "better-rpt-helper")
+}
+
+// HelperPath is the stable helper location for these paths.
 func (p Paths) HelperPath() string {
-	return filepath.Join(p.DataDir, "bin", "better-rpt-helper")
+	return HelperPath(p.DataDir)
 }
 
 // LogsDir is the private persistent log directory.

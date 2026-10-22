@@ -36,14 +36,14 @@ func TestArtHandlerGETAndHEAD(t *testing.T) {
 	writeArt(t, root, 123, "library_hero.jpg", jpegBytes(t))
 	writeArt(t, root, 123, "icon.png", pngBytes(t))
 	server := httptest.NewServer(NewArtHandler(catalogFor(root, 123), testLogger()))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	response, err := http.Get(server.URL + "/api/art/123/cover")
 	if err != nil {
 		t.Fatal(err)
 	}
 	body, _ := io.ReadAll(response.Body)
-	response.Body.Close()
+	_ = response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("GET cover status = %d, want 200", response.StatusCode)
 	}
@@ -72,7 +72,7 @@ func TestArtHandlerGETAndHEAD(t *testing.T) {
 		t.Fatal(err)
 	}
 	body, _ = io.ReadAll(response.Body)
-	response.Body.Close()
+	_ = response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("HEAD icon status = %d, want 200", response.StatusCode)
 	}
@@ -92,7 +92,7 @@ func TestArtHandlerValidation(t *testing.T) {
 	writeArt(t, root, 123, "library_hero.jpg", jpegBytes(t))
 	provider := catalogFor(root, 123)
 	server := httptest.NewServer(NewArtHandler(provider, testLogger()))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	tests := []struct {
 		name   string
@@ -119,7 +119,7 @@ func TestArtHandlerValidation(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			response.Body.Close()
+			_ = response.Body.Close()
 			if response.StatusCode != test.status {
 				t.Fatalf("status = %d, want %d", response.StatusCode, test.status)
 			}
@@ -130,12 +130,12 @@ func TestArtHandlerValidation(t *testing.T) {
 	}
 
 	empty := httptest.NewServer(NewArtHandler(fakeCatalog{}, testLogger()))
-	defer empty.Close()
+	defer func() { empty.Close() }()
 	response, err := http.Get(empty.URL + "/api/art/123/cover")
 	if err != nil {
 		t.Fatal(err)
 	}
-	response.Body.Close()
+	_ = response.Body.Close()
 	if response.StatusCode != http.StatusNotFound {
 		t.Fatalf("empty catalog status = %d, want 404", response.StatusCode)
 	}
@@ -145,13 +145,13 @@ func TestArtHandlerETag(t *testing.T) {
 	root := t.TempDir()
 	writeArt(t, root, 123, "library_hero.jpg", jpegBytes(t))
 	server := httptest.NewServer(NewArtHandler(catalogFor(root, 123), testLogger()))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	response, err := http.Get(server.URL + "/api/art/123/cover")
 	if err != nil {
 		t.Fatal(err)
 	}
-	response.Body.Close()
+	_ = response.Body.Close()
 	etag := response.Header.Get("ETag")
 	if etag == "" {
 		t.Fatal("ETag is empty")
@@ -164,7 +164,7 @@ func TestArtHandlerETag(t *testing.T) {
 		t.Fatal(err)
 	}
 	body, _ := io.ReadAll(response.Body)
-	response.Body.Close()
+	_ = response.Body.Close()
 	if response.StatusCode != http.StatusNotModified {
 		t.Fatalf("conditional status = %d, want 304", response.StatusCode)
 	}
@@ -177,13 +177,13 @@ func TestArtHandlerRejectsDisguisedHTML(t *testing.T) {
 	root := t.TempDir()
 	writeArt(t, root, 123, "library_hero.jpg", []byte("<html><body>not an image</body></html>"))
 	server := httptest.NewServer(NewArtHandler(catalogFor(root, 123), testLogger()))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	response, err := http.Get(server.URL + "/api/art/123/cover")
 	if err != nil {
 		t.Fatal(err)
 	}
-	response.Body.Close()
+	_ = response.Body.Close()
 	if response.StatusCode != http.StatusNotFound {
 		t.Fatalf("disguised HTML status = %d, want 404", response.StatusCode)
 	}
@@ -200,13 +200,13 @@ func TestArtHandlerRejectsSymlinkEscape(t *testing.T) {
 		t.Skipf("symlinks unavailable: %v", err)
 	}
 	server := httptest.NewServer(NewArtHandler(catalogFor(root, 123), testLogger()))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	response, err := http.Get(server.URL + "/api/art/123/cover")
 	if err != nil {
 		t.Fatal(err)
 	}
-	response.Body.Close()
+	_ = response.Body.Close()
 	if response.StatusCode != http.StatusNotFound {
 		t.Fatalf("symlink escape status = %d, want 404", response.StatusCode)
 	}
@@ -219,13 +219,13 @@ func TestArtHandlerRejectsOversized(t *testing.T) {
 		t.Fatal(err)
 	}
 	server := httptest.NewServer(NewArtHandler(catalogFor(root, 123), testLogger()))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	response, err := http.Get(server.URL + "/api/art/123/cover")
 	if err != nil {
 		t.Fatal(err)
 	}
-	response.Body.Close()
+	_ = response.Body.Close()
 	if response.StatusCode != http.StatusNotFound {
 		t.Fatalf("oversized status = %d, want 404", response.StatusCode)
 	}

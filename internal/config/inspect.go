@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/srnoob2570/better-rpt/internal/domain"
 )
 
 // OverlayInspection is the read-only state of Steam's in-game overlay flag for
@@ -83,6 +85,9 @@ func InspectControllerLayouts(steamRoot string) (ControllerLayoutInspection, err
 	if strings.TrimSpace(steamRoot) == "" {
 		return result, fmt.Errorf("%w: empty Steam root", ErrControllerConfig)
 	}
+	if os.Geteuid() == 0 {
+		return result, domain.ErrRoot
+	}
 	account, err := SelectAccount(steamRoot)
 	if err != nil {
 		return result, fmt.Errorf("%w: %v", ErrControllerConfig, err)
@@ -133,12 +138,20 @@ func InspectControllerLayouts(steamRoot string) (ControllerLayoutInspection, err
 			result.Warnings = append(result.Warnings, fmt.Errorf("%s: %w", name, err))
 			continue
 		}
-		spaceWar := findVDFChild(root, controllerAppID)
+		spaceWar, err := uniqueVDFChild(root, controllerAppID)
+		if err != nil {
+			result.Warnings = append(result.Warnings, fmt.Errorf("%s: %w", name, err))
+			continue
+		}
 		if spaceWar == nil {
 			result.Missing = append(result.Missing, name)
 			continue
 		}
-		value, ok := scalarVDFChild(spaceWar, controllerTemplateKey)
+		value, ok, err := uniqueScalarVDFChild(spaceWar, controllerTemplateKey)
+		if err != nil {
+			result.Warnings = append(result.Warnings, fmt.Errorf("%s: %w", name, err))
+			continue
+		}
 		if ok && value == template {
 			result.Already = append(result.Already, name)
 			continue

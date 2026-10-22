@@ -10,8 +10,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/srnoob2570/better-rpt/internal/domain"
 )
 
 // SelfEnvironment reads the helper's inherited environment from /proc/self/environ.
@@ -132,14 +130,6 @@ func WaitProcessGroupGone(ctx context.Context, pgid int, timeout time.Duration) 
 		}
 	}
 	return nil
-}
-
-// TargetState validates that targetPID is still the same process.
-func TargetState(targetPID int, startTime uint64) (domain.Phase, error) {
-	if !ProcessAlive(targetPID, startTime) {
-		return domain.PhaseEnded, nil
-	}
-	return domain.PhaseActive, nil
 }
 
 func processState(pid int) (string, error) {

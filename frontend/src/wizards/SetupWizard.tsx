@@ -12,12 +12,14 @@ import { toBridgeError } from "../bridge/client";
 import type {
   DiagnosticCheck,
   DiagnosticReport,
+  Problem,
   SetupStatus,
 } from "../bridge/types";
 import { copyText } from "../clipboard";
 import { DispatcherSetup } from "../components/DispatcherSetup";
 import { openDoc } from "../docs";
 import { translate, type Language, type MessageKey } from "../i18n";
+import { problemText } from "../session/problem";
 import type { SessionController } from "../session/useSession";
 import { useDiagnostics } from "../diagnostics/useDiagnostics";
 import {
@@ -53,7 +55,7 @@ export function SetupWizard({
   const diagnostics = useDiagnostics(lang);
   const [step, setStep] = useState(0);
   const [checking, setChecking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Problem | null>(null);
   const initialized = useRef(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
 
@@ -87,7 +89,7 @@ export function SetupWizard({
     try {
       await session.refreshContext();
     } catch (reason: unknown) {
-      setError(toBridgeError(reason).problem.message);
+      setError(toBridgeError(reason).problem);
     }
     await diagnostics.refresh({ refreshCatalog: true });
     setChecking(false);
@@ -192,7 +194,7 @@ export function SetupWizard({
           )}
           {error && (
             <p className="wizard-error" role="alert">
-              {error}
+              {problemText(lang, error)}
             </p>
           )}
           {diagnostics.mode === "ready" && current && (

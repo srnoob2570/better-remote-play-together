@@ -323,7 +323,12 @@ func (b *Bridge) open(target string) error {
 }
 
 func defaultOpenURL(target string) error {
-	return exec.Command("xdg-open", target).Start()
+	command := exec.Command("xdg-open", target)
+	if err := command.Start(); err != nil {
+		return err
+	}
+	go func() { _ = command.Wait() }()
+	return nil
 }
 
 func contextOrBackground(ctx context.Context) context.Context {

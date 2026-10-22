@@ -153,7 +153,7 @@ export default function App() {
         toast.add({
           type: "error",
           title: t("error.title"),
-          description: next.message,
+          description: problemText(lang, next),
         });
       }
     }
@@ -258,7 +258,14 @@ export default function App() {
   }, [catalog, filter, lang, query]);
 
   const selected = catalog?.games.find((game) => game.appId === selectedId);
-  const donorInstalled = catalog?.games.some((game) => game.appId === 480) ?? false;
+  const donorInstalled =
+    catalog?.games.some(
+      (game) =>
+        game.appId === 480 &&
+        game.status !== "missing" &&
+        game.status !== "error" &&
+        game.status !== "incompatible",
+    ) ?? false;
   const mode: LibraryMode =
     busy || status === "loading"
       ? "loading"
@@ -286,7 +293,7 @@ export default function App() {
       toast.add({
         type: "error",
         title: t("error.refresh"),
-        description: next.message,
+        description: problemText(lang, next),
       });
     } finally {
       setBusy(false);
@@ -307,7 +314,7 @@ export default function App() {
       toast.add({
         type: "error",
         title: t("error.title"),
-        description: toBridgeError(reason).problem.message,
+        description: problemText(lang, toBridgeError(reason).problem),
       });
     }
   }
@@ -734,7 +741,7 @@ function LibraryPane({
       {mode === "error" && (
         <Empty className="library-empty">
           <h2>{t("error.refresh")}</h2>
-          <p className="mono">{problem?.message ?? t("error.generic")}</p>
+          <p className="mono">{problem ? problemText(lang, problem) : t("error.generic")}</p>
           {problem?.detail && <p className="mono">{problem.detail}</p>}
           <div className="inline-actions">
             <Button variant="ghost" className="refresh-button" onClick={onRefresh}>

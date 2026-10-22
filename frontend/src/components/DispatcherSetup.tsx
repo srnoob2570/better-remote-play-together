@@ -27,6 +27,8 @@ export function DispatcherSetup({
   const t = (key: MessageKey, ...args: Array<string | number>) =>
     translate(lang, key, ...args);
   const [command, setCommand] = useState("");
+  const [commandFailed, setCommandFailed] = useState(false);
+  const [reloadCommand, setReloadCommand] = useState(0);
   const [copying, setCopying] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const setup = session.setup;
@@ -40,18 +42,22 @@ export function DispatcherSetup({
 
   useEffect(() => {
     let alive = true;
+    setCommandFailed(false);
     bridge
       .DispatcherCommand()
       .then((value) => {
         if (alive) setCommand(value);
       })
       .catch(() => {
-        if (alive) setCommand("");
+        if (alive) {
+          setCommand("");
+          setCommandFailed(true);
+        }
       });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [reloadCommand]);
 
   async function copyCommand() {
     if (copying) return;
@@ -100,7 +106,18 @@ export function DispatcherSetup({
             {t("action.refreshSetup")}
           </LoadingButton>
         </div>
-        <pre className="guide-command">{command || "…"}</pre>
+        <pre className="guide-command">
+          {command || (commandFailed ? t("error.generic") : "…")}
+        </pre>
+        {commandFailed && (
+          <Button
+            variant="outline"
+            className="secondary-button"
+            onClick={() => setReloadCommand((value) => value + 1)}
+          >
+            {t("action.retry")}
+          </Button>
+        )}
         <p className="hint">{t("guide.commandHint")}</p>
         <div className="wizard-actions">
           <LoadingButton

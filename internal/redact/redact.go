@@ -4,6 +4,7 @@
 package redact
 
 import (
+	"net"
 	"regexp"
 	"strings"
 )
@@ -12,7 +13,7 @@ var (
 	steamIDPattern = regexp.MustCompile(`\b7656\d{13}\b`)
 	tokenPattern   = regexp.MustCompile(`\b[0-9a-fA-F]{32}\b`)
 	ipv4Pattern    = regexp.MustCompile(`\b(?:\d{1,3}\.){3}\d{1,3}\b`)
-	ipv6Pattern    = regexp.MustCompile(`(?i)\b[0-9a-f]{0,4}(?::[0-9a-f]{0,4}){2,7}\b`)
+	ipv6Pattern    = regexp.MustCompile(`(?i)[0-9a-f:]{2,}`)
 	uidRuntime     = regexp.MustCompile(`/run/user/\d+`)
 )
 
@@ -45,7 +46,12 @@ func (s *Sanitizer) Text(value string) string {
 	value = steamIDPattern.ReplaceAllString(value, "[steamid]")
 	value = tokenPattern.ReplaceAllString(value, "[token]")
 	value = ipv4Pattern.ReplaceAllString(value, "[ip]")
-	value = ipv6Pattern.ReplaceAllString(value, "[ip]")
+	value = ipv6Pattern.ReplaceAllStringFunc(value, func(match string) string {
+		if net.ParseIP(match) == nil {
+			return match
+		}
+		return "[ip]"
+	})
 	return value
 }
 

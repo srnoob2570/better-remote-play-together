@@ -5,10 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/srnoob2570/better-rpt/internal/config"
+	"github.com/srnoob2570/better-rpt/internal/fsutil"
 	"github.com/srnoob2570/better-rpt/internal/i18n"
 )
 
@@ -50,11 +50,11 @@ func runCLI(args []string, stdout, stderr io.Writer, version string, run runner)
 		return 2
 	}
 	if !*diagnose {
-		fmt.Fprintln(stderr, "error: --diagnose is required")
+		_, _ = fmt.Fprintln(stderr, "error: --diagnose is required")
 		return 2
 	}
 	if flags.NArg() != 0 {
-		fmt.Fprintf(stderr, "error: unexpected arguments: %v\n", flags.Args())
+		_, _ = fmt.Fprintf(stderr, "error: unexpected arguments: %v\n", flags.Args())
 		return 2
 	}
 
@@ -67,7 +67,7 @@ func runCLI(args []string, stdout, stderr io.Writer, version string, run runner)
 		Deps:     DefaultDeps(paths, pathsErr),
 	})
 	if err != nil {
-		fmt.Fprintf(stderr, "error: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "error: %v\n", err)
 		return 1
 	}
 
@@ -78,19 +78,19 @@ func runCLI(args []string, stdout, stderr io.Writer, version string, run runner)
 			err = ValidateJSON(data)
 		}
 		if err != nil {
-			fmt.Fprintf(stderr, "error: render JSON: %v\n", err)
+			_, _ = fmt.Fprintf(stderr, "error: render JSON: %v\n", err)
 			return 1
 		}
 	} else {
 		data = []byte(RenderMarkdown(report))
 	}
 	if _, err := stdout.Write(data); err != nil {
-		fmt.Fprintf(stderr, "error: write report: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "error: write report: %v\n", err)
 		return 1
 	}
 	if *out != "" {
-		if err := os.WriteFile(*out, data, 0o600); err != nil {
-			fmt.Fprintf(stderr, "error: save report: %v\n", err)
+		if err := fsutil.AtomicWriteFile(*out, data, 0o600); err != nil {
+			_, _ = fmt.Fprintf(stderr, "error: save report: %v\n", err)
 			return 2
 		}
 	}

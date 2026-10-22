@@ -207,7 +207,7 @@ func TestHelperRefusesBusyLock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lock: %v", err)
 	}
-	defer lock.Close()
+	defer func() { _ = lock.Close() }()
 	options := helperOptions(&store, 900001)
 	options.BuildCommand = commandBuilder(exec.Command("true"))
 	helper, err := NewHelper(options)

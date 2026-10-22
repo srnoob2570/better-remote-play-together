@@ -43,13 +43,14 @@ docker run --name "$container" \
 	-e VERSION="$version" \
 	-v "$root:/src:ro" -w /src "$image" \
 	sh -c 'set -e
+		version=$1
 		mkdir -p /tmp/dist
 		CGO_ENABLED=1 go build -tags "gtk3 production" -trimpath -buildvcs=false \
-			-ldflags "-s -w -X main.version=$VERSION" \
+			-ldflags "-s -w -X main.version=$version" \
 			-o /tmp/dist/better-rpt ./cmd/better-rpt
 		CGO_ENABLED=0 go build -trimpath -buildvcs=false \
-			-ldflags "-s -w -X main.version=$VERSION" \
-			-o /tmp/dist/better-rpt-helper ./cmd/better-rpt-helper'
+			-ldflags "-s -w -X main.version=$version" \
+			-o /tmp/dist/better-rpt-helper ./cmd/better-rpt-helper' _ "$version"
 
 mkdir -p dist
 docker cp "$container:/tmp/dist/better-rpt" dist/better-rpt
@@ -64,6 +65,12 @@ if [ ! -x "$nfpm" ]; then
 		echo "install it with: GOTOOLCHAIN=go1.27.3 go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0" >&2
 		exit 1
 	fi
+fi
+
+if ! "$nfpm" --version | grep -q 'v2\.48\.0'; then
+	echo "error: nfpm v2.48.0 is required" >&2
+	"$nfpm" --version >&2 || true
+	exit 1
 fi
 
 VERSION="$version" SOURCE_DATE_EPOCH=1700000000 \

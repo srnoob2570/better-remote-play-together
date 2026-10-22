@@ -449,7 +449,7 @@ func TestPreparePreservesExtendedAttributes(t *testing.T) {
 	if err := syscall.Setxattr(path, "user.better-rpt-test", []byte("kept"), 0); err != nil {
 		t.Skipf("xattrs unsupported: %v", err)
 	}
-	defer syscall.Removexattr(path, "user.better-rpt-test")
+	defer func() { _ = syscall.Removexattr(path, "user.better-rpt-test") }()
 
 	if _, err := Prepare(transactionOptions(t, root)); err != nil {
 		t.Fatalf("prepare: %v", err)
@@ -466,7 +466,7 @@ func TestPreparePreservesPOSIXACL(t *testing.T) {
 	if err := syscall.Setxattr(path, "system.posix_acl_access", acl, 0); err != nil {
 		t.Skipf("POSIX ACLs unsupported: %v", err)
 	}
-	defer syscall.Removexattr(path, "system.posix_acl_access")
+	defer func() { _ = syscall.Removexattr(path, "system.posix_acl_access") }()
 
 	if _, err := Prepare(transactionOptions(t, root)); err != nil {
 		t.Fatalf("prepare: %v", err)
