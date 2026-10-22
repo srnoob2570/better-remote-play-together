@@ -95,6 +95,8 @@ func TestTranslatorFormatsArguments(t *testing.T) {
 		{name: "English count", lang: "en", key: "library.count", args: []any{2}, want: "2 games"},
 		{name: "Spanish step", lang: "es", key: "prep.step", args: []any{2, 5}, want: "Paso 2 de 5"},
 		{name: "English step", lang: "en", key: "prep.step", args: []any{2, 5}, want: "Step 2 of 5"},
+		{name: "Spanish current step", lang: "es", key: "prep.current", args: []any{4, 5, "Pedir a Steam que abra SpaceWar"}, want: "Paso 4 de 5 · Pedir a Steam que abra SpaceWar"},
+		{name: "English current step", lang: "en", key: "prep.current", args: []any{4, 5, "Ask Steam to open SpaceWar"}, want: "Step 4 of 5 · Ask Steam to open SpaceWar"},
 		{name: "pending game", lang: "en", key: "pending.body", args: []any{"Hades"}, want: "SpaceWar still has a configuration from an earlier session for Hades. It is not the last session; you can restore it or open the guide."},
 		{name: "unsupported falls back", lang: "fr", key: "library.count", args: []any{3}, want: "3 juegos"},
 		{name: "missing key is not formatted", lang: "en", key: "does.not.exist", args: []any{1}, want: "does.not.exist"},
@@ -116,6 +118,7 @@ func TestInterpolatedCatalogsKeepPlaceholders(t *testing.T) {
 	}{
 		{key: "library.count", spanish: "%d juegos", english: "%d games"},
 		{key: "prep.step", spanish: "Paso %d de %d", english: "Step %d of %d"},
+		{key: "prep.current", spanish: "Paso %d de %d · %s", english: "Step %d of %d · %s"},
 	}
 	for _, test := range tests {
 		if got := catalogs[Spanish][test.key]; got != test.spanish {

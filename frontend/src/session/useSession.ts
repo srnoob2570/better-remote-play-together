@@ -446,7 +446,12 @@ function sameSessionState(a: SessionState, b: SessionState): boolean {
 }
 
 export function isPreparing(phase: SessionState["phase"] | undefined): boolean {
-  return phase === "preparing" || phase === "donor_starting" || phase === "target_starting";
+  return (
+    phase === "preparing" ||
+    phase === "launching" ||
+    phase === "donor_starting" ||
+    phase === "target_starting"
+  );
 }
 
 export function restoreReasonKey(reason: Situation["restore"]): MessageKey {

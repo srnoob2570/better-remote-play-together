@@ -638,6 +638,13 @@ button {
   line-height: 1.5;
 }
 
+.prep-current {
+  margin: 6px 0 0;
+  color: var(--color-cream);
+  font-size: var(--size-text);
+  line-height: 1.5;
+}
+
 .hint-amber {
   color: var(--color-amber);
   font-size: var(--size-small);

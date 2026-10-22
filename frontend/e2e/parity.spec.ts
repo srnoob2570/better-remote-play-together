@@ -62,15 +62,33 @@ test.describe("parity states", () => {
     await expect(page.getByRole("button", { name: "Reintentar" })).toBeVisible();
   });
 
-  test("preparing progresses and can be cancelled", async ({ page }) => {
+  test("preparing shows one step and can be cancelled", async ({ page }) => {
     await open(page, "preparing");
     await expect(page.getByText("Preparando la sesión")).toBeVisible();
-    await expect(page.getByText("Paso 1 de 5")).toBeVisible();
-    await expect(
-      page.getByText("Steam puede pedirte que confirmes la ejecución.", { exact: false }),
-    ).toBeVisible();
+    await expect(page.getByText("Paso 1 de 5 · Verificar Steam y SpaceWar")).toBeVisible();
+    await expect(page.locator(".steps")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Lanzando…" })).toBeDisabled();
+    await expect(page.getByAltText("Aviso de confirmación de Steam")).toHaveCount(0);
     await page.getByRole("button", { name: "Cancelar" }).click();
     await expect(page.getByRole("button", { name: "Jugar" })).toBeVisible();
+  });
+
+  test("launching shows step four and the Steam prompt", async ({ page }) => {
+    await open(page, "launching");
+    await expect(
+      page.getByText("Paso 4 de 5 · Pedir a Steam que abra SpaceWar"),
+    ).toBeVisible();
+    await expect(page.locator(".steps")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Lanzando…" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Cancelar" })).toHaveCount(0);
+    await expect(page.getByAltText("Aviso de confirmación de Steam")).toBeVisible();
+  });
+
+  test("start pending labels the play action as launching", async ({ page }) => {
+    await open(page, "start-pending");
+    await page.getByRole("row", { name: /Valheim/ }).click();
+    await page.getByRole("button", { name: "Jugar" }).click();
+    await expect(page.getByRole("button", { name: "Lanzando…" })).toBeDisabled();
   });
 
   test("active session shows timer and invite guide", async ({ page }) => {

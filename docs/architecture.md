@@ -107,7 +107,9 @@ partida.
 1. La app valida el juego, el setup instalado y la ausencia de otra sesión.
 2. Escribe plan, estado `preparing`, intención armada y `last-launch.json`
    (`outcome=pending`).
-3. Pide a Steam que arranque SpaceWar con
+3. Antes de pedir el lanzamiento, escribe el estado `launching` y lo emite a la
+   UI: la preparación deja de ofrecer cancelación y muestra el paso de Steam.
+4. Pide a Steam que arranque SpaceWar con
    `steam://run/480//--better-rpt-session=<token>`. Ese URI muestra el popup de
    confirmación de Steam («Allow game launch?» / «¿Permitir iniciar el juego?»),
    verificado con Steam nativo en Linux. Después del URI, la app pide a Steam que
@@ -117,9 +119,9 @@ partida.
    disponible en la versión de Steam del usuario, Better RPT no simula el
    lanzamiento: muestra la guía y el error, y la opción automática queda
    deshabilitada.
-4. El dispatcher lee la intención, la marca `consumed` y lanza el target como
+5. El dispatcher lee la intención, la marca `consumed` y lanza el target como
    hijo del contexto donante.
-5. La app sigue el estado por PID + hora de inicio. Al terminar, actualiza
+6. La app sigue el estado por PID + hora de inicio. Al terminar, actualiza
    `last-launch.json` con `ok`/`error` y la duración.
 
 No se escribe `LaunchOptions` en este paso y no se ejecuta `steam -shutdown` ni

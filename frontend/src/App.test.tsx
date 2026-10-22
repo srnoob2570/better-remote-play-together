@@ -327,15 +327,47 @@ describe("library UI", () => {
     render(<App />);
 
     expect(await screen.findByText("Preparando la sesión")).toBeInTheDocument();
-    expect(screen.getByText("Paso 1 de 5")).toBeInTheDocument();
-    expect(
-      within(screen.getByRole("complementary", { name: "Sesión" })).getByRole("status"),
-    ).toHaveTextContent("Acepta «¿Permitir iniciar el juego?»");
+    expect(screen.getByText("Paso 1 de 5 · Verificar Steam y SpaceWar")).toBeInTheDocument();
+    expect(screen.queryByAltText("Aviso de confirmación de Steam")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Lanzando…" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
     expect(mocked.CancelSession).toHaveBeenCalled();
   });
 
-  it("shows the launching spinner and Steam prompt while the start is pending", async () => {
+  it("shows step four and the launch prompt while Steam confirms", async () => {
+    mocked.RecoverSession.mockResolvedValue(
+      recovery({
+        state: session({ phase: "launching" }),
+        situation: situation({ kind: "prepared", setup: "installed" }),
+        setup: { status: "installed", hasBackup: true },
+      }),
+    );
+    render(<App />);
+
+    expect(
+      await screen.findByText("Paso 4 de 5 · Pedir a Steam que abra SpaceWar"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Lanzando…" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Cancelar" })).not.toBeInTheDocument();
+    expect(screen.getByAltText("Aviso de confirmación de Steam")).toBeInTheDocument();
+  });
+
+  it("shows step five without the prompt while the target starts", async () => {
+    mocked.RecoverSession.mockResolvedValue(
+      recovery({
+        state: session({ phase: "target_starting" }),
+        situation: situation({ kind: "prepared", setup: "installed" }),
+        setup: { status: "installed", hasBackup: true },
+      }),
+    );
+    render(<App />);
+
+    expect(await screen.findByText("Paso 5 de 5 · Esperar al juego")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancelar" })).not.toBeInTheDocument();
+    expect(screen.queryByAltText("Aviso de confirmación de Steam")).not.toBeInTheDocument();
+  });
+
+  it("shows the launching spinner while the start is pending", async () => {
     const donor: Game = {
       appId: 480,
       name: "SpaceWar",
@@ -363,15 +395,10 @@ describe("library UI", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Continuar" }));
 
     const sessionPanel = screen.getByRole("complementary", { name: "Sesión" });
-    const play = within(sessionPanel).getByRole("button", { name: "Jugar" });
+    const play = within(sessionPanel).getByRole("button", { name: "Lanzando…" });
     expect(play).toBeDisabled();
     expect(play.querySelector('[data-slot="spinner"]')).toBeInTheDocument();
-    expect(within(sessionPanel).getByRole("status")).toHaveTextContent(
-      "Acepta «¿Permitir iniciar el juego?»",
-    );
-    expect(
-      within(sessionPanel).getByRole("img", { name: "Aviso de confirmación de Steam" }),
-    ).toBeInTheDocument();
+    expect(screen.queryByAltText("Aviso de confirmación de Steam")).not.toBeInTheDocument();
   });
 
   it("renders the active session timer and guide", async () => {

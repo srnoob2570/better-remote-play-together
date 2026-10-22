@@ -153,6 +153,55 @@ func TestManagerStartReportsPhasesAndWritesLastLaunch(t *testing.T) {
 	}
 }
 
+func TestManagerStartReportsLaunchingBeforeSteamRequest(t *testing.T) {
+	manager := testManager(t)
+	var phases []domain.Phase
+	manager.LaunchSession = func(_ context.Context, appID uint32, token string) error {
+		if appID != domain.SpaceWarAppID {
+			t.Fatalf("launched app = %d, want 480", appID)
+		}
+		state, err := manager.Store.ReadState(token)
+		if err != nil {
+			return err
+		}
+		if state.Phase != domain.PhaseLaunching {
+			t.Fatalf("phase at Steam request = %q, want %q", state.Phase, domain.PhaseLaunching)
+		}
+		plan, err := manager.Store.ReadPlan(token, time.Now())
+		if err != nil {
+			return err
+		}
+		active := NewState(plan, domain.PhaseActive, time.Now())
+		active.HelperPID = os.Getpid()
+		active.HelperStartTime = helperStart(t)
+		active.TargetPID = 12345
+		active.StartedAt = time.Now()
+		return manager.Store.WriteState(active)
+	}
+
+	active, err := manager.Start(context.Background(), StartOptions{
+		TargetAppID: 900001,
+		OnState: func(state State) {
+			phases = append(phases, state.Phase)
+		},
+	})
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	want := []domain.Phase{domain.PhasePreparing, domain.PhaseLaunching, domain.PhaseActive}
+	if len(phases) != len(want) {
+		t.Fatalf("phases = %v, want %v", phases, want)
+	}
+	for index := range want {
+		if phases[index] != want[index] {
+			t.Fatalf("phases = %v, want %v", phases, want)
+		}
+	}
+	if active.State.Phase != domain.PhaseActive {
+		t.Fatalf("state = %+v", active.State)
+	}
+}
+
 func TestManagerStartNeverShutsDownSteam(t *testing.T) {
 	manager := testManager(t)
 	// The fake lifecycle panics on StartCommand. The launch itself is

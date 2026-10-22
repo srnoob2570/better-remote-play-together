@@ -226,6 +226,22 @@ func (m *Manager) Start(ctx context.Context, options StartOptions) (Active, erro
 		_ = m.updateLast(token, LaunchCanceled, err, true)
 		return result, err
 	}
+	// The Steam request happens before the helper can report donor_starting.
+	// Record the launch request so the UI can stop offering cancel and show
+	// the confirmation prompt at the right step.
+	launching := preparing
+	launching.Phase = domain.PhaseLaunching
+	launching.UpdatedAt = m.now().UTC()
+	if err := m.Store.WriteState(launching); err != nil {
+		_ = m.Store.ClearIntent()
+		_ = m.Store.RemovePlan(token)
+		_ = m.Store.RemoveState(token)
+		_ = m.updateLast(token, LaunchError, err, true)
+		return result, err
+	}
+	if options.OnState != nil {
+		options.OnState(launching)
+	}
 	if err := m.LaunchSession(ctx, domain.SpaceWarAppID, token); err != nil {
 		_ = m.Store.ClearIntent()
 		_ = m.markStateError(token, "launch_failed", err)

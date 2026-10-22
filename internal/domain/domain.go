@@ -128,6 +128,7 @@ type Phase string
 const (
 	PhaseIdle           Phase = "idle"
 	PhasePreparing      Phase = "preparing"
+	PhaseLaunching      Phase = "launching"
 	PhaseDonorStarting  Phase = "donor_starting"
 	PhaseTargetStarting Phase = "target_starting"
 	PhaseActive         Phase = "active"
@@ -139,7 +140,7 @@ const (
 // Valid reports whether p is a known phase.
 func (p Phase) Valid() bool {
 	switch p {
-	case PhaseIdle, PhasePreparing, PhaseDonorStarting, PhaseTargetStarting,
+	case PhaseIdle, PhasePreparing, PhaseLaunching, PhaseDonorStarting, PhaseTargetStarting,
 		PhaseActive, PhaseEnded, PhaseError, PhaseRestoring:
 		return true
 	default:

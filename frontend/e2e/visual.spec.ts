@@ -6,6 +6,7 @@ const scenarios = [
   "empty",
   "error",
   "preparing",
+  "launching",
   "active",
   "ended",
   "stale",
@@ -60,6 +61,8 @@ const expected = (scenario: Scenario, lang: "es" | "en"): RegExp | string => {
       return es ? "No se pudo leer la biblioteca de Steam." : "The Steam library could not be read.";
     case "preparing":
       return es ? "Preparando la sesión" : "Preparing the session";
+    case "launching":
+      return es ? "Pedir a Steam que abra SpaceWar" : "Ask Steam to open SpaceWar";
     case "active":
       return es ? "Sesión activa" : "Session active";
     case "ended":
@@ -102,7 +105,7 @@ test.describe("visual parity", () => {
     });
   }
 
-  for (const scenario of ["library", "preparing", "active", "ended"] as const) {
+  for (const scenario of ["library", "preparing", "launching", "active", "ended"] as const) {
     for (const size of [
       { width: 1024, height: 600, name: "1024x600" },
       { width: 1920, height: 1080, name: "1920x1080" },

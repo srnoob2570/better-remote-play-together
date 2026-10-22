@@ -11,6 +11,10 @@ el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 - El aviso de lanzamiento de Steam incluye la captura del diálogo de
   confirmación de la guía para reconocerlo de un vistazo.
+- El panel de preparación muestra una única línea con el paso actual en vez de
+  la lista de cinco pasos. La fase en la que Steam pide confirmación se
+  identifica como paso 4 y el botón principal deja de ofrecer «Cancelar» en ese
+  momento.
 
 ### Fixed
 

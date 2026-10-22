@@ -128,7 +128,7 @@ selección ni el estado de la biblioteca.
 
 | Estado | Acción principal | Notas |
 |---|---|---|
-| Listo | Jugar (si el dispatcher está instalado) o Ver guía | Muestra Lanzando… y el aviso de Steam mientras prepara |
+| Listo | Jugar (si el dispatcher está instalado) o Ver guía | Muestra Lanzando…; el aviso de Steam aparece tras solicitar el lanzamiento |
 | Desconocido | Jugar o Ver guía | Aviso de compatibilidad no confirmada, una vez por juego/ejecución |
 | No compatible | Deshabilitada | Motivo en **Detalles** |
 | No instalado | Deshabilitada | «Actualizar biblioteca» |
@@ -240,8 +240,11 @@ La guía es el flujo principal y debe poder consultarse con Steam abierto:
 
 - Al pulsar **Jugar**, **Jugar de nuevo** o **Reintentar**, el botón pasa a
   **Lanzando…** y se deshabilita mientras se prepara la sesión.
-- Mientras la fase es `preparing`, el panel avisa de que Steam puede pedir
-  confirmación: «¿Permitir iniciar el juego?». La app pide a Steam que traiga su
+- La preparación muestra una sola línea con el paso actual; no hay una lista de
+  pasos. La fase `preparing` permite cancelar con una acción secundaria.
+- Al escribir la fase `launching`, antes de pedir el lanzamiento a Steam, la
+  acción de cancelar desaparece y el panel muestra el aviso de confirmación con
+  su captura: «¿Permitir iniciar el juego?». La app pide a Steam que traiga su
   ventana al frente justo después de solicitar el lanzamiento.
 - La activación es best-effort: si el compositor la bloquea, el aviso sigue
   visible y el usuario puede cambiar manualmente a Steam. La sesión no falla por

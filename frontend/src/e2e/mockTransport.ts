@@ -24,6 +24,7 @@ type Scenario =
   | "empty"
   | "error"
   | "preparing"
+  | "launching"
   | "active"
   | "ended"
   | "stale"
@@ -244,6 +245,11 @@ function scenarioData(name: Scenario, lang: "es" | "en") {
       break;
     case "preparing":
       sessionState = state("preparing");
+      situation = baseSituation({ kind: "prepared", state: sessionState });
+      recoveryValue = recovery({ state: sessionState, situation });
+      break;
+    case "launching":
+      sessionState = state("launching");
       situation = baseSituation({ kind: "prepared", state: sessionState });
       recoveryValue = recovery({ state: sessionState, situation });
       break;
@@ -493,6 +499,7 @@ const SCENARIOS: Record<Scenario, true> = {
   empty: true,
   error: true,
   preparing: true,
+  launching: true,
   active: true,
   ended: true,
   stale: true,

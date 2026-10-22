@@ -4,6 +4,7 @@ export type GameStatus = "ready" | "unknown" | "incompatible" | "missing" | "err
 export type SessionPhase =
   | "idle"
   | "preparing"
+  | "launching"
   | "donor_starting"
   | "target_starting"
   | "active"

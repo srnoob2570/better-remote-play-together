@@ -59,6 +59,18 @@ const PREP_STEPS: MessageKey[] = [
   "prep.waitHelper",
 ];
 
+function prepStep(phase: SessionState["phase"]): number {
+  switch (phase) {
+    case "launching":
+    case "donor_starting":
+      return 3;
+    case "target_starting":
+      return 4;
+    default:
+      return 0;
+  }
+}
+
 export function SessionPanel({
   lang,
   games,
@@ -353,7 +365,7 @@ function SelectionPanel({
             loading={session.launching === game.appId}
             disabled={session.busy}
           >
-            {t("action.play")}
+            {session.launching === game.appId ? t("session.launching") : t("action.play")}
           </LoadingButton>
         ) : (
           <Button className="primary-button" onClick={onOpenSetup}>
@@ -368,8 +380,6 @@ function SelectionPanel({
         <p className="hint-amber">{t(`setup.${setupStatus}` as MessageKey)}</p>
       )}
       <p className="hint">{t("selection.privacy")}</p>
-
-      {session.launching === game.appId && <LaunchPrompt lang={lang} />}
 
       {showCompactLast && last && (
         <LastCompact
@@ -451,7 +461,9 @@ function LastFull({
           loading={session.launching === last.appId}
           disabled={session.busy}
         >
-          {t("action.playAgain")}
+          {session.launching === last.appId
+            ? t("session.launching")
+            : t("action.playAgain")}
         </LoadingButton>
         <Button
           variant="outline"
@@ -463,7 +475,6 @@ function LastFull({
         <RestoreAction lang={lang} session={session} />
       </div>
       <p className="hint">{t(SOURCE_KEY[last.source])}</p>
-      {session.launching === last.appId && <LaunchPrompt lang={lang} />}
     </>
   );
 }
@@ -509,44 +520,41 @@ function PreparingPanel({
 }) {
   const t = (key: MessageKey, ...args: Array<string | number>) =>
     translate(lang, key, ...args);
-  const index =
-    state.phase === "donor_starting" ? 3 : state.phase === "target_starting" ? 4 : 0;
+  const index = prepStep(state.phase);
   const cancelable = state.phase === "preparing";
+  const showLaunchPrompt =
+    state.phase === "launching" || state.phase === "donor_starting";
 
   return (
     <>
       <Hero game={game} title={game?.name ?? `#${state.targetAppId}`} />
       <div>
         <h2 className="section-title">{t("prep.title")}</h2>
-        <p className="hint">{t("prep.step", index + 1, PREP_STEPS.length)}</p>
+        <p className="prep-current">
+          {t("prep.current", index + 1, PREP_STEPS.length, t(PREP_STEPS[index]))}
+        </p>
       </div>
       <div className="session-actions">
-        <LoadingButton
-          className="primary-button"
-          onClick={() => void session.cancel()}
-          loading={!cancelable || session.busyAction === "cancel"}
-          disabled={!cancelable || session.busy}
-        >
-          {cancelable ? t("action.cancel") : t("session.starting")}
+        <LoadingButton className="primary-button" type="button" loading disabled>
+          {t("session.launching")}
         </LoadingButton>
-      </div>
-      <ol className="steps">
-        {PREP_STEPS.map((key, step) => (
-          <li
-            className="step"
-            key={key}
-            data-state={step < index ? "done" : step === index ? "active" : "pending"}
+        {cancelable && (
+          <LoadingButton
+            className="secondary-button"
+            type="button"
+            onClick={() => void session.cancel()}
+            loading={session.busyAction === "cancel"}
+            disabled={session.busy}
           >
-            <span className="step-index">{String(step + 1).padStart(2, "0")}</span>
-            <span>{t(key)}</span>
-          </li>
-        ))}
-      </ol>
-      {state.phase === "preparing" ? (
+            {t("action.cancel")}
+          </LoadingButton>
+        )}
+      </div>
+      {showLaunchPrompt ? (
         <LaunchPrompt lang={lang} />
-      ) : (
+      ) : cancelable ? (
         <p className="hint">{t("prep.cancelHint")}</p>
-      )}
+      ) : null}
     </>
   );
 }
@@ -672,7 +680,9 @@ function EndedPanel({
             loading={session.launching === state.targetAppId}
             disabled={session.busy}
           >
-            {t("action.playAgain")}
+            {session.launching === state.targetAppId
+              ? t("session.launching")
+              : t("action.playAgain")}
           </LoadingButton>
         )}
         {error && (
@@ -682,7 +692,9 @@ function EndedPanel({
             loading={session.launching === state.targetAppId}
             disabled={!game || session.busy}
           >
-            {t("action.retry")}
+            {session.launching === state.targetAppId
+              ? t("session.launching")
+              : t("action.retry")}
           </LoadingButton>
         )}
         {error && (
@@ -716,7 +728,6 @@ function EndedPanel({
             {t(restoreReasonKey(session.situation?.restore ?? "not_needed"))}
           </p>
         )}
-      {session.launching === state.targetAppId && <LaunchPrompt lang={lang} />}
     </>
   );
 }
